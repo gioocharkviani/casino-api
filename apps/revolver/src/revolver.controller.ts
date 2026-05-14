@@ -1,12 +1,13 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { RevolverService } from './revolver.service';
+import { MessagePattern } from '@nestjs/microservices';
 
 @Controller()
 export class RevolverController {
   constructor(private readonly revolverService: RevolverService) {}
 
-  @Get()
-  getHello(): string {
-    return this.revolverService.getHello();
+  @MessagePattern('getAllGames')
+  getAllGames(): string {
+    return this.revolverService.getAllGames();
   }
 }
