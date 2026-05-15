@@ -7,7 +7,7 @@ export interface GameInterface {
   metaData: gameMetaData;
   description: string | null;
   rules: string | null;
-  status: boolean;
+  status: number;
   gameProviderName: string;
   gameProviderPrefix: string;
   thumbnail?: string;

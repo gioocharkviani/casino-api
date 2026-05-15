@@ -55,7 +55,7 @@ export class Game {
   rules?: string | null;
 
   @Column({ default: 1 })
-  status?: boolean;
+  status?: number;
 
   @OneToOne(() => MetaData, (metaData) => metaData.game, {
     cascade: true,
@@ -69,7 +69,7 @@ export class Game {
   providerId!: number;
 
   @ManyToOne(() => GameProvider, (provider) => provider.games, {
-    eager: true,
+    eager: false,
     nullable: false,
   })
   @JoinColumn({ name: 'provider_id' })

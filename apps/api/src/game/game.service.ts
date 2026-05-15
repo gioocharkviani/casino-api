@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
-import { lastValueFrom } from 'rxjs';
+import { defaultIfEmpty, lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class GameService {
@@ -20,7 +20,7 @@ export class GameService {
   //------------------REFRESH PROVIDER GAME LIST
   async refreshProvider() {
     const res = await lastValueFrom(this.client.send('REFRESH_PROVIDER', {}));
-    return res;
+    return await res;
   }
   //------------------END REFRESH PROVIDER GAME LIST
 }

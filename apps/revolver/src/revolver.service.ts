@@ -22,12 +22,38 @@ export class RevolverService {
     private readonly metaDataRepository: Repository<MetaData>,
   ) {}
 
-  //getAllGamesFromDatabase
+  // getAllGamesFromDatabase
   async getAllGames() {
-    const res = await this.gameRepository.find();
+    const res = await this.gameRepository.find({
+      select: {
+        gameUUID: true,
+        gameHumanReadableId: true,
+        gameName: true,
+        status: true,
+        description: true,
+        thumbnail: true,
+        rules: true,
+        // MetaData-ს ნაწილი
+        metaData: {
+          supports_promo_freespins: true,
+          lines: true,
+          reelsWidth: true,
+          reelsHeight: true,
+        },
+
+        gameProvider: {
+          name: true,
+          prefix: true,
+          logo: true,
+        },
+      },
+      relations: {
+        metaData: true,
+        gameProvider: true,
+      },
+    });
     return res;
   }
-
   //refetchGames
   async refreshProvider(reqUrl: String) {
     try {
@@ -35,8 +61,7 @@ export class RevolverService {
       const data = await responce.json();
       const GameData = await data.data.availableGames;
       const result = await this.processAndSaveGames(GameData);
-      console.log(result);
-      return GameData;
+      return result;
     } catch (error) {
       throw new HttpException(
         'ERROR DUARING REFRESH PROVIDER',
@@ -48,13 +73,16 @@ export class RevolverService {
   ///////////////===================================/////////////////
   private async processAndSaveGames(gameData: GameInterface[]) {
     let processed = 0;
-    try {
-      for (const game of gameData) {
+    for (const game of gameData) {
+      try {
         await this.findOrCreateGame(game);
         processed++;
+      } catch (error) {
+        console.error(`Error processing game ${game?.gameName}:`);
+        continue;
       }
-      return processed;
-    } catch (error) {}
+    }
+    return 'PROVIDER REFRESH SUCCESSFULLY';
   }
 
   private async findOrCreateGame(DATA: GameInterface) {
@@ -64,28 +92,36 @@ export class RevolverService {
       },
     });
     if (FIND_GAME) {
-      return;
-    } else {
-      const PROVIDER = await this.findOrCreateProvider({
-        name: DATA.gameProviderName,
-        prefix: DATA.gameProviderPrefix,
-      });
-      const METADATA = await this.findOrCreateMetaData(DATA.metaData);
-      const createGame = this.gameRepository.create({
-        thumbnail: DATA.thumbnail,
-        description: DATA.description,
-        gameName: DATA.gameName,
-        providerId: PROVIDER.id,
-        gameHumanReadableId: DATA.gameHumanReadableId,
-        gameUUID: DATA.gameUUID,
-        metaData: METADATA,
-        marketingMaterialsZip: DATA.marketingMaterialsZip,
-        rules: DATA.rules,
-        status: DATA.status,
-      });
-      const savedGames = await this.gameRepository.save(createGame);
-      return;
+      return {
+        skipped: true,
+        message: 'Game already exists',
+        gameId: FIND_GAME.id,
+      };
     }
+
+    const PROVIDER = await this.findOrCreateProvider({
+      name: DATA.gameProviderName,
+      prefix: DATA.gameProviderPrefix,
+    });
+    const METADATA = await this.findOrCreateMetaData(DATA.metaData);
+    const createGame = this.gameRepository.create({
+      thumbnail: DATA.thumbnail,
+      description: DATA.description,
+      gameName: DATA.gameName,
+      providerId: PROVIDER.id,
+      gameHumanReadableId: DATA.gameHumanReadableId,
+      gameUUID: DATA.gameUUID,
+      metaData: METADATA,
+      marketingMaterialsZip: DATA.marketingMaterialsZip,
+      rules: DATA.rules,
+      status: DATA.status,
+    });
+    const savedGames = await this.gameRepository.save(createGame);
+    return {
+      status: 201,
+      message: 'REVOLVER provider gamelist updated succesfully',
+      newGames: savedGames,
+    };
   }
 
   private async findOrCreateProvider(provider: gameProvider) {
@@ -104,31 +140,20 @@ export class RevolverService {
   }
 
   private async findOrCreateMetaData(gameMetadata: gameMetaData) {
-    if (!gameMetadata) {
-      return null;
-    }
-    try {
-      const existingMetaData = await this.metaDataRepository.findOne({
-        where: {
-          lines: gameMetadata.lines,
-          reelsWidth: gameMetadata.reelsWidth,
-          reelsHeight: gameMetadata.reelsHeight,
-          marketing_materials: gameMetadata.marketing_materials,
-          supports_promo_freespins: gameMetadata.supports_promo_freespins,
-        },
-      });
+    console.log(gameMetadata);
+    if (!gameMetadata) return null;
+    const hasValues = Object.values(gameMetadata).some(
+      (value) => value !== null && value !== undefined && value !== '',
+    );
 
-      if (existingMetaData) {
-        return existingMetaData;
-      }
+    if (!hasValues) return null;
+
+    try {
       const createMetaData = this.metaDataRepository.create(gameMetadata);
-      const savedMetaData = await this.metaDataRepository.save(createMetaData);
-      return savedMetaData;
+      return await this.metaDataRepository.save(createMetaData);
     } catch (error) {
-      throw new HttpException(
-        `ERROR DUARING CREATING METADATA `,
-        HttpStatus.UNPROCESSABLE_ENTITY,
-      );
+      console.error('Metadata creation error');
+      return null;
     }
   }
 
