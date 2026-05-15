@@ -13,7 +13,7 @@ async function bootstrap() {
       },
     },
   );
-  console.log('Revolver microservices start with port');
+  console.log('database service start successfully');
   await app.listen();
 }
 bootstrap();

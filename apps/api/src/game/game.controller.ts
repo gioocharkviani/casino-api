@@ -4,10 +4,7 @@ import { ConfigService } from '@nestjs/config';
 
 @Controller('game')
 export class GameController {
-  constructor(
-    private readonly gameService: GameService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly gameService: GameService) {}
 
   @Get()
   getAllGame() {
@@ -16,10 +13,6 @@ export class GameController {
 
   @Post('revolver-refresh')
   refreshProvider() {
-    const providerUrl = this.configService.get('REVOLVER_URL');
-    const operator = this.configService.get('REVOLVER_OPERATOR');
-    const apiKey = this.configService.get('REVOLVER_HASH');
-    const requestUrl = `${providerUrl}/getGamesList?operator=${operator}&hash=${apiKey}`;
-    return this.gameService.refreshProvider(requestUrl);
+    return this.gameService.refreshProvider();
   }
 }
