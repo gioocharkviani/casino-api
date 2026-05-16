@@ -37,7 +37,7 @@ export class GameProvider {
 @Entity('games')
 export class Game {
   @PrimaryGeneratedColumn()
-  id?: number;
+  id!: number;
 
   @Column({ unique: true })
   gameUUID?: string;
@@ -56,6 +56,9 @@ export class Game {
 
   @Column({ default: 1 })
   status?: number;
+
+  @Column({ nullable: true, default: true })
+  isActive!: boolean;
 
   @OneToOne(() => MetaData, (metaData) => metaData.game, {
     cascade: true,

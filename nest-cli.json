@@ -19,6 +19,15 @@
         "tsConfigPath": "apps/api/tsconfig.app.json"
       }
     },
+    "auth": {
+      "type": "application",
+      "root": "apps/auth",
+      "entryFile": "main",
+      "sourceRoot": "apps/auth/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/auth/tsconfig.app.json"
+      }
+    },
     "common": {
       "type": "library",
       "root": "libs/common",
@@ -37,6 +46,15 @@
         "tsConfigPath": "apps/database/tsconfig.app.json"
       }
     },
+    "game": {
+      "type": "application",
+      "root": "apps/game",
+      "entryFile": "main",
+      "sourceRoot": "apps/game/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/game/tsconfig.app.json"
+      }
+    },
     "revolver": {
       "type": "application",
       "root": "apps/revolver",
@@ -44,6 +62,15 @@
       "sourceRoot": "apps/revolver/src",
       "compilerOptions": {
         "tsConfigPath": "apps/revolver/tsconfig.app.json"
+      }
+    },
+    "wallet": {
+      "type": "application",
+      "root": "apps/wallet",
+      "entryFile": "main",
+      "sourceRoot": "apps/wallet/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/wallet/tsconfig.app.json"
       }
     }
   }

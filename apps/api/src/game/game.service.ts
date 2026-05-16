@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
-import { defaultIfEmpty, lastValueFrom } from 'rxjs';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class GameService {
@@ -11,8 +11,23 @@ export class GameService {
   ) {}
 
   //------------------GET ALL GAMES
-  async getAllGames() {
-    const result = await lastValueFrom(this.client.send('GET_ALL_GAME', {}));
+  async getAllGames(filters?: {
+    page?: number;
+    limit?: number;
+    isActive?: boolean;
+    search?: string;
+    provider?: string;
+  }) {
+    const result = await lastValueFrom(
+      this.client.send('GET_ALL_GAME', {
+        page: filters?.page,
+        limit: filters?.limit,
+        isActive: filters?.isActive,
+        search: filters?.search,
+        provider: filters?.provider,
+      }),
+    );
+
     return result;
   }
   //------------------END GET ALL GAMES

@@ -2,6 +2,7 @@ import { Controller } from '@nestjs/common';
 import { RevolverService } from './revolver.service';
 import { MessagePattern } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
+import type { GameFilters } from './interface/filters.interface';
 
 @Controller()
 export class RevolverController {
@@ -11,8 +12,8 @@ export class RevolverController {
   ) {}
 
   @MessagePattern('GET_ALL_GAME')
-  getAllGames() {
-    return this.revolverService.getAllGames();
+  getAllGames(data: GameFilters) {
+    return this.revolverService.getAllGames(data);
   }
 
   @MessagePattern('REFRESH_PROVIDER')

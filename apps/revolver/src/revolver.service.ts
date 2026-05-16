@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { gameProvider } from './interface/provider.interface';
 import { gameMetaData } from './interface/metaData.interface';
 import { GameInterface } from './interface/game.interface';
+import { GameFilters } from './interface/filters.interface';
 
 @Injectable()
 export class RevolverService {
@@ -23,37 +24,75 @@ export class RevolverService {
   ) {}
 
   // getAllGamesFromDatabase
-  async getAllGames() {
-    const res = await this.gameRepository.find({
-      select: {
-        gameUUID: true,
-        gameHumanReadableId: true,
-        gameName: true,
-        status: true,
-        description: true,
-        thumbnail: true,
-        rules: true,
-        // MetaData-ს ნაწილი
-        metaData: {
-          supports_promo_freespins: true,
-          lines: true,
-          reelsWidth: true,
-          reelsHeight: true,
-        },
+  async getAllGames(data: GameFilters) {
+    const page = data?.page ? parseInt(data?.page as any) : 1;
+    const limit = data?.limit ? parseInt(data?.limit as any) : 20;
+    const skip = (page - 1) * limit;
 
-        gameProvider: {
-          name: true,
-          prefix: true,
-          logo: true,
-        },
+    const queryBuilder = this.gameRepository
+      .createQueryBuilder('game')
+      .leftJoinAndSelect('game.metaData', 'metaData')
+      .leftJoinAndSelect('game.gameProvider', 'gameProvider')
+      .select([
+        'game.id',
+        'game.gameUUID',
+        'game.gameHumanReadableId',
+        'game.gameName',
+        'game.status',
+        'game.description',
+        'game.thumbnail',
+        'game.rules',
+        'game.isActive',
+        'metaData.supports_promo_freespins',
+        'metaData.lines',
+        'metaData.reelsWidth',
+        'metaData.reelsHeight',
+        'gameProvider.name',
+        'gameProvider.prefix',
+        'gameProvider.logo',
+      ]);
+
+    if (data?.isActive !== undefined && data?.isActive !== null) {
+      queryBuilder.andWhere('game.isActive = :isActive', {
+        isActive: data.isActive,
+      });
+    }
+
+    if (data?.search && data.search.trim() !== '') {
+      queryBuilder.andWhere('game.gameName LIKE :search', {
+        search: `%${data.search}%`,
+      });
+    }
+
+    if (data?.provider && data.provider.trim() !== '') {
+      queryBuilder.andWhere('gameProvider.name = :provider', {
+        provider: data.provider,
+      });
+    }
+
+    queryBuilder.skip(skip).take(limit).orderBy('game.id', 'ASC');
+
+    const [res, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      status: 'OK',
+      data: res,
+      pagination: {
+        page: page,
+        limit: limit,
+        total: total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPreviousPage: page > 1,
       },
-      relations: {
-        metaData: true,
-        gameProvider: true,
+      filters: {
+        isActive: data?.isActive,
+        search: data?.search,
+        provider: data?.provider,
       },
-    });
-    return res;
+    };
   }
+
   //refetchGames
   async refreshProvider(reqUrl: String) {
     try {
@@ -73,6 +112,7 @@ export class RevolverService {
   ///////////////===================================/////////////////
   private async processAndSaveGames(gameData: GameInterface[]) {
     let processed = 0;
+    const countBefore = await this.gameRepository.count();
     for (const game of gameData) {
       try {
         await this.findOrCreateGame(game);
@@ -82,7 +122,12 @@ export class RevolverService {
         continue;
       }
     }
-    return 'PROVIDER REFRESH SUCCESSFULLY';
+    const countAfter = await this.gameRepository.count();
+    return {
+      status: 'OK',
+      newGames: countAfter - countBefore,
+      message: 'PROVIDER REFRESH SUCCESSFULLY',
+    };
   }
 
   private async findOrCreateGame(DATA: GameInterface) {
@@ -118,7 +163,7 @@ export class RevolverService {
     });
     const savedGames = await this.gameRepository.save(createGame);
     return {
-      status: 201,
+      status: 'OK',
       message: 'REVOLVER provider gamelist updated succesfully',
       newGames: savedGames,
     };
@@ -140,7 +185,6 @@ export class RevolverService {
   }
 
   private async findOrCreateMetaData(gameMetadata: gameMetaData) {
-    console.log(gameMetadata);
     if (!gameMetadata) return null;
     const hasValues = Object.values(gameMetadata).some(
       (value) => value !== null && value !== undefined && value !== '',
