@@ -2,6 +2,10 @@ import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { Game, GameProvider, MetaData } from './entities/game.entity';
+import { walletEntity } from './entities/wallet.entity';
+import { UserEntity } from './entities/user.entity';
+import { CountryEntity } from './entities/country.entity';
+import { TransactionEntity } from './entities/transaction.entity';
 
 @Global()
 @Module({
@@ -14,7 +18,15 @@ import { Game, GameProvider, MetaData } from './entities/game.entity';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
-      entities: [Game, MetaData, GameProvider],
+      entities: [
+        Game,
+        MetaData,
+        GameProvider,
+        walletEntity,
+        UserEntity,
+        CountryEntity,
+        TransactionEntity,
+      ],
       synchronize: true,
       timezone: '+04:00',
       charset: 'utf8mb4',
@@ -22,7 +34,15 @@ import { Game, GameProvider, MetaData } from './entities/game.entity';
         connectionLimit: 10,
       },
     }),
-    TypeOrmModule.forFeature([Game, MetaData, GameProvider]),
+    TypeOrmModule.forFeature([
+      Game,
+      MetaData,
+      GameProvider,
+      walletEntity,
+      UserEntity,
+      CountryEntity,
+      TransactionEntity,
+    ]),
   ],
   exports: [TypeOrmModule],
 })

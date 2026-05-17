@@ -1,12 +1,14 @@
 import { Controller, Get } from '@nestjs/common';
 import { GameService } from './game.service';
+import { MessagePattern } from '@nestjs/microservices';
+import type { FilterInterface } from './interface/filters.interface';
 
 @Controller()
 export class GameController {
   constructor(private readonly gameService: GameService) {}
 
-  @Get()
-  getHello(): string {
-    return this.gameService.getHello();
+  @MessagePattern('GET_ALL_GAME')
+  getAllGames(data: FilterInterface) {
+    return this.gameService.getAllGames(data);
   }
 }

@@ -5,10 +5,7 @@ import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class GameService {
-  constructor(
-    private readonly configService: ConfigService,
-    @Inject('REVOLVER_SERVICE') private client: ClientProxy,
-  ) {}
+  constructor(@Inject('GAME_M_SERVICE') private client: ClientProxy) {}
 
   //------------------GET ALL GAMES
   async getAllGames(filters?: {

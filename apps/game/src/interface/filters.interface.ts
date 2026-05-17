@@ -1,4 +1,4 @@
-export interface GameFilters {
+export interface FilterInterface {
   page?: string;
   limit?: string;
   isActive?: boolean;

@@ -9,7 +9,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
     ConfigModule.forRoot(),
     ClientsModule.register([
       {
-        name: `REVOLVER_SERVICE`,
+        name: `GAME_M_SERVICE`,
         transport: Transport.TCP,
         options: { host: 'localhost', port: 3030 },
       },
