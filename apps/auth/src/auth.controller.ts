@@ -8,16 +8,12 @@ export class AuthController {
 
   // REGISTER NEW USER
   @MessagePattern('NEW_USER_REGISTRATION')
-  registerNewUser() {
-    return 'user register succesfully';
+  registerNewUser(data: any) {
+    return this.authService.signUpMService(data);
   }
   //SIGN IN
-  @MessagePattern('NEW_USER_REGISTRATION')
+  @MessagePattern('USER_SIGN_IN')
   signIn() {
     return 'user Sign In';
   }
-  //TODO verification with email OR phone
-  //TODO getUserInfoService
-  //TODO block user with description
-  //TODO user KYC verification if its important
 }

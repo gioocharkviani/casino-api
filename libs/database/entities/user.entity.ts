@@ -33,14 +33,14 @@ export class UserEntity {
   lastName!: string;
 
   @ManyToOne(() => CountryEntity, (country) => country.users, {
-    nullable: false,
-    eager: true,
+    nullable: true,
+    eager: false,
   })
   @JoinColumn({ name: 'country' })
   country!: CountryEntity;
 
-  @Column({ type: 'varchar', length: 100 })
-  citizenship!: string;
+  @Column({ type: 'varchar', nullable: true, length: 100 })
+  citizenship?: string;
 
   @Column({ type: 'date' })
   birthday!: Date;

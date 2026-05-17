@@ -16,7 +16,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe());
-
+  console.log('API MODULE START SUCCESSFULLY');
   await app.listen(3000);
 }
 bootstrap();

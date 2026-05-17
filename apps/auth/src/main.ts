@@ -13,6 +13,7 @@ async function bootstrap() {
       },
     },
   );
+  console.log('AUTH MODULE START SUCCESSFULLY');
   await app.listen();
 }
 bootstrap();
