@@ -1,14 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Game } from 'libs/database/entities/game.entity';
 import { Repository } from 'typeorm';
 import { FilterInterface } from './interface/filters.interface';
+import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
+import { RevolverService } from './revolver/revolver.service';
 
 @Injectable()
 export class GameService {
   constructor(
     @InjectRepository(Game)
     private readonly gameRepository: Repository<Game>,
+    private readonly revolverProvider: RevolverService,
   ) {}
 
   // get all games endpoint
@@ -82,4 +86,22 @@ export class GameService {
   }
 
   //end get all games endpoint
+
+  //LUNCH GAME
+  async lunchGame(data: any) {
+    const findGame = await this.gameRepository.findOne({
+      where: {
+        gameUUID: data.gameId,
+      },
+      relations: {
+        gameProvider: true,
+      },
+    });
+    if (findGame?.gameProvider?.prefix === 'rvlvr') {
+      const res = await this.revolverProvider.lunchRevolverGame();
+      return res;
+    }
+    return data;
+  }
+  //LUNCH GAME
 }

@@ -11,4 +11,9 @@ export class GameController {
   getAllGames(data: FilterInterface) {
     return this.gameService.getAllGames(data);
   }
+
+  @MessagePattern('LUNCH_GAME')
+  lunchGame(data: any) {
+    return this.gameService.lunchGame(data);
+  }
 }

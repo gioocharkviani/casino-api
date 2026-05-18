@@ -37,6 +37,12 @@ export class RevolverService {
     }
   }
 
+  //LUNCH REVOLVER GAME
+  async lunchRevolverGame() {
+    return 'revolver game lunched';
+  }
+  //LUNCH REVOLVER GAME
+
   ///////////////===================================/////////////////
   private async processAndSaveGames(gameData: GameInterface[]) {
     let processed = 0;

@@ -115,3 +115,24 @@ export class MetaData {
   @OneToOne(() => Game, (game: Game) => game.metaData)
   game?: Game;
 }
+
+@Entity('game_sessions')
+export class GameSession {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  @Column({ unique: true })
+  token!: string;
+
+  @Column()
+  playerId!: string;
+
+  @Column({ nullable: true })
+  gameId!: string;
+
+  @Column({ type: 'date' })
+  expiresAt!: Date;
+
+  @CreateDateColumn()
+  createdAt!: Date;
+}

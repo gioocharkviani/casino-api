@@ -1,7 +1,12 @@
 import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { Game, GameProvider, MetaData } from './entities/game.entity';
+import {
+  Game,
+  GameProvider,
+  GameSession,
+  MetaData,
+} from './entities/game.entity';
 import { walletEntity } from './entities/wallet.entity';
 import { UserEntity } from './entities/user.entity';
 import { CountryEntity } from './entities/country.entity';
@@ -26,6 +31,7 @@ import { TransactionEntity } from './entities/transaction.entity';
         UserEntity,
         CountryEntity,
         TransactionEntity,
+        GameSession,
       ],
       synchronize: true,
       timezone: '+04:00',
@@ -38,6 +44,7 @@ import { TransactionEntity } from './entities/transaction.entity';
       Game,
       MetaData,
       GameProvider,
+      GameSession,
       walletEntity,
       UserEntity,
       CountryEntity,

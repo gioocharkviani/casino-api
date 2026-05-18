@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
+import { LaunchGameDto } from './dto/LunchGame.dto';
 
 @Injectable()
 export class GameService {
@@ -35,4 +36,11 @@ export class GameService {
     return await res;
   }
   //------------------END REFRESH PROVIDER GAME LIST
+
+  //-----------------Lunch game
+  async lunchGame(data: LaunchGameDto) {
+    const res = await lastValueFrom(this.client.send('LUNCH_GAME', data));
+    return res;
+  }
+  //-----------------Lunch game
 }
