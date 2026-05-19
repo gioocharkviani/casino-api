@@ -1,12 +1,12 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { SignInDto, SignUpDto } from './dto/auth.dto';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { SignInDto, SignInDtoMS, SignUpDto } from 'libs/common';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @Inject('AUTH_M_SERVICE')
+    @Inject('AUTH_MS_SERVICE')
     private readonly client: ClientProxy,
   ) {}
   //USER REGISTER SERVICE
@@ -17,7 +17,8 @@ export class AuthService {
     return result;
   }
   //USER SIGNIN SERVICE
-  async signIn(data: SignInDto) {
-    return data;
+  async signIn(data: SignInDtoMS) {
+    const result = await lastValueFrom(this.client.send('USER_SIGN_IN', data));
+    return result;
   }
 }

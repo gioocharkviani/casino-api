@@ -8,7 +8,7 @@ import {
   MetaData,
 } from './entities/game.entity';
 import { walletEntity } from './entities/wallet.entity';
-import { UserEntity } from './entities/user.entity';
+import { UserEntity, UserSessionEntity } from './entities/user.entity';
 import { CountryEntity } from './entities/country.entity';
 import { TransactionEntity } from './entities/transaction.entity';
 
@@ -32,6 +32,7 @@ import { TransactionEntity } from './entities/transaction.entity';
         CountryEntity,
         TransactionEntity,
         GameSession,
+        UserSessionEntity,
       ],
       synchronize: true,
       timezone: '+04:00',
@@ -49,6 +50,7 @@ import { TransactionEntity } from './entities/transaction.entity';
       UserEntity,
       CountryEntity,
       TransactionEntity,
+      UserSessionEntity,
     ]),
   ],
   exports: [TypeOrmModule],

@@ -6,8 +6,9 @@ import {
   IsEmail,
   IsMobilePhone,
   IsDateString,
-  IsOptional,
   Matches,
+  isNotEmpty,
+  isString,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
@@ -70,4 +71,16 @@ export class SignInDto {
 
   @IsNotEmpty({ message: 'Password is required' })
   password!: string;
+}
+
+export class SignInDtoMS {
+  @IsNotEmpty({ message: 'Username is required' })
+  @Transform(({ value }) => value?.trim())
+  userName!: string;
+
+  @IsNotEmpty({ message: 'Password is required' })
+  password!: string;
+
+  @IsString()
+  ip?: string;
 }

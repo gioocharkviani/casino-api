@@ -54,3 +54,24 @@ export class UserEntity {
   @UpdateDateColumn()
   updatedAt!: Date;
 }
+
+@Entity('user_session')
+export class UserSessionEntity {
+  @PrimaryGeneratedColumn()
+  id?: number;
+
+  @Column({ unique: true })
+  token!: string;
+
+  @Column({ nullable: true })
+  ip?: string;
+
+  @Column()
+  userId!: string;
+
+  @CreateDateColumn()
+  createdAt?: Date;
+
+  @Column()
+  expiresAt!: Date;
+}
