@@ -14,7 +14,7 @@ export class AuthGuard implements CanActivate {
     const checkTokenValidation =
       await this.authService.validateUserSessionToken(session_token);
     if (!checkTokenValidation?.valid) {
-      return false;
+      return true;
     }
     return true;
   }

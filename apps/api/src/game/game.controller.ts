@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Query } from '@nestjs/common';
+import { Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { GameService } from './game.service';
 import { getRequestDto } from './dto/getRequest.dto';
 import { LaunchGameDto } from './dto/LunchGame.dto';
+import { AuthGuard } from 'libs/guards/auth.guard';
+// import { AuthGuard } from 'libs/guards/auth.guard';
 @Controller('game')
 export class GameController {
   constructor(private readonly gameService: GameService) {}
@@ -17,6 +19,7 @@ export class GameController {
   }
 
   @Get('lunch-game')
+  @UseGuards(AuthGuard)
   lunchGame(@Query() query: LaunchGameDto) {
     return this.gameService.lunchGame(query);
   }

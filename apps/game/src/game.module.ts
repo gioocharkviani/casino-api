@@ -5,9 +5,10 @@ import { RevolverService } from './revolver/revolver.service';
 import { RevolverController } from './revolver/revolver.controller';
 import { DatabaseModule } from 'libs/database/database.module';
 import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from 'apps/auth/src/auth.module';
 
 @Module({
-  imports: [DatabaseModule, ConfigModule.forRoot()],
+  imports: [DatabaseModule, AuthModule, ConfigModule.forRoot()],
   controllers: [GameController, RevolverController],
   providers: [GameService, RevolverService],
   exports: [GameService, RevolverService],
