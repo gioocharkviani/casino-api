@@ -104,6 +104,56 @@ export class AuthService {
     }
   }
 
+  //SIGN OUT USER
+  async signOutUser(token?: string | null) {
+    if (!token || token === null) {
+      throw new RpcException({
+        message: 'token not found',
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+    try {
+      const removeToken = await this.removeTokenFromSession(token);
+      return removeToken;
+    } catch (error) {
+      throw new RpcException({
+        message: 'server error duaring user sign out',
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
+  //GETUSER INFORAMTION
+  async getUserInfo(token?: string) {
+    try {
+      const validation = await this.validateUserSession(token);
+      if (!validation.valid) {
+        throw new RpcException({
+          message: 'UNAUTHORIZED',
+          statusCode: HttpStatus.UNAUTHORIZED,
+        });
+      }
+      const userId = validation.userId;
+      const findUser = await this.userRepository.findOne({
+        where: { id: userId },
+      });
+      if (!findUser) {
+        throw new RpcException({
+          message: 'User not found',
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      }
+      const { password, ...userWithoutPassword } = findUser;
+      return userWithoutPassword;
+    } catch (error) {
+      throw new RpcException({
+        message: 'UNAUTHORIZED',
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
+    }
+  }
+  //GETUSER INFORAMTION
+
   /////////////////////////////////////////////////////////////////////////
 
   //SAVE USER SESSION
@@ -119,7 +169,7 @@ export class AuthService {
       const currentTime = new Date();
       const expireTime = new Date(
         currentTime.getTime() + expireHours * 60 * 60 * 1000,
-      ); // milliseconds
+      );
 
       const saveUserSession = await this.userSessionRepository.save({
         userId: data.userId,
@@ -143,7 +193,53 @@ export class AuthService {
   //SAVE USER SESSION
 
   //VALIDATE USER SESSION
-  private validateUserSession() {}
+  async validateUserSession(token?: string) {
+    if (!token) return { valid: false };
+
+    const session = await this.userSessionRepository.findOne({
+      where: { token: token },
+    });
+
+    if (!session || !session.token) {
+      return { valid: false };
+    }
+    if (session.expiresAt < new Date()) {
+      session.token = null;
+      await this.userSessionRepository.save(session);
+      return { valid: false };
+    }
+    const expireHours = parseInt(
+      this.configService.get('AUTH_TOKEN_EXPIRE_TIME') || '24',
+      10,
+    );
+    const newExpiry = new Date();
+    newExpiry.setHours(newExpiry.getHours() + expireHours);
+
+    session.expiresAt = newExpiry;
+    await this.userSessionRepository.save(session);
+    return {
+      valid: true,
+      userId: session.userId,
+    };
+  }
   //VALIDATE USER SESSION
+
+  //REMOVE TOKEN FROM USER SESSION
+  private async removeTokenFromSession(token?: string) {
+    if (!token) {
+      return { message: 'User logged out successfully' };
+    }
+    const findToken = await this.userSessionRepository.findOne({
+      where: { token: token },
+    });
+    if (!findToken) {
+      return { message: 'User logged out successfully' };
+    }
+    findToken.token = null;
+
+    await this.userSessionRepository.save(findToken);
+    return { message: 'User logged out successfully' };
+  }
+  //REMOVE TOKEN FROM USER SESSION
   /////////////////////////////////////////////////////////////////////////
 }

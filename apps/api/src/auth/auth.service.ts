@@ -21,4 +21,26 @@ export class AuthService {
     const result = await lastValueFrom(this.client.send('USER_SIGN_IN', data));
     return result;
   }
+
+  //USER SIGN-OUT
+  async signOut(token?: string | null) {
+    const result = await lastValueFrom(
+      this.client.send('USER_SIGN_OUT', token),
+    );
+    return result;
+  }
+
+  //GET USER INFORMATION
+  async getUserInfo(token?: string) {
+    const result = await lastValueFrom(this.client.send('GET_USER', token));
+    return result;
+  }
+
+  //VALIDATE USER SESSION TOKEN
+  async validateUserSessionToken(token?: string) {
+    const result = await lastValueFrom(
+      this.client.send('TOKEN_VALIDATION', token),
+    );
+    return result;
+  }
 }

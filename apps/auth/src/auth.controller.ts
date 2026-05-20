@@ -17,4 +17,20 @@ export class AuthController {
   signIn(data: SignInDtoMS) {
     return this.authService.signInUser(data);
   }
+  //SIGN OUT
+  @MessagePattern('USER_SIGN_OUT')
+  signOut(token?: string | null) {
+    return this.authService.signOutUser(token);
+  }
+
+  //GET USER INFO
+  @MessagePattern('GET_USER')
+  getUserInfo(token?: string) {
+    return this.authService.getUserInfo(token);
+  }
+  //GET USER INFO
+  @MessagePattern('TOKEN_VALIDATION')
+  tokenValidation(token?: string) {
+    return this.authService.validateUserSession(token);
+  }
 }

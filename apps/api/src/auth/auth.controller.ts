@@ -1,8 +1,19 @@
-import { Body, Controller, Ip, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Ip,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInDto, SignUpDto } from 'libs/common';
-import type { Response } from 'express';
+import type { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { AuthGuard } from 'libs/guards/auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -22,20 +33,50 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @Ip() ip: string,
   ) {
+    const EXPIRE_DATE = this.configService.get('AUTH_TOKEN_EXPIRE_TIME');
     const requestIpAddress = ip;
-    console.log(requestIpAddress);
     const result = await this.authService.signIn({
       ...data,
       ip: requestIpAddress,
     });
-    res.cookie('session_t', result.token, {
+    res.cookie('session_token', result.token, {
       httpOnly: true,
-      secure: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000,
+      path: '/',
+      maxAge: parseInt(EXPIRE_DATE) * 60 * 60 * 1000,
     });
     return {
       meesage: 'Login successful',
     };
+  }
+
+  //SIGN-OUT
+  @Post('sign-out')
+  @HttpCode(200)
+  userSignOut(@Res({ passthrough: true }) res: Response, @Req() req: Request) {
+    const session_token = req.cookies?.session_token
+      ? req.cookies?.session_token
+      : '';
+    console.log(session_token);
+    const result = this.authService.signOut(session_token);
+    res.clearCookie('session_token', {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      path: '/',
+    });
+
+    return result;
+  }
+
+  //GET USER INFO
+  @Get('user')
+  @UseGuards(AuthGuard)
+  userInfo(@Req() req: Request) {
+    const session_token = req.cookies?.session_token
+      ? req.cookies?.session_token
+      : '';
+    return this.authService.getUserInfo(session_token);
   }
 }

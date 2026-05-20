@@ -60,10 +60,10 @@ export class UserSessionEntity {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  @Column({ unique: true })
-  token!: string;
+  @Column({ type: 'varchar', unique: true, nullable: true, default: null })
+  token!: string | null;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, default: null })
   ip?: string;
 
   @Column()
