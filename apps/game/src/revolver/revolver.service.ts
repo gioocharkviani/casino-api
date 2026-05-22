@@ -3,22 +3,35 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   Game,
   GameProvider,
+  GameSession,
   MetaData,
 } from 'libs/database/entities/game.entity';
 import { Repository } from 'typeorm';
 import { gameProvider } from '../interface/provider.interface';
 import { gameMetaData } from '../interface/metaData.interface';
 import { GameInterface } from '../interface/game.interface';
+import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
+import { ConfigService } from '@nestjs/config';
+import { randomBytes } from 'crypto';
+import { UserEntity } from 'libs/database/entities/user.entity';
+import { GameService } from '../game.service';
+import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class RevolverService {
   constructor(
+    //repositoryes
     @InjectRepository(Game)
     private readonly gameRepository: Repository<Game>,
+    @InjectRepository(GameSession)
+    private readonly gameSessionRepository: Repository<GameSession>,
     @InjectRepository(GameProvider)
     private readonly providerRepository: Repository<GameProvider>,
     @InjectRepository(MetaData)
     private readonly metaDataRepository: Repository<MetaData>,
+
+    //services
+    private readonly configServce: ConfigService,
   ) {}
 
   //refetchGames
@@ -38,8 +51,40 @@ export class RevolverService {
   }
 
   //LUNCH REVOLVER GAME
-  async lunchRevolverGame() {
-    return 'revolver game lunched';
+  async lunchRevolverGame(data: LaunchGameDto, user: UserEntity) {
+    const node_env = await this.configServce.get('NODE_ENV');
+    const baseUrl = await this.configServce.get('REVOLVER_URL');
+    const OPERATOOR = await this.configServce.get('REVOLVER_OPERATOR');
+    const GAME_ID = data.gameId;
+    let TOKEN = randomBytes(32).toString('hex');
+    const LANG = data.lang || 'en';
+    const VARIANT = data.variant || 'desktop';
+    const DEMO = data.demo;
+    const EXIT_URL = 'close';
+    const LUNCH_GAME_URL = `${baseUrl}/launch/generic?operator=${OPERATOOR}&exit_url=${EXIT_URL}&game=${GAME_ID}&token=${TOKEN}&lang=${LANG}&variant=${VARIANT}&freeplay=${DEMO}`;
+    const request = await fetch(`${LUNCH_GAME_URL}`);
+    const res = await request.json();
+
+    if (
+      node_env !== 'development' &&
+      DEMO === '1' &&
+      res.data.TOKEN === 'DEMO'
+    ) {
+      return {
+        status: 200,
+        lunch_game_url: res.data.URL,
+      };
+    }
+    await this.createGameSession({
+      token: TOKEN,
+      gameId: GAME_ID,
+      playerId: user.id,
+      isActive: true,
+    });
+    return {
+      status: 200,
+      lunch_game_url: res.data.URL,
+    };
   }
   //LUNCH REVOLVER GAME
 
@@ -64,6 +109,19 @@ export class RevolverService {
     };
   }
 
+  //CREATE GAME SESSION
+  private async createGameSession(data: GameSession) {
+    console.log(data);
+    try {
+      const session = this.gameSessionRepository.create(data);
+      return await this.gameSessionRepository.save(session);
+    } catch (error) {
+      throw new RpcException('ERROR DURING CREATING GAME SESSION');
+    }
+  }
+  //CREATE GAME SESSION
+
+  //FIND OR CREATE GAME
   private async findOrCreateGame(DATA: GameInterface) {
     const FIND_GAME = await this.gameRepository.findOne({
       where: {
@@ -103,6 +161,7 @@ export class RevolverService {
     };
   }
 
+  //FIND OR CREATE PROVIDER
   private async findOrCreateProvider(provider: gameProvider) {
     const _provider = await this.providerRepository.findOne({
       where: { prefix: provider.prefix },

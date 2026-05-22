@@ -51,6 +51,7 @@ import { TransactionEntity } from './entities/transaction.entity';
       CountryEntity,
       TransactionEntity,
       UserSessionEntity,
+      GameSession,
     ]),
   ],
   exports: [TypeOrmModule],

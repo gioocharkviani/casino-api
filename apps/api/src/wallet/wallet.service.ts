@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { WalletAuthDto } from './dto/wallet.dto';
+
 import { ClientProxy } from '@nestjs/microservices';
+import { WalletAuthDto } from 'libs/common/dto/wallet.dto';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable()

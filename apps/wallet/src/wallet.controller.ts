@@ -1,6 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { MessagePattern } from '@nestjs/microservices';
+import { WalletAuthDto } from 'libs/common/dto/wallet.dto';
 
 @Controller()
 export class WalletController {
@@ -8,7 +9,7 @@ export class WalletController {
 
   //Wallet auth service
   @MessagePattern('WALLET_AUTH')
-  walletAuth(data: any) {
+  walletAuth(data: WalletAuthDto) {
     return this.walletService.walletAuth(data);
   }
 }

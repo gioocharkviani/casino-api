@@ -1,6 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { WalletService } from './wallet.service';
-import { WalletAuthDto } from './dto/wallet.dto';
+import { WalletAuthDto } from 'libs/common/dto/wallet.dto';
 
 @Controller('wallet')
 export class WalletController {

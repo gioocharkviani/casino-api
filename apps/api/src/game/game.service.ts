@@ -2,11 +2,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
-import { LaunchGameDto } from './dto/LunchGame.dto';
+import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
+import { AuthService } from '../auth/auth.service';
 
 @Injectable()
 export class GameService {
-  constructor(@Inject('GAME_M_SERVICE') private client: ClientProxy) {}
+  constructor(
+    @Inject('GAME_M_SERVICE') private client: ClientProxy,
+    private readonly authService: AuthService,
+  ) {}
 
   //------------------GET ALL GAMES
   async getAllGames(filters?: {
@@ -38,8 +42,12 @@ export class GameService {
   //------------------END REFRESH PROVIDER GAME LIST
 
   //-----------------Lunch game
-  async lunchGame(data: LaunchGameDto) {
-    const res = await lastValueFrom(this.client.send('LUNCH_GAME', data));
+  async lunchGame(data: LaunchGameDto, token: string) {
+    const user = await this.authService.getUserInfo(token);
+    const res = await lastValueFrom(
+      this.client.send('LUNCH_GAME', { data, user }),
+    );
+
     return res;
   }
   //-----------------Lunch game

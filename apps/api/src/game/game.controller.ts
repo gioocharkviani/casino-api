@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { GameService } from './game.service';
-import { getRequestDto } from './dto/getRequest.dto';
-import { LaunchGameDto } from './dto/LunchGame.dto';
+import { getRequestDto } from 'libs/common/dto/getRequest.dto';
+import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
 import { AuthGuard } from 'libs/guards/auth.guard';
-// import { AuthGuard } from 'libs/guards/auth.guard';
+import { VerifyGuard } from 'libs/guards/verify.guard';
+import type { Request } from 'express';
+
 @Controller('game')
 export class GameController {
   constructor(private readonly gameService: GameService) {}
@@ -19,8 +21,11 @@ export class GameController {
   }
 
   @Get('lunch-game')
-  @UseGuards(AuthGuard)
-  lunchGame(@Query() query: LaunchGameDto) {
-    return this.gameService.lunchGame(query);
+  @UseGuards(AuthGuard, VerifyGuard)
+  lunchGame(@Query() query: LaunchGameDto, @Req() req: Request) {
+    const session_token = req.cookies?.session_token
+      ? req.cookies?.session_token
+      : '';
+    return this.gameService.lunchGame(query, session_token);
   }
 }

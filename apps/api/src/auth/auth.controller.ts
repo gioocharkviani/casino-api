@@ -58,7 +58,6 @@ export class AuthController {
     const session_token = req.cookies?.session_token
       ? req.cookies?.session_token
       : '';
-    console.log(session_token);
     const result = this.authService.signOut(session_token);
     res.clearCookie('session_token', {
       httpOnly: true,

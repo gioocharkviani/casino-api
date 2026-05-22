@@ -1,22 +1,24 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Game } from 'libs/database/entities/game.entity';
+import { Game, GameSession } from 'libs/database/entities/game.entity';
 import { Repository } from 'typeorm';
-import { FilterInterface } from './interface/filters.interface';
-import { ClientProxy } from '@nestjs/microservices';
-import { lastValueFrom } from 'rxjs';
 import { RevolverService } from './revolver/revolver.service';
+import { getRequestDto } from 'libs/common/dto/getRequest.dto';
+import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
+import { UserEntity } from 'libs/database/entities/user.entity';
 
 @Injectable()
 export class GameService {
   constructor(
     @InjectRepository(Game)
     private readonly gameRepository: Repository<Game>,
+    @InjectRepository(GameSession)
+    private readonly gameSessionRepository: Repository<GameSession>,
     private readonly revolverProvider: RevolverService,
   ) {}
 
   // get all games endpoint
-  async getAllGames(data: FilterInterface) {
+  async getAllGames(data: getRequestDto) {
     const page = data?.page ? parseInt(data?.page as any) : 1;
     const limit = data?.limit ? parseInt(data?.limit as any) : 20;
     const skip = (page - 1) * limit;
@@ -88,7 +90,7 @@ export class GameService {
   //end get all games endpoint
 
   //LUNCH GAME
-  async lunchGame(data: any) {
+  async lunchGame(data: LaunchGameDto, user: UserEntity) {
     const findGame = await this.gameRepository.findOne({
       where: {
         gameUUID: data.gameId,
@@ -97,8 +99,9 @@ export class GameService {
         gameProvider: true,
       },
     });
+
     if (findGame?.gameProvider?.prefix === 'rvlvr') {
-      const res = await this.revolverProvider.lunchRevolverGame();
+      const res = await this.revolverProvider.lunchRevolverGame(data, user);
       return res;
     }
     return data;

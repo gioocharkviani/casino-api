@@ -1,4 +1,10 @@
-import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class LaunchGameDto {
   @IsString()
@@ -16,4 +22,8 @@ export class LaunchGameDto {
   @IsOptional()
   @IsString()
   exitUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  demo!: string;
 }

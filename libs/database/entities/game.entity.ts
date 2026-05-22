@@ -119,7 +119,7 @@ export class MetaData {
 @Entity('game_sessions')
 export class GameSession {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id?: string;
 
   @Column({ unique: true })
   token!: string;
@@ -128,11 +128,11 @@ export class GameSession {
   playerId!: string;
 
   @Column({ nullable: true })
+  isActive?: boolean;
+
+  @Column({ nullable: false })
   gameId!: string;
 
-  @Column({ type: 'date' })
-  expiresAt!: Date;
-
   @CreateDateColumn()
-  createdAt!: Date;
+  createdAt?: Date;
 }
