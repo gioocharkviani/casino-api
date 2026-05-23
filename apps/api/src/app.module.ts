@@ -6,6 +6,7 @@ import { WalletModule } from './wallet/wallet.module';
 import { AuthModule } from './auth/auth.module';
 import { AuthService } from 'apps/auth/src/auth.service';
 import { AuthService as ggg } from './auth/auth.service';
+import { SeedModule } from 'libs/database/seed/seed.module';
 
 @Module({
   imports: [

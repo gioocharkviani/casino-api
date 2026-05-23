@@ -36,6 +36,7 @@ export class RevolverService {
 
   //refetchGames
   async refreshProvider(reqUrl: String) {
+    console.log(reqUrl);
     try {
       const responce = await fetch(`${reqUrl}`);
       const data = await responce.json();
