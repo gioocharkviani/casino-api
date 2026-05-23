@@ -118,8 +118,8 @@ export class MetaData {
 
 @Entity('game_sessions')
 export class GameSession {
-  @PrimaryGeneratedColumn('uuid')
-  id?: string;
+  @PrimaryGeneratedColumn()
+  id!: number;
 
   @Column({ unique: true })
   token!: string;

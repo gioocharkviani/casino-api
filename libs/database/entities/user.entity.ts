@@ -6,10 +6,14 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
+  OneToOne,
 } from 'typeorm';
 import { CountryEntity } from './country.entity';
+import { walletEntity } from './wallet.entity';
 
 @Entity('user')
+@Index('idx_user', ['id'])
 export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -38,6 +42,12 @@ export class UserEntity {
   })
   @JoinColumn({ name: 'country' })
   country!: CountryEntity;
+
+  @OneToOne(() => walletEntity, (wallet) => wallet.user, {
+    cascade: ['insert', 'update'],
+    nullable: true,
+  })
+  wallet?: walletEntity;
 
   @Column({ type: 'varchar', nullable: true, length: 100 })
   citizenship?: string;

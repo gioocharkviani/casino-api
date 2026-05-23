@@ -18,4 +18,9 @@ export class GameController {
   lunchGame({ data, user }: { data: LaunchGameDto; user: UserEntity }) {
     return this.gameService.lunchGame(data, user);
   }
+
+  @MessagePattern('VALIDATE_GAME_SESSION')
+  validateGameSession(token: string) {
+    return this.gameService.validateGameSession(token);
+  }
 }

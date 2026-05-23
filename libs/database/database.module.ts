@@ -34,7 +34,9 @@ import { TransactionEntity } from './entities/transaction.entity';
         GameSession,
         UserSessionEntity,
       ],
+
       synchronize: true,
+
       timezone: '+04:00',
       charset: 'utf8mb4',
       extra: {

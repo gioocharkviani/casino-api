@@ -11,20 +11,21 @@ import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices';
 import { SignInDtoMS, SignUpDto } from 'libs/common';
 import { randomBytes } from 'crypto';
+import { walletEntity } from 'libs/database/entities/wallet.entity';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(walletEntity)
+    private readonly walletRepositroy: Repository<walletEntity>,
     @InjectRepository(UserSessionEntity)
     private readonly userSessionRepository: Repository<UserSessionEntity>,
     private readonly configService: ConfigService,
   ) {}
 
-  //SIGN UP
   async signUpMService(data: SignUpDto) {
-    // Check duplicate email or username
     const existingUser = await this.userRepository.findOne({
       where: [
         { email: data.email },
@@ -55,9 +56,22 @@ export class AuthService {
       firstName: data.firstName,
       verified: false,
     });
+
     try {
       const savedUser = await this.userRepository.save(user);
-      return savedUser;
+
+      const wallet = new walletEntity();
+      wallet.balance = 0;
+      wallet.currency = 'USD';
+      wallet.user = savedUser;
+      await this.walletRepositroy.save(wallet);
+
+      const userWithWallet = await this.userRepository.findOne({
+        where: { id: savedUser.id },
+        relations: ['wallet'],
+      });
+
+      return userWithWallet;
     } catch (error) {
       throw new RpcException('Failed to register user');
     }
@@ -136,6 +150,13 @@ export class AuthService {
       const userId = validation.userId;
       const findUser = await this.userRepository.findOne({
         where: { id: userId },
+        select: {
+          wallet: {
+            balance: true,
+            currency: true,
+          },
+        },
+        relations: { wallet: true },
       });
       if (!findUser) {
         throw new RpcException({

@@ -13,6 +13,8 @@ export class GameService {
     @InjectRepository(Game)
     private readonly gameRepository: Repository<Game>,
     @InjectRepository(GameSession)
+    private readonly gameSession: Repository<GameSession>,
+    @InjectRepository(GameSession)
     private readonly gameSessionRepository: Repository<GameSession>,
     private readonly revolverProvider: RevolverService,
   ) {}
@@ -87,7 +89,7 @@ export class GameService {
     };
   }
 
-  //end get all games endpoint
+  //GET ALL GAME
 
   //LUNCH GAME
   async lunchGame(data: LaunchGameDto, user: UserEntity) {
@@ -107,4 +109,33 @@ export class GameService {
     return data;
   }
   //LUNCH GAME
+
+  //VALIDATE GAME SESSION
+  async validateGameSession(token: string) {
+    const findToken: GameSession | null =
+      await this.gameSessionRepository.findOne({
+        where: {
+          token: token,
+          isActive: true,
+        },
+        select: {
+          gameId: true,
+          playerId: true,
+          token: true,
+        },
+      });
+
+    if (!findToken) {
+      return {
+        valid: false,
+        data: null,
+      };
+    }
+
+    return {
+      valid: true,
+      data: findToken,
+    };
+  }
+  //VALIDATE GAME SESSION
 }
