@@ -121,8 +121,8 @@ export class GameSession {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  @Column({ unique: true })
-  token!: string;
+  @Column({ unique: true, nullable: true, type: 'varchar' })
+  token?: string | null;
 
   @Column()
   playerId!: string;
@@ -135,4 +135,7 @@ export class GameSession {
 
   @CreateDateColumn()
   createdAt?: Date;
+
+  @UpdateDateColumn({ nullable: true })
+  updatedAt?: Date;
 }

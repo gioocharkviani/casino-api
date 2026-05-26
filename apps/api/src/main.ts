@@ -27,6 +27,9 @@ async function bootstrap() {
     .setVersion('1.0')
     .addTag('Casino')
     .build();
+
+  console.log(app);
+  console.log(config);
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('swagger', app, documentFactory);
   app.setGlobalPrefix('api');

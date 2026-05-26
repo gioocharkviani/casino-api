@@ -12,12 +12,15 @@ import { RpcException } from '@nestjs/microservices';
 import { SignInDtoMS, SignUpDto } from 'libs/common';
 import { randomBytes } from 'crypto';
 import { walletEntity } from 'libs/database/entities/wallet.entity';
+import { CountryEntity } from 'libs/database/entities/country.entity';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(CountryEntity)
+    private readonly countryEntity: Repository<CountryEntity>,
     @InjectRepository(walletEntity)
     private readonly walletRepositroy: Repository<walletEntity>,
     @InjectRepository(UserSessionEntity)
@@ -25,6 +28,7 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
+  //SIGN UP USER
   async signUpMService(data: SignUpDto) {
     const existingUser = await this.userRepository.findOne({
       where: [
@@ -57,6 +61,9 @@ export class AuthService {
       verified: false,
     });
 
+    const country = await this.findExistingCountry(data.country);
+    user.country = country;
+
     try {
       const savedUser = await this.userRepository.save(user);
 
@@ -76,6 +83,7 @@ export class AuthService {
       throw new RpcException('Failed to register user');
     }
   }
+  //SIGN UP USER
 
   //SIGN-IN
   async signInUser(data: SignInDtoMS) {
@@ -262,5 +270,23 @@ export class AuthService {
     return { message: 'User logged out successfully' };
   }
   //REMOVE TOKEN FROM USER SESSION
+
+  //FIND COUNTRY
+  private async findExistingCountry(
+    identifier: string,
+  ): Promise<CountryEntity> {
+    const country = await this.countryEntity.findOne({
+      where: [{ name: identifier }, { countryCode: identifier }],
+    });
+
+    if (!country) {
+      throw new RpcException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: `Country not found with name or code: ${identifier}`,
+      });
+    }
+    return country;
+  }
+  //FIND COUNTRY
   /////////////////////////////////////////////////////////////////////////
 }

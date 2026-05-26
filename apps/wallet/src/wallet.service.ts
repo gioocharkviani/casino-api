@@ -27,9 +27,11 @@ export class WalletService {
         id: tokenValidationReq.data.playerId,
       },
       relations: {
+        country: true,
         wallet: true,
       },
       select: {
+        country: true,
         wallet: true,
       },
     });
@@ -39,8 +41,8 @@ export class WalletService {
       language: 'en',
       nickname: userData?.userName,
       balance: userData?.wallet?.balance,
-      license: 'MT',
-      countryCode: 'HR',
+      license: userData?.country.license,
+      countryCode: userData?.country.countryCode,
       sessionState: {},
       brand: 'website-1',
       additionalData: {},

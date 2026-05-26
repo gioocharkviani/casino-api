@@ -36,7 +36,6 @@ export class RevolverService {
 
   //refetchGames
   async refreshProvider(reqUrl: String) {
-    console.log(reqUrl);
     try {
       const responce = await fetch(`${reqUrl}`);
       const data = await responce.json();
@@ -112,8 +111,19 @@ export class RevolverService {
 
   //CREATE GAME SESSION
   private async createGameSession(data: GameSession) {
-    console.log(data);
+    const playerId = data.playerId;
     try {
+      const findActiveSession = await this.gameSessionRepository.findOne({
+        where: {
+          playerId: playerId,
+          isActive: true,
+        },
+      });
+      if (findActiveSession) {
+        findActiveSession.isActive = false;
+        findActiveSession.token = null;
+        await this.gameSessionRepository.save(findActiveSession);
+      }
       const session = this.gameSessionRepository.create(data);
       return await this.gameSessionRepository.save(session);
     } catch (error) {
