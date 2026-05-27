@@ -35,7 +35,7 @@ import { TransactionEntity } from './entities/transaction.entity';
         UserSessionEntity,
       ],
 
-      synchronize: true,
+      synchronize: false,
 
       timezone: '+04:00',
       charset: 'utf8mb4',

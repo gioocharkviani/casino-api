@@ -77,6 +77,7 @@ export class SeedService {
       const apiCountry = res[i];
       const countryName = apiCountry?.name;
       const countryCode = apiCountry?.alpha2Code;
+      const language = apiCountry?.languages[0]?.iso639_1 || 'en';
       let license = '';
       if (countryName && licenseByName[countryName]) {
         license = licenseByName[countryName];
@@ -88,6 +89,7 @@ export class SeedService {
         countryCode: countryCode,
         name: countryName,
         license: license,
+        language: language,
       });
     }
 

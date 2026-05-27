@@ -1,8 +1,15 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  HttpException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { WalletAuthDto } from 'libs/common/dto/wallet.dto';
 import { UserEntity } from 'libs/database/entities/user.entity';
+import { validateSignature } from 'libs/guards/sign.guard';
 import { lastValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
 
@@ -12,6 +19,7 @@ export class WalletService {
     @Inject('GAME_M_SERVICE') private client: ClientProxy,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    private readonly configService: ConfigService,
   ) {}
 
   // WALLET AUTH
@@ -35,16 +43,17 @@ export class WalletService {
         wallet: true,
       },
     });
+
     const resData = {
       playerId: userData?.id,
-      currency: 'GBP',
-      language: 'en',
+      currency: this.configService.get('DEFAULT_CURRENCY') || 'USD',
+      language: userData?.country.language || 'en',
       nickname: userData?.userName,
       balance: userData?.wallet?.balance,
-      license: userData?.country.license,
+      license: userData?.country.license || null,
       countryCode: userData?.country.countryCode,
       sessionState: {},
-      brand: 'website-1',
+      brand: this.configService.get('WEBSITE_BRAND'),
       additionalData: {},
     };
     return {

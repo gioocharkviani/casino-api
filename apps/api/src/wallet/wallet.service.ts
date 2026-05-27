@@ -14,4 +14,34 @@ export class WalletService {
     return result;
   }
   //WALLET AUTH SERVICE
+
+  //WALLET PLAYER BALANCE
+  async balance(data) {
+    return data;
+  }
+  //WALLET PLAYER BALANCE
+
+  //WALLET DEBIT
+  async debit(data) {
+    return data;
+  }
+  //WALLET DEBIT
+
+  //WALLET CREDIT
+  async credit(data) {
+    return data;
+  }
+  //WALLET CREDIT
+
+  //WALLET ROLLBACK
+  async rollback(data) {
+    return data;
+  }
+  //WALLET ROLLBACK
+
+  //WALLET DEBIT AND CREDIT
+  async debitAndCredit(data) {
+    return data;
+  }
+  //WALLET DEBIT AND CREDIT
 }

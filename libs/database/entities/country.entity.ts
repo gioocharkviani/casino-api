@@ -17,6 +17,8 @@ export class CountryEntity {
   countryCode?: string;
   @Column({ nullable: true })
   license?: string;
+  @Column({ nullable: true })
+  language?: string;
   @CreateDateColumn()
   createdAt?: Date;
   @OneToMany(() => UserEntity, (user) => user.country)
