@@ -57,7 +57,7 @@ export class WalletService {
       additionalData: {},
     };
     return {
-      status: 200,
+      code: 200,
       data: resData,
       message: 'Success',
     };
