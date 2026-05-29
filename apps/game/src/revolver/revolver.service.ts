@@ -85,6 +85,8 @@ export class RevolverService {
       status: 200,
       lunch_game_url: res.data.URL,
     };
+
+    console.log(res);
   }
   //LUNCH REVOLVER GAME
 
