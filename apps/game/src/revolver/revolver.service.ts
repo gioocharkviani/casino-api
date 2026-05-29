@@ -71,7 +71,7 @@ export class RevolverService {
       res.data.TOKEN === 'DEMO'
     ) {
       return {
-        status: 200,
+        code: 200,
         lunch_game_url: res.data.URL,
       };
     }
@@ -82,11 +82,9 @@ export class RevolverService {
       isActive: true,
     });
     return {
-      status: 200,
+      code: 200,
       lunch_game_url: res.data.URL,
     };
-
-    console.log(res);
   }
   //LUNCH REVOLVER GAME
 

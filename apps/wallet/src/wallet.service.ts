@@ -28,7 +28,11 @@ export class WalletService {
       this.client.send('VALIDATE_GAME_SESSION', data.token),
     );
     if (!tokenValidationReq.valid) {
-      return new UnauthorizedException('unauthorized wallet');
+      return {
+        code: 1403,
+        message: 'Unauthorized wallet',
+        data: null,
+      };
     }
     const userData = await this.userRepository.findOne({
       where: {
