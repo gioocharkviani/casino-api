@@ -24,6 +24,7 @@ export class WalletService {
 
   // WALLET AUTH
   async walletAuth(data: WalletAuthDto) {
+    console.log(data);
     const tokenValidationReq = await lastValueFrom(
       this.client.send('VALIDATE_GAME_SESSION', data.token),
     );
