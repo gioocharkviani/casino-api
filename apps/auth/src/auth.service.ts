@@ -75,7 +75,7 @@ export class AuthService {
 
       const userWithWallet = await this.userRepository.findOne({
         where: { id: savedUser.id },
-        relations: ['wallet'],
+        relations: { wallet: true },
       });
 
       return userWithWallet;
