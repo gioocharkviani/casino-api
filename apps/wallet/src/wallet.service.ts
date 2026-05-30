@@ -10,6 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   CreditRequestDto,
   DebitRequestDto,
+  RollbackRequestDto,
   WalletAuthDto,
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
@@ -220,7 +221,7 @@ export class WalletService {
   //END WALLET CREDIT
 
   //WALLET ROLLBACK
-  async walletRollback(data: CreditRequestDto) {
+  async walletRollback(data: RollbackRequestDto) {
     try {
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },

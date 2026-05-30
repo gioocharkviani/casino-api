@@ -4,6 +4,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import {
   CreditRequestDto,
   DebitRequestDto,
+  RollbackRequestDto,
   WalletAuthDto,
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
@@ -44,7 +45,7 @@ export class WalletService {
   //WALLET CREDIT
 
   //WALLET ROLLBACK
-  async rollback(data: CreditRequestDto) {
+  async rollback(data: RollbackRequestDto) {
     const result = await lastValueFrom(
       this.client.send('WALLET_ROLLBACK', data),
     );

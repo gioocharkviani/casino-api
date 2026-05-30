@@ -3,6 +3,7 @@ import { WalletService } from './wallet.service';
 import {
   CreditRequestDto,
   DebitRequestDto,
+  RollbackRequestDto,
   WalletAuthDto,
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
@@ -44,7 +45,7 @@ export class WalletController {
   @Post('rollback')
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
-  async rollback(@Body() body: CreditRequestDto) {
+  async rollback(@Body() body: RollbackRequestDto) {
     return this.walletService.rollback(body);
   }
 

@@ -4,6 +4,7 @@ import { MessagePattern } from '@nestjs/microservices';
 import {
   CreditRequestDto,
   DebitRequestDto,
+  RollbackRequestDto,
   WalletAuthDto,
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
@@ -31,7 +32,7 @@ export class WalletController {
     return this.walletService.walletCredit(data);
   }
   @MessagePattern('WALLET_ROLLBACK')
-  walletRollback(data: CreditRequestDto) {
+  walletRollback(data: RollbackRequestDto) {
     return this.walletService.walletRollback(data);
   }
 }

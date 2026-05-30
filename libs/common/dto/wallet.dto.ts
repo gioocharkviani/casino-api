@@ -167,3 +167,57 @@ export class CreditRequestDto {
   @IsString()
   transactionProviderPrefix?: string;
 }
+
+export class RollbackRequestDto {
+  @IsString()
+  playerId!: string;
+
+  @IsString()
+  transactionId!: string;
+
+  @IsString()
+  gameId!: string;
+
+  @IsNumber()
+  amount!: number;
+
+  @IsOptional()
+  @IsNumber()
+  debitAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  creditAmount?: number;
+
+  @IsString()
+  currency?: string;
+
+  @IsString()
+  roundId?: string;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+
+  @IsOptional()
+  @IsString()
+  relatedExternalDebitTransactionId?: string;
+
+  @IsOptional()
+  @IsObject()
+  sessionState?: any;
+
+  @IsOptional()
+  @IsString()
+  transactionProviderPrefix?: string;
+
+  @IsOptional()
+  @IsObject()
+  additionalData?: any;
+
+  @IsNumber()
+  date?: number;
+
+  @IsString()
+  sign?: string;
+}
