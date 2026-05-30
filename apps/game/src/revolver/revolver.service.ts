@@ -64,6 +64,7 @@ export class RevolverService {
     const LUNCH_GAME_URL = `${baseUrl}/launch/generic?operator=${OPERATOOR}&exit_url=${EXIT_URL}&game=${GAME_ID}&token=${TOKEN}&lang=${LANG}&variant=${VARIANT}&freeplay=${DEMO}`;
     const request = await fetch(`${LUNCH_GAME_URL}`);
     const res = await request.json();
+    console.log(res);
 
     if (
       node_env !== 'development' &&
@@ -83,7 +84,7 @@ export class RevolverService {
     });
     return {
       code: 200,
-      lunch_game_url: res.data.URL,
+      lunch_game_url: res.data.URL || '',
     };
   }
   //LUNCH REVOLVER GAME

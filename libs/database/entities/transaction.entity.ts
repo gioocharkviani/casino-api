@@ -8,16 +8,7 @@ import {
   Index,
 } from 'typeorm';
 import { UserEntity } from './user.entity';
-
-enum TransactionType {
-  BET = 'bet',
-  WIN = 'win',
-  DEPOSIT = 'deposit',
-  WITHDRAWAL = 'withdrawal',
-  BONUS = 'bonus',
-  ROLLBACK = 'rollback',
-  ADJUSTMENT = 'adjustment',
-}
+import { TransactionType } from 'libs/common';
 
 @Entity('transactions')
 @Index('idx_user_created', ['userId', 'createdAt'])
@@ -37,9 +28,9 @@ export class TransactionEntity {
   @Column({
     type: 'enum',
     enum: TransactionType,
-    default: TransactionType.BET,
+    nullable: true,
   })
-  type!: TransactionType;
+  type?: TransactionType;
 
   @Column({ type: 'bigint' })
   amount?: number;

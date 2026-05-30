@@ -19,6 +19,7 @@ import { walletEntity } from 'libs/database/entities/wallet.entity';
 
 import { lastValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
+import { transactionService } from './transactions/transaction.service';
 
 @Injectable()
 export class WalletService {
@@ -28,6 +29,8 @@ export class WalletService {
     private readonly userRepository: Repository<UserEntity>,
     @InjectRepository(walletEntity)
     private readonly walletRepository: Repository<walletEntity>,
+
+    private readonly transactionService: transactionService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -69,6 +72,7 @@ export class WalletService {
       brand: this.configService.get('WEBSITE_BRAND'),
       additionalData: {},
     };
+
     return {
       code: 200,
       data: resData,
