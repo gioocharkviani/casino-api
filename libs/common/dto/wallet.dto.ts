@@ -58,7 +58,7 @@ export class WalletBallanceDto {
   @IsNotEmpty()
   sign!: string;
 }
-export class DebitOrCreditRequestDto {
+export class DebitRequestDto {
   @IsString()
   playerId!: string;
 
@@ -89,6 +89,62 @@ export class DebitOrCreditRequestDto {
   @IsOptional()
   @IsObject()
   sessionState?: any;
+
+  @IsNumber()
+  date?: number;
+
+  @IsString()
+  sign?: string;
+
+  @IsOptional()
+  @IsObject()
+  additionalData?: {
+    roundCreatedAt?: string;
+    roundUpdatedAt?: string;
+    awardAdditionalData?: any;
+    awardData?: any;
+    campaignType?: 'FREESPIN' | 'TOURNAMENT';
+    awardId?: string;
+  };
+
+  @IsOptional()
+  @IsString()
+  transactionProviderPrefix?: string;
+}
+export class CreditRequestDto {
+  @IsString()
+  playerId!: string;
+
+  @IsString()
+  gameId!: string;
+
+  @IsString()
+  currency!: string;
+
+  @IsString()
+  roundId!: string;
+
+  @IsNumber()
+  @Min(1)
+  @Max(2)
+  channel?: number;
+
+  @IsString()
+  transactionId?: string;
+
+  @IsNumber()
+  @Min(1)
+  amount!: number;
+
+  @IsBoolean()
+  isRoundFinished?: boolean;
+
+  @IsOptional()
+  @IsObject()
+  sessionState?: any;
+
+  @IsString()
+  relatedExternalDebitTransactionId!: string;
 
   @IsNumber()
   date?: number;

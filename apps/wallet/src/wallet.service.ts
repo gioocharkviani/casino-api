@@ -8,7 +8,8 @@ import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
-  DebitOrCreditRequestDto,
+  CreditRequestDto,
+  DebitRequestDto,
   WalletAuthDto,
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
@@ -106,7 +107,7 @@ export class WalletService {
   //END WALLET BALLANCE
 
   //WALLET DEBIT
-  async walletDebit(data: DebitOrCreditRequestDto) {
+  async walletDebit(data: DebitRequestDto) {
     try {
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
@@ -166,7 +167,7 @@ export class WalletService {
   //END WALLET DEBIT
 
   //WALLET CREDIT
-  async walletCredit(data: DebitOrCreditRequestDto) {
+  async walletCredit(data: CreditRequestDto) {
     try {
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
