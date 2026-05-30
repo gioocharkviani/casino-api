@@ -222,6 +222,7 @@ export class WalletService {
 
   //WALLET ROLLBACK
   async walletRollback(data: RollbackRequestDto) {
+    console.log(data);
     try {
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
@@ -245,7 +246,6 @@ export class WalletService {
       }
 
       const oldBalance = user.wallet.balance;
-
       const newBalance = oldBalance + data.amount;
 
       user.wallet.balance = newBalance;
