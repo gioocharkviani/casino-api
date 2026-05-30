@@ -14,5 +14,7 @@ export class WalletController {
   }
 
   @MessagePattern('WALLET_BALANCE')
-  walletBallance(data: WalletBallanceDto) {}
+  walletBallance(data: WalletBallanceDto) {
+    return this.walletService.getWalletBallance(data);
+  }
 }
