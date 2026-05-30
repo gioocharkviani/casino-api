@@ -8,7 +8,7 @@ import {
   Index,
 } from 'typeorm';
 import { UserEntity } from './user.entity';
-import { TransactionType } from 'libs/common';
+import { TransactionType } from '../../common/enums/transactionTypes.enum';
 
 @Entity('transactions')
 @Index('idx_user_created', ['userId', 'createdAt'])

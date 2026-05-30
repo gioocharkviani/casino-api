@@ -6,7 +6,7 @@ import {
   IsEnum,
   Min,
 } from 'class-validator';
-import { TransactionType } from '../enums/transactionTypes.enum';
+import { TransactionType } from 'libs/common';
 
 // CREATE TRANSACTION DTO
 export class CreateTransactionDto {
