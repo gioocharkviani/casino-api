@@ -136,6 +136,7 @@ export class WalletService {
           data.transactionId,
         );
 
+      console.log(isDuplicate);
       if (isDuplicate) {
         return {
           code: 200,
