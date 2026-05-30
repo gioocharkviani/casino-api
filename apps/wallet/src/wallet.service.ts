@@ -7,7 +7,11 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
-import { WalletAuthDto, WalletBallanceDto } from 'libs/common/dto/wallet.dto';
+import {
+  DebitRequestDto,
+  WalletAuthDto,
+  WalletBallanceDto,
+} from 'libs/common/dto/wallet.dto';
 import { UserEntity } from 'libs/database/entities/user.entity';
 
 import { lastValueFrom } from 'rxjs';
@@ -97,4 +101,10 @@ export class WalletService {
     };
   }
   //END WALLET BALLANCE
+
+  //WALLET DEBIT
+  async walletDebit(data: DebitRequestDto) {
+    return data;
+  }
+  //END WALLET DEBIT
 }

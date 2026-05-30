@@ -1,7 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ClientProxy } from '@nestjs/microservices';
-import { WalletAuthDto, WalletBallanceDto } from 'libs/common/dto/wallet.dto';
+import {
+  DebitRequestDto,
+  WalletAuthDto,
+  WalletBallanceDto,
+} from 'libs/common/dto/wallet.dto';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable()
@@ -25,8 +29,9 @@ export class WalletService {
   //WALLET PLAYER BALANCE
 
   //WALLET DEBIT
-  async debit(data) {
-    return data;
+  async debit(data: DebitRequestDto) {
+    const result = await lastValueFrom(this.client.send('WALLET_DEBIT', data));
+    return result;
   }
   //WALLET DEBIT
 
