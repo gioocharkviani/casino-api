@@ -58,7 +58,7 @@ export class WalletBallanceDto {
   @IsNotEmpty()
   sign!: string;
 }
-export class DebitRequestDto {
+export class DebitOrCreditRequestDto {
   @IsString()
   playerId!: string;
 

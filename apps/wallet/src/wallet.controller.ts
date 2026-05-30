@@ -2,7 +2,7 @@ import { Controller } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { MessagePattern } from '@nestjs/microservices';
 import {
-  DebitRequestDto,
+  DebitOrCreditRequestDto,
   WalletAuthDto,
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
@@ -22,7 +22,11 @@ export class WalletController {
     return this.walletService.getWalletBallance(data);
   }
   @MessagePattern('WALLET_DEBIT')
-  walletDebit(data: DebitRequestDto) {
+  walletDebit(data: DebitOrCreditRequestDto) {
     return this.walletService.walletDebit(data);
+  }
+  @MessagePattern('WALLET_CREDIT')
+  walletCredit(data: DebitOrCreditRequestDto) {
+    return this.walletService.walletCredit(data);
   }
 }

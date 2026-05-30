@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
-  DebitRequestDto,
+  DebitOrCreditRequestDto,
   WalletAuthDto,
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
@@ -106,7 +106,7 @@ export class WalletService {
   //END WALLET BALLANCE
 
   //WALLET DEBIT
-  async walletDebit(data: DebitRequestDto) {
+  async walletDebit(data: DebitOrCreditRequestDto) {
     try {
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
@@ -137,7 +137,6 @@ export class WalletService {
         };
       }
 
-      // 3. Deduct balance (both in cents)
       const oldBalance = user.wallet.balance;
       const newBalance = oldBalance - data.amount;
 
@@ -147,7 +146,7 @@ export class WalletService {
       return {
         code: 200,
         data: {
-          transactionId: `debit_${data.transactionId}`,
+          transactionId: data.transactionId,
           transactionStatus: 1,
           balance: newBalance,
         },
@@ -162,5 +161,58 @@ export class WalletService {
       };
     }
   }
+
+  //TODO ჩამოჭრა შევინახოთ ტრანზაქციებში
   //END WALLET DEBIT
+
+  //WALLET CREDIT
+  async walletCredit(data: DebitOrCreditRequestDto) {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: data.playerId },
+        relations: { wallet: true },
+      });
+
+      if (!user) {
+        return {
+          code: 1501,
+          data: null,
+          message: 'User Not Found',
+        };
+      }
+
+      if (!user.wallet) {
+        return {
+          code: 1502,
+          data: null,
+          message: 'Wallet Not Found',
+        };
+      }
+
+      const oldBalance = user.wallet.balance;
+      const newBalance = oldBalance + data.amount;
+
+      user.wallet.balance = newBalance;
+      await this.walletRepository.save(user.wallet);
+
+      return {
+        code: 200,
+        data: {
+          transactionId: data.transactionId,
+          transactionStatus: 1,
+          balance: newBalance,
+        },
+        message: 'Success',
+      };
+    } catch (error) {
+      console.error('credit error:', error);
+      return {
+        code: 1500,
+        data: null,
+        message: 'Internal Error',
+      };
+    }
+  }
+  //TODO დეპოზიტი შევინახოთ ტრანზაქციებში
+  //END WALLET CREDIT
 }
