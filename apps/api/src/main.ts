@@ -44,6 +44,7 @@ async function bootstrap() {
     customCss: '.swagger-ui .models { display: block; }',
   });
 
+  app.setGlobalPrefix('api');
   console.log('API MODULE START SUCCESSFULLY');
   await app.listen(3000);
 }
