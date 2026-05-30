@@ -30,4 +30,15 @@ export class transactionService {
     return await this.transactionRepository.save(createTransaction);
   }
   //CREATE TRANSACTION
+
+  //CHECK DUPLICATE TRANSACTIONS
+  async checkDuplicateTransactions(transactionId: string): Promise<boolean> {
+    const existing = await this.transactionRepository.findOne({
+      where: {
+        transactionId: transactionId,
+      },
+    });
+    return !!existing;
+  }
+  //CHECK DUPLICATE TRANSACTIONS
 }

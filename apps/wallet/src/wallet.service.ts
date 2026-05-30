@@ -122,6 +122,31 @@ export class WalletService {
         where: { id: data.playerId },
         relations: { wallet: true },
       });
+
+      if (!data.transactionId) {
+        return {
+          code: 1504,
+          data: null,
+          message: 'Missing transactionId',
+        };
+      }
+
+      const isDuplicate =
+        await this.transactionService.checkDuplicateTransactions(
+          data.transactionId,
+        );
+
+      if (isDuplicate) {
+        return {
+          code: 200,
+          data: {
+            transactionId: data.transactionId,
+            transactionStatus: 1,
+            balance: user?.wallet?.balance || 0,
+          },
+          message: 'Duplicate transaction - already processed',
+        };
+      }
       const findGameSession = await this.gameRepository.findOne({
         where: {
           playerId: data.playerId,
@@ -158,6 +183,7 @@ export class WalletService {
 
       user.wallet.balance = newBalance;
       await this.walletRepository.save(user.wallet);
+
       await this.transactionService.createTransaction({
         type: TransactionType.DEBIT,
         balanceAfter: newBalance,
@@ -188,8 +214,6 @@ export class WalletService {
       };
     }
   }
-
-  //TODO ჩამოჭრა შევინახოთ ტრანზაქციებში
   //END WALLET DEBIT
 
   //WALLET CREDIT
