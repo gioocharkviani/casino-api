@@ -1,6 +1,6 @@
 export enum TransactionType {
   BET = 'bet',
-  WIN = 'win',
+  CREDIT = 'credit',
   DEPOSIT = 'deposit',
   DEBIT = 'debit',
   WITHDRAWAL = 'withdrawal',

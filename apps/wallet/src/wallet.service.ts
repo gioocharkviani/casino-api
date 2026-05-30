@@ -276,7 +276,7 @@ export class WalletService {
       await this.walletRepository.save(user.wallet);
 
       await this.transactionService.createTransaction({
-        type: TransactionType.DEBIT,
+        type: TransactionType.CREDIT,
         balanceAfter: newBalance,
         balanceBefore: oldBalance,
         amount: data.amount,
