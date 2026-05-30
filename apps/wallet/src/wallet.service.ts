@@ -69,37 +69,29 @@ export class WalletService {
   // END WALLET AUTH
 
   //WALLET BALLANCE
-  async getWalletBalance(data: any) {
-    try {
-      const findWalletUser = await this.userRepository.findOne({
-        where: { id: data.playerId },
-        relations: { wallet: true },
-      });
+  async getWalletBallance(data: WalletBallanceDto) {
+    const findWalletUser = await this.userRepository.findOne({
+      where: {
+        id: data.playerId,
+      },
+    });
 
-      if (!findWalletUser) {
-        return {
-          code: 1501,
-          message: 'User Not Found',
-          data: null,
-        };
-      }
-
+    if (!findWalletUser) {
       return {
-        code: 200,
-        data: {
-          balance: (findWalletUser.wallet?.balance || 0) * 100,
-          sessionState: null,
-        },
-        message: 'Success',
-      };
-    } catch (error) {
-      console.error('Balance error:', error);
-      return {
-        code: 1500,
-        message: 'Internal Error',
-        data: null,
+        code: 401,
+        data: {},
+        message: 'Unauthorized',
       };
     }
+
+    return {
+      code: 200,
+      data: {
+        balance: findWalletUser.wallet?.balance || 0,
+        sessionState: null,
+      },
+      message: 'Success',
+    };
   }
   //END WALLET BALLANCE
 }
