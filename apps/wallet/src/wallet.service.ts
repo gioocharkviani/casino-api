@@ -104,6 +104,7 @@ export class WalletService {
 
   //WALLET DEBIT
   async walletDebit(data: DebitRequestDto) {
+    console.log(data);
     return data;
   }
   //END WALLET DEBIT

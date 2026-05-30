@@ -19,7 +19,6 @@ export class WalletController {
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
   async balance(@Body() body: WalletBallanceDto) {
-    console.log(body);
     return this.walletService.balance(body);
   }
 
