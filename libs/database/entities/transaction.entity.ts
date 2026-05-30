@@ -55,7 +55,7 @@ export class TransactionEntity {
   @Column({ type: 'varchar', nullable: true, name: 'round_id' })
   roundId?: string;
 
-  @Column({ type: 'varchar', nullable: true, name: 'round_id' })
+  @Column({ type: 'varchar', name: 'reason' })
   reason?: string;
 
   @Column({
