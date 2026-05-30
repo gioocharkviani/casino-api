@@ -227,16 +227,11 @@ export class AuthService {
   //SAVE USER SESSION
 
   //VALIDATE USER SESSION
-  async validateUserSession(plainTextToken?: string) {
-    if (!plainTextToken) return { valid: false };
-
-    const hashedToken = crypto
-      .createHash('sha256')
-      .update(plainTextToken)
-      .digest('hex');
+  async validateUserSession(token?: string) {
+    if (!token) return { valid: false };
 
     const session = await this.userSessionRepository.findOne({
-      where: { token: hashedToken },
+      where: { token: token },
     });
 
     if (!session || !session.token) {
