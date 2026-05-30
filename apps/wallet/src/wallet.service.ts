@@ -74,6 +74,9 @@ export class WalletService {
       where: {
         id: data.playerId,
       },
+      relations: {
+        wallet: true,
+      },
     });
 
     if (!findWalletUser) {
