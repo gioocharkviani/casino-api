@@ -81,7 +81,7 @@ export class DebitRequestDto {
 
   @IsNumber()
   @Min(1)
-  amount?: number;
+  amount!: number;
 
   @IsBoolean()
   isRoundFinished?: boolean;

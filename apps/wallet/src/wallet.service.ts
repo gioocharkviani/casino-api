@@ -13,6 +13,7 @@ import {
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
 import { UserEntity } from 'libs/database/entities/user.entity';
+import { walletEntity } from 'libs/database/entities/wallet.entity';
 
 import { lastValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
@@ -23,6 +24,8 @@ export class WalletService {
     @Inject('GAME_M_SERVICE') private client: ClientProxy,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(walletEntity)
+    private readonly walletRepository: Repository<walletEntity>,
     private readonly configService: ConfigService,
   ) {}
 
@@ -104,8 +107,60 @@ export class WalletService {
 
   //WALLET DEBIT
   async walletDebit(data: DebitRequestDto) {
-    console.log(data);
-    return data;
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: data.playerId },
+        relations: { wallet: true },
+      });
+
+      if (!user) {
+        return {
+          code: 1501,
+          data: null,
+          message: 'User Not Found',
+        };
+      }
+
+      if (!user.wallet) {
+        return {
+          code: 1502,
+          data: null,
+          message: 'Wallet Not Found',
+        };
+      }
+
+      if (user.wallet.balance < data.amount) {
+        return {
+          code: 1503,
+          data: null,
+          message: 'Insufficient Funds',
+        };
+      }
+
+      // 3. Deduct balance (both in cents)
+      const oldBalance = user.wallet.balance;
+      const newBalance = oldBalance - data.amount;
+
+      user.wallet.balance = newBalance;
+      await this.walletRepository.save(user.wallet);
+
+      return {
+        code: 200,
+        data: {
+          transactionId: `debit_${data.transactionId}`,
+          transactionStatus: 1,
+          balance: newBalance,
+        },
+        message: 'Success',
+      };
+    } catch (error) {
+      console.error('Debit error:', error);
+      return {
+        code: 1500,
+        data: null,
+        message: 'Internal Error',
+      };
+    }
   }
   //END WALLET DEBIT
 }
