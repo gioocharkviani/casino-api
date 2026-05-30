@@ -135,8 +135,6 @@ export class WalletService {
         await this.transactionService.checkDuplicateTransactions(
           data.transactionId,
         );
-
-      console.log(isDuplicate);
       if (isDuplicate) {
         return {
           code: 200,
@@ -241,13 +239,54 @@ export class WalletService {
         };
       }
 
+      if (!data.transactionId) {
+        return {
+          code: 1504,
+          data: null,
+          message: 'Missing transactionId',
+        };
+      }
+
+      const isDuplicate =
+        await this.transactionService.checkDuplicateTransactions(
+          data.transactionId,
+        );
+      if (isDuplicate) {
+        return {
+          code: 200,
+          data: {
+            transactionId: data.transactionId,
+            transactionStatus: 1,
+            balance: user?.wallet?.balance || 0,
+          },
+          message: 'Duplicate transaction - already processed',
+        };
+      }
+
+      const findGameSession = await this.gameRepository.findOne({
+        where: {
+          playerId: data.playerId,
+          isActive: true,
+        },
+      });
+
       const oldBalance = user.wallet.balance;
-
       const newBalance = oldBalance + data.amount;
-
       user.wallet.balance = newBalance;
-
       await this.walletRepository.save(user.wallet);
+
+      await this.transactionService.createTransaction({
+        type: TransactionType.DEBIT,
+        balanceAfter: newBalance,
+        balanceBefore: oldBalance,
+        amount: data.amount,
+        gameId: data.gameId,
+        gameSessionId: findGameSession?.id,
+        roundId: data.roundId,
+        userId: data.playerId,
+        transactionId: data.transactionId,
+        reason: '',
+      });
 
       return {
         code: 200,
