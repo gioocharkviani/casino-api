@@ -135,6 +135,7 @@ export class WalletService {
         await this.transactionService.checkDuplicateTransactions(
           data.transactionId,
         );
+      console.log('is duplicate DEBIT', isDuplicate);
       if (isDuplicate) {
         return {
           code: 200,
@@ -251,6 +252,7 @@ export class WalletService {
         await this.transactionService.checkDuplicateTransactions(
           data.transactionId,
         );
+      console.log('is duplicate credit', isDuplicate);
       if (isDuplicate) {
         return {
           code: 200,
@@ -306,7 +308,7 @@ export class WalletService {
       };
     }
   }
-  //TODO დეპოზიტი შევინახოთ ტრანზაქციებში
+
   //END WALLET CREDIT
 
   //WALLET ROLLBACK
