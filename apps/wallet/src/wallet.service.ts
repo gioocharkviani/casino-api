@@ -20,6 +20,7 @@ import { walletEntity } from 'libs/database/entities/wallet.entity';
 import { lastValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
 import { transactionService } from './transactions/transaction.service';
+import { TransactionType } from 'libs/common';
 
 @Injectable()
 export class WalletService {
@@ -148,7 +149,10 @@ export class WalletService {
 
       user.wallet.balance = newBalance;
       await this.walletRepository.save(user.wallet);
-
+      await this.transactionService.createTransaction({
+        type: TransactionType.DEBIT,
+        ...data,
+      });
       return {
         code: 200,
         data: {
