@@ -221,55 +221,63 @@ export class WalletService {
   //END WALLET CREDIT
 
   //WALLET ROLLBACK
+
   async walletRollback(data: RollbackRequestDto) {
-    console.log(data);
     try {
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
         relations: { wallet: true },
       });
 
-      if (!user) {
+      if (!user || !user.wallet) {
         return {
           code: 1501,
           data: null,
-          message: 'User Not Found',
+          message: 'User or Wallet Not Found',
         };
       }
+      let oldBalance = user.wallet.balance;
+      let newBalance = oldBalance;
+      let rollbackType = 'UNKNOWN';
+      let rollbackAmount = 0;
 
-      if (!user.wallet) {
+      if (data.amount) {
+        rollbackType = 'SIMPLE';
+        rollbackAmount = data.amount;
+        newBalance = oldBalance + data.amount;
+      } else if (data.debitAmount || data.creditAmount) {
+        rollbackType = 'COMPLEX';
+        const debitRefund = data.debitAmount || 0;
+        const creditRemove = data.creditAmount || 0;
+        rollbackAmount = debitRefund - creditRemove;
+        newBalance = oldBalance + debitRefund - creditRemove;
+      } else {
         return {
-          code: 1502,
+          code: 199,
           data: null,
-          message: 'Wallet Not Found',
+          message: 'Bad Request - Missing amount or debitAmount/creditAmount',
         };
       }
-
-      const oldBalance = user.wallet.balance;
-      const newBalance = oldBalance + data.amount;
 
       user.wallet.balance = newBalance;
-
       await this.walletRepository.save(user.wallet);
 
       return {
         code: 200,
         data: {
           transactionId: data.transactionId,
-          transactionStatus: 1,
+          transactionStatus: 3,
           balance: newBalance,
         },
         message: 'Success',
       };
     } catch (error) {
-      console.error('ROLLBACK error:', error);
       return {
         code: 1500,
         data: null,
-        message: 'Internal Error',
+        message: 'Internal Error: ',
       };
     }
   }
-  //TODO როლბექი შევინახოთ ტრანზაქციებში
   //END WALLET ROLLBACK
 }
