@@ -34,3 +34,24 @@ export class WalletAuthDto {
   @IsNotEmpty()
   sign!: string;
 }
+
+export class WalletBallanceDto {
+  @IsString()
+  @IsNotEmpty()
+  playerId!: string;
+  @IsString()
+  @IsNotEmpty()
+  currency!: string;
+  @IsString()
+  @IsNotEmpty()
+  gameId!: string;
+  @IsObject()
+  @IsOptional()
+  sessionState?: Record<string, any>;
+  @IsNumber()
+  @IsNotEmpty()
+  date?: number;
+  @IsString()
+  @IsNotEmpty()
+  sign!: string;
+}

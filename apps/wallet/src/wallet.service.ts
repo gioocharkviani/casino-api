@@ -7,9 +7,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
-import { WalletAuthDto } from 'libs/common/dto/wallet.dto';
+import { WalletAuthDto, WalletBallanceDto } from 'libs/common/dto/wallet.dto';
 import { UserEntity } from 'libs/database/entities/user.entity';
-import { validateSignature } from 'libs/guards/sign.guard';
+
 import { lastValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
 
@@ -24,7 +24,6 @@ export class WalletService {
 
   // WALLET AUTH
   async walletAuth(data: WalletAuthDto) {
-    console.log(data);
     const tokenValidationReq = await lastValueFrom(
       this.client.send('VALIDATE_GAME_SESSION', data.token),
     );
@@ -68,4 +67,30 @@ export class WalletService {
     };
   }
   // END WALLET AUTH
+
+  //WALLET BALLANCE
+  async getWalletBallance(data: WalletBallanceDto) {
+    const findWalletUser = await this.userRepository.findOne({
+      where: {
+        id: data.playerId,
+      },
+    });
+
+    if (!findWalletUser) {
+      return {
+        code: 401,
+        data: {},
+        message: 'Unauthorized',
+      };
+    }
+
+    return {
+      code: 200,
+      data: {
+        balance: findWalletUser.wallet?.balance,
+      },
+      message: 'Success',
+    };
+  }
+  //END WALLET BALLANCE
 }

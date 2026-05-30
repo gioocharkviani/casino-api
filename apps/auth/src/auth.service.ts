@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices';
 import { SignInDtoMS, SignUpDto } from 'libs/common';
-import { randomBytes } from 'crypto';
+import * as crypto from 'crypto';
 import { walletEntity } from 'libs/database/entities/wallet.entity';
 import { CountryEntity } from 'libs/database/entities/country.entity';
 
@@ -109,14 +109,19 @@ export class AuthService {
       });
     }
     try {
-      const generateSessionId = randomBytes(32).toString('hex');
+      const plainTextToken = crypto.randomBytes(32).toString('hex');
+
+      const hashedToken = crypto
+        .createHash('sha256')
+        .update(plainTextToken)
+        .digest('hex');
       await this.saveUserSession({
-        token: generateSessionId,
+        token: hashedToken,
         userId: findUser.id,
         ip: data.ip || '',
       });
       return {
-        token: generateSessionId,
+        token: hashedToken,
       };
     } catch (error) {
       throw new RpcException({
@@ -222,21 +227,27 @@ export class AuthService {
   //SAVE USER SESSION
 
   //VALIDATE USER SESSION
-  async validateUserSession(token?: string) {
-    if (!token) return { valid: false };
+  async validateUserSession(plainTextToken?: string) {
+    if (!plainTextToken) return { valid: false };
+
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(plainTextToken)
+      .digest('hex');
 
     const session = await this.userSessionRepository.findOne({
-      where: { token: token },
+      where: { token: hashedToken },
     });
 
     if (!session || !session.token) {
       return { valid: false };
     }
+
     if (session.expiresAt < new Date()) {
-      session.token = null;
-      await this.userSessionRepository.save(session);
+      await this.userSessionRepository.delete({ id: session.id });
       return { valid: false };
     }
+
     const expireHours = parseInt(
       this.configService.get('AUTH_TOKEN_EXPIRE_TIME') || '24',
       10,
@@ -246,6 +257,7 @@ export class AuthService {
 
     session.expiresAt = newExpiry;
     await this.userSessionRepository.save(session);
+
     return {
       valid: true,
       userId: session.userId,

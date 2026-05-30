@@ -1,21 +1,32 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from 'apps/api/src/auth/auth.service';
-import { Observable } from 'rxjs';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private readonly authService: AuthService) {}
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const session_token = request?.cookies?.session_token;
+
     if (!session_token) {
-      return false;
+      throw new UnauthorizedException('Session token not found');
     }
-    const checkTokenValidation =
+
+    const validation =
       await this.authService.validateUserSessionToken(session_token);
-    if (!checkTokenValidation?.valid) {
-      return true;
+
+    if (!validation.valid) {
+      throw new UnauthorizedException('Invalid or expired session');
     }
+
+    request.userId = validation.userId;
+
     return true;
   }
 }
