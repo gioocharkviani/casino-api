@@ -1,4 +1,3 @@
-// entities/transaction.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -16,7 +15,7 @@ enum TransactionType {
   DEPOSIT = 'deposit',
   WITHDRAWAL = 'withdrawal',
   BONUS = 'bonus',
-  REFUND = 'refund',
+  ROLLBACK = 'rollback',
   ADJUSTMENT = 'adjustment',
 }
 
@@ -43,18 +42,21 @@ export class TransactionEntity {
   type!: TransactionType;
 
   @Column({ type: 'bigint' })
-  amount!: number;
+  amount?: number;
   @Column({ type: 'bigint', name: 'balance_before' })
   balanceBefore!: number;
 
   @Column({ type: 'bigint', name: 'balance_after' })
-  balanceAfter!: number;
+  balanceAfter?: number;
 
-  @Column({ type: 'varchar', length: 100, nullable: true, name: 'game_id' })
-  gameId!: string;
+  @Column({ type: 'varchar', nullable: true, name: 'game_id' })
+  gameId?: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true, name: 'round_id' })
-  roundId!: string;
+  @Column({ type: 'varchar', nullable: true, name: 'round_id' })
+  roundId?: string;
+
+  @Column({ type: 'varchar', nullable: true, name: 'round_id' })
+  reason?: string;
 
   @Column({
     type: 'varchar',
@@ -63,10 +65,7 @@ export class TransactionEntity {
     unique: true,
     name: 'transaction_id',
   })
-  transactionId!: string;
-
-  @Column({ type: 'json', nullable: true })
-  metadata!: any;
+  transactionId?: string;
 
   @Column({
     type: 'varchar',
@@ -74,7 +73,7 @@ export class TransactionEntity {
     nullable: true,
     name: 'game_session_id',
   })
-  gameSessionId!: string;
+  gameSessionId?: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
