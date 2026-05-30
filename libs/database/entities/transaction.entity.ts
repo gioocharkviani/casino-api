@@ -59,12 +59,10 @@ export class TransactionEntity {
   transactionId?: string;
 
   @Column({
-    type: 'varchar',
-    length: 50,
     nullable: true,
     name: 'game_session_id',
   })
-  gameSessionId?: string;
+  gameSessionId?: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

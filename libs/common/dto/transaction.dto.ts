@@ -47,6 +47,6 @@ export class CreateTransactionDto {
   transactionId?: string;
 
   @IsOptional()
-  @IsString()
-  gameSessionId?: string;
+  @IsNumber()
+  gameSessionId?: number;
 }

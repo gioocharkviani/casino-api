@@ -21,6 +21,7 @@ import { lastValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
 import { transactionService } from './transactions/transaction.service';
 import { TransactionType } from 'libs/common';
+import { GameSession } from 'libs/database/entities/game.entity';
 
 @Injectable()
 export class WalletService {
@@ -30,6 +31,8 @@ export class WalletService {
     private readonly userRepository: Repository<UserEntity>,
     @InjectRepository(walletEntity)
     private readonly walletRepository: Repository<walletEntity>,
+    @InjectRepository(GameSession)
+    private readonly gameRepository: Repository<GameSession>,
 
     private readonly transactionService: transactionService,
     private readonly configService: ConfigService,
@@ -119,6 +122,12 @@ export class WalletService {
         where: { id: data.playerId },
         relations: { wallet: true },
       });
+      const findGameSession = await this.gameRepository.findOne({
+        where: {
+          playerId: data.playerId,
+          isActive: true,
+        },
+      });
 
       if (!user) {
         return {
@@ -151,7 +160,15 @@ export class WalletService {
       await this.walletRepository.save(user.wallet);
       await this.transactionService.createTransaction({
         type: TransactionType.DEBIT,
-        ...data,
+        balanceAfter: newBalance,
+        balanceBefore: oldBalance,
+        amount: data.amount,
+        gameId: data.gameId,
+        gameSessionId: findGameSession?.id,
+        roundId: data.roundId,
+        userId: data.playerId,
+        transactionId: data.transactionId,
+        reason: '',
       });
       return {
         code: 200,
