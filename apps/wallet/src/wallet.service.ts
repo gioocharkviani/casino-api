@@ -139,7 +139,9 @@ export class WalletService {
       }
 
       const oldBalance = user.wallet.balance;
-      const newBalance = oldBalance - data.amount;
+      console.log('old balance credit' + oldBalance);
+      const newBalance = oldBalance + data.amount;
+      console.log('new balance credit' + newBalance);
 
       user.wallet.balance = newBalance;
       await this.walletRepository.save(user.wallet);
@@ -191,9 +193,11 @@ export class WalletService {
       }
 
       const oldBalance = user.wallet.balance;
+      console.log('old balance credit' + oldBalance);
       const newBalance = oldBalance + data.amount;
-
+      console.log('new balance credit' + newBalance);
       user.wallet.balance = newBalance;
+
       await this.walletRepository.save(user.wallet);
 
       return {
