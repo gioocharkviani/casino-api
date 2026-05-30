@@ -30,4 +30,8 @@ export class WalletController {
   walletCredit(data: CreditRequestDto) {
     return this.walletService.walletCredit(data);
   }
+  @MessagePattern('WALLET_ROLLBACK')
+  walletRollback(data: CreditRequestDto) {
+    return this.walletService.walletRollback(data);
+  }
 }

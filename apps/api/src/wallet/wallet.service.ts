@@ -44,8 +44,11 @@ export class WalletService {
   //WALLET CREDIT
 
   //WALLET ROLLBACK
-  async rollback(data) {
-    return data;
+  async rollback(data: CreditRequestDto) {
+    const result = await lastValueFrom(
+      this.client.send('WALLET_ROLLBACK', data),
+    );
+    return result;
   }
   //WALLET ROLLBACK
 

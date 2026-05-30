@@ -44,7 +44,7 @@ export class WalletController {
   @Post('rollback')
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
-  async rollback(@Body() body: any) {
+  async rollback(@Body() body: CreditRequestDto) {
     return this.walletService.rollback(body);
   }
 

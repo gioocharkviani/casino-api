@@ -139,9 +139,7 @@ export class WalletService {
       }
 
       const oldBalance = user.wallet.balance;
-      console.log('old balance debit' + oldBalance);
       const newBalance = oldBalance - data.amount;
-      console.log('new balance debit' + newBalance);
 
       user.wallet.balance = newBalance;
       await this.walletRepository.save(user.wallet);
@@ -193,9 +191,9 @@ export class WalletService {
       }
 
       const oldBalance = user.wallet.balance;
-      console.log('old balance credit' + oldBalance);
+
       const newBalance = oldBalance + data.amount;
-      console.log('new balance credit' + newBalance);
+
       user.wallet.balance = newBalance;
 
       await this.walletRepository.save(user.wallet);
@@ -220,4 +218,57 @@ export class WalletService {
   }
   //TODO დეპოზიტი შევინახოთ ტრანზაქციებში
   //END WALLET CREDIT
+
+  //WALLET ROLLBACK
+  async walletRollback(data: CreditRequestDto) {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: data.playerId },
+        relations: { wallet: true },
+      });
+
+      if (!user) {
+        return {
+          code: 1501,
+          data: null,
+          message: 'User Not Found',
+        };
+      }
+
+      if (!user.wallet) {
+        return {
+          code: 1502,
+          data: null,
+          message: 'Wallet Not Found',
+        };
+      }
+
+      const oldBalance = user.wallet.balance;
+
+      const newBalance = oldBalance + data.amount;
+
+      user.wallet.balance = newBalance;
+
+      await this.walletRepository.save(user.wallet);
+
+      return {
+        code: 200,
+        data: {
+          transactionId: data.transactionId,
+          transactionStatus: 1,
+          balance: newBalance,
+        },
+        message: 'Success',
+      };
+    } catch (error) {
+      console.error('ROLLBACK error:', error);
+      return {
+        code: 1500,
+        data: null,
+        message: 'Internal Error',
+      };
+    }
+  }
+  //TODO როლბექი შევინახოთ ტრანზაქციებში
+  //END WALLET ROLLBACK
 }
