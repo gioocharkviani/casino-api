@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 
@@ -17,10 +12,17 @@ export class RevolverSignatureGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
+    const response = context.switchToHttp().getResponse();
     const body = request.body;
 
+    // თუ sign არ არის
     if (!body.sign) {
-      throw new UnauthorizedException('Missing signature');
+      response.status(200).json({
+        code: 1403,
+        data: null,
+        message: 'Missing signature',
+      });
+      return false;
     }
 
     const receivedSign = body.sign;
@@ -47,14 +49,20 @@ export class RevolverSignatureGuard implements CanActivate {
       .update(signString)
       .digest('hex');
 
+    // თუ signature არასწორია
     if (calculatedSign !== receivedSign) {
       console.error('Signature validation failed', {
         expected: calculatedSign,
         received: receivedSign,
-        signString: signString,
-        params: flatParams,
       });
-      throw new UnauthorizedException('Invalid signature');
+
+      // HTTP 200-ით ვაბრუნებთ 1403 კოდს
+      response.status(200).json({
+        code: 1403,
+        data: null,
+        message: 'Wrong Signature',
+      });
+      return false;
     }
 
     return true;
