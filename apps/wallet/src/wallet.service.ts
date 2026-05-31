@@ -131,7 +131,7 @@ export class WalletService {
         };
       }
 
-      const isDuplicate = await this.transactionService.exitingTransaction(
+      const isDuplicate = await this.transactionService.checkExiting(
         data.transactionId,
       );
       console.log('is duplicate DEBIT', isDuplicate);
@@ -247,7 +247,7 @@ export class WalletService {
         };
       }
 
-      const isDuplicate = await this.transactionService.exitingTransaction(
+      const isDuplicate = await this.transactionService.checkExiting(
         data.transactionId,
       );
       console.log('is duplicate credit', isDuplicate);
@@ -319,58 +319,23 @@ export class WalletService {
       });
 
       if (!user || !user.wallet) {
-        return { code: 1501, data: null, message: 'User or Wallet Not Found' };
-      }
-
-      const originalTx = await this.transactionService.exitingTransaction(
-        data.transactionId,
-      );
-
-      // 2 if is rollback dont change ballance
-      if (originalTx?.type === TransactionType.ROLLBACK) {
         return {
-          code: 200,
-          data: {
-            transactionId: null,
-            transactionStatus: 3,
-            balance: user.wallet.balance,
-          },
-          message: 'Transaction already rolled back',
+          code: 1501,
+          data: null,
+          message: 'User or Wallet Not Found',
         };
       }
-
-      // 3. if is rollback dont receive duplicate rollback
-      const isRoundRollbacked = await this.transactionService.isRoundRollbacked(
-        data.roundId,
-        data.playerId,
-      );
-      if (isRoundRollbacked) {
-        return {
-          code: 200,
-          data: {
-            transactionId: null,
-            transactionStatus: 3,
-            balance: user.wallet.balance,
-          },
-          message: 'Round already rolled back',
-        };
-      }
-
       let oldBalance = user.wallet.balance;
       let newBalance = oldBalance;
+      let rollbackType = 'UNKNOWN';
       let rollbackAmount = 0;
 
-      // 4. calculate rollback amount
-      if (originalTx?.type === TransactionType.DEBIT) {
-        rollbackAmount = originalTx.amount ?? 0;
-        newBalance = oldBalance + rollbackAmount;
-      } else if (originalTx?.type === TransactionType.CREDIT) {
-        rollbackAmount = -(originalTx.amount ?? 0);
-        newBalance = oldBalance - (originalTx.amount ?? 0);
-      } else if (data.amount) {
+      if (data.amount) {
+        rollbackType = 'SIMPLE';
         rollbackAmount = data.amount;
         newBalance = oldBalance + data.amount;
       } else if (data.debitAmount || data.creditAmount) {
+        rollbackType = 'COMPLEX';
         const debitRefund = data.debitAmount || 0;
         const creditRemove = data.creditAmount || 0;
         rollbackAmount = debitRefund - creditRemove;
@@ -383,42 +348,24 @@ export class WalletService {
         };
       }
 
-      // 5. change balance
-      if (newBalance !== oldBalance) {
-        user.wallet.balance = newBalance;
-        await this.walletRepository.save(user.wallet);
-      }
-
-      // 6. save rollback in database
-      const findGameSession = await this.gameRepository.findOne({
-        where: { playerId: data.playerId, isActive: true },
-      });
-
-      await this.transactionService.createTransaction({
-        type: TransactionType.ROLLBACK,
-        balanceAfter: newBalance,
-        balanceBefore: oldBalance,
-        amount: rollbackAmount,
-        gameId: data.gameId,
-        gameSessionId: findGameSession?.id,
-        roundId: data.roundId,
-        userId: data.playerId,
-        transactionId: data.transactionId,
-        reason: data.reason || 'Rollback performed',
-      });
+      user.wallet.balance = newBalance;
+      await this.walletRepository.save(user.wallet);
 
       return {
         code: 200,
         data: {
-          transactionId: originalTx?.transactionId || data.transactionId,
+          transactionId: data.transactionId,
           transactionStatus: 3,
           balance: newBalance,
         },
         message: 'Success',
       };
     } catch (error) {
-      console.error('Rollback error:', error);
-      return { code: 1500, data: null, message: 'Internal Error' };
+      return {
+        code: 1500,
+        data: null,
+        message: 'Internal Error: ',
+      };
     }
   }
   //END WALLET ROLLBACK
