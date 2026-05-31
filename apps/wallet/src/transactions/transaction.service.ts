@@ -63,7 +63,6 @@ export class transactionService {
       where: {
         roundId: roundId,
         userId: playerId,
-        type: TransactionType.ROLLBACK,
       },
     });
     return !!rollback;

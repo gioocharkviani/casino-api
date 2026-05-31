@@ -313,6 +313,9 @@ export class WalletService {
 
   async walletRollback(data: RollbackRequestDto) {
     try {
+      const existingTransaction = await this.transactionService.checkExiting(
+        data.transactionId,
+      );
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
         relations: { wallet: true },
@@ -325,11 +328,45 @@ export class WalletService {
           message: 'User or Wallet Not Found',
         };
       }
+
+      const findGameSession = await this.gameRepository.findOne({
+        where: {
+          playerId: data.playerId,
+          isActive: true,
+        },
+      });
+
+      if (!existingTransaction) {
+        const balanceAfterCalculation = data.relatedExternalDebitTransactionId
+          ? -data.amount
+          : data.amount;
+        await this.transactionService.createTransaction({
+          type: TransactionType.ROLLBACK,
+          userId: data.playerId,
+          transactionId: data.transactionId,
+          amount: data.amount,
+          balanceAfter: balanceAfterCalculation,
+          balanceBefore: user.wallet.balance,
+          gameId: data.gameId,
+          gameSessionId: findGameSession?.id,
+          reason: data.reason,
+          roundId: data.roundId,
+        });
+        return {
+          code: 200,
+          data: {
+            transactionId: null,
+            transactionStatus: 3,
+            balance: user.wallet.balance,
+          },
+          message: 'Rollback recorded - original transaction pending',
+        };
+      }
+
       let oldBalance = user.wallet.balance;
       let newBalance = oldBalance;
       let rollbackType = 'UNKNOWN';
       let rollbackAmount = 0;
-
       if (data.amount) {
         rollbackType = 'SIMPLE';
         rollbackAmount = data.amount;
