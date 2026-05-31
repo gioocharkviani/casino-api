@@ -134,7 +134,7 @@ export class WalletService {
       const isDuplicate = await this.transactionService.checkExiting(
         data.transactionId,
       );
-      console.log('is duplicate DEBIT', isDuplicate);
+
       if (isDuplicate) {
         return {
           code: 200,
@@ -250,7 +250,6 @@ export class WalletService {
       const isDuplicate = await this.transactionService.checkExiting(
         data.transactionId,
       );
-      console.log('is duplicate credit', isDuplicate);
       if (isDuplicate) {
         return {
           code: 200,
@@ -318,6 +317,17 @@ export class WalletService {
         relations: { wallet: true },
       });
 
+      const findGameSession = await this.gameRepository.findOne({
+        where: {
+          playerId: data.playerId,
+          isActive: true,
+        },
+      });
+
+      const isDuplicate = await this.transactionService.checkExiting(
+        data.transactionId,
+      );
+
       if (!user || !user.wallet) {
         return {
           code: 1501,
@@ -330,10 +340,25 @@ export class WalletService {
       let rollbackType = 'UNKNOWN';
       let rollbackAmount = 0;
 
-      if (data.amount) {
-        rollbackType = 'SIMPLE';
+      if (isDuplicate) {
+        return {
+          code: 200,
+          data: {
+            transactionId: data.transactionId,
+            transactionStatus: 3,
+            balance: newBalance,
+          },
+          message: 'Success',
+        };
+      }
+      if (data.amount && !data.relatedExternalDebitTransactionId) {
+        rollbackType = 'DEBIT';
         rollbackAmount = data.amount;
         newBalance = oldBalance + data.amount;
+      } else if (data.relatedExternalDebitTransactionId) {
+        rollbackType = 'CREDIT';
+        rollbackAmount = data.amount;
+        newBalance = oldBalance - rollbackAmount;
       } else if (data.debitAmount || data.creditAmount) {
         rollbackType = 'COMPLEX';
         const debitRefund = data.debitAmount || 0;
@@ -350,6 +375,19 @@ export class WalletService {
 
       user.wallet.balance = newBalance;
       await this.walletRepository.save(user.wallet);
+
+      await this.transactionService.createTransaction({
+        type: TransactionType.DEBIT,
+        balanceAfter: newBalance,
+        balanceBefore: oldBalance,
+        amount: data.amount,
+        gameId: data.gameId,
+        gameSessionId: findGameSession?.id,
+        roundId: data.roundId,
+        userId: data.playerId,
+        transactionId: data.transactionId,
+        reason: data.reason,
+      });
 
       return {
         code: 200,
