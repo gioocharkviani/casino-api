@@ -38,7 +38,10 @@ export class transactionService {
         transactionId: transactionId,
       },
     });
-    return existing;
+    if (existing) {
+      return existing;
+    }
+    return null;
   }
   //CHECK DUPLICATE TRANSACTIONS
 }

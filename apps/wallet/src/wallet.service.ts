@@ -319,13 +319,10 @@ export class WalletService {
       if (!user || !user.wallet) {
         return { code: 1501, data: null, message: 'User or Wallet Not Found' };
       }
-
-      // 1. შეამოწმე უკვე გაკეთდა თუ არა rollback ამ transactionId-ზე
       const existingTransaction = await this.transactionService.checkExiting(
         data.transactionId,
       );
 
-      // 2. თუ უკვე ROLLBACK არის, დაბრუნდი ბალანსის შეცვლის გარეშე
       if (existingTransaction?.type === TransactionType.ROLLBACK) {
         return {
           code: 200,
@@ -341,44 +338,32 @@ export class WalletService {
       let oldBalance = user.wallet.balance;
       let newBalance = oldBalance;
       let rollbackAmount = 0;
+      console.log('test1');
 
-      // 3. გაარკვიე რა ტიპის ტრანზაქციაზე მოდის rollback
       if (data.relatedExternalDebitTransactionId) {
-        // CREDIT-ის rollback (აქვს ლინკი debit-ზე)
-        // მოძებნე CREDIT ტრანზაქცია ამ transactionId-ით
-        const creditTransaction = existingTransaction;
-
-        if (creditTransaction?.type === TransactionType.CREDIT) {
-          // CREDIT-ის rollback: ვაკლებთ მოგებულ თანხას
-          rollbackAmount = -(creditTransaction.amount ?? 0);
-          newBalance = oldBalance - (creditTransaction.amount ?? 0);
+        if (existingTransaction?.type === TransactionType.CREDIT) {
+          rollbackAmount = -(existingTransaction.amount ?? 0);
+          newBalance = oldBalance - (existingTransaction.amount ?? 0);
         } else {
-          // თუ ვერ ვიპოვეთ, გამოვიყენოთ amount
           rollbackAmount = -(data.amount ?? 0);
           newBalance = oldBalance - (data.amount ?? 0);
         }
       } else {
-        // DEBIT-ის rollback (არ აქვს relatedExternalDebitTransactionId)
-        const debitTransaction = existingTransaction;
-
-        if (debitTransaction?.type === TransactionType.DEBIT) {
-          // DEBIT-ის rollback: ვუმატებთ back ჩამოჭრილ თანხას
-          rollbackAmount = debitTransaction.amount ?? 0;
-          newBalance = oldBalance + (debitTransaction.amount ?? 0);
+        if (existingTransaction?.type === TransactionType.DEBIT) {
+          rollbackAmount = existingTransaction.amount ?? 0;
+          newBalance = oldBalance + (existingTransaction.amount ?? 0);
         } else {
-          // თუ ვერ ვიპოვეთ, გამოვიყენოთ amount
           rollbackAmount = data.amount ?? 0;
           newBalance = oldBalance + (data.amount ?? 0);
         }
       }
+      console.log('test2');
 
-      // 4. განვაახლოთ ბალანსი (მხოლოდ თუ შეიცვალა)
       if (newBalance !== oldBalance) {
         user.wallet.balance = newBalance;
         await this.walletRepository.save(user.wallet);
       }
 
-      // 5. შევქმნათ rollback ჩანაწერი
       const findGameSession = await this.gameRepository.findOne({
         where: { playerId: data.playerId, isActive: true },
       });
@@ -395,7 +380,7 @@ export class WalletService {
         transactionId: data.transactionId,
         reason: data.reason || 'Rollback performed',
       });
-
+      console.log('test3');
       return {
         code: 200,
         data: {
@@ -407,6 +392,7 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
+      console.log('test error');
       console.error('Rollback error:', error);
       return { code: 1500, data: null, message: 'Internal Error' };
     }
