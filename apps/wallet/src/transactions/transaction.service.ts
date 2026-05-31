@@ -29,16 +29,24 @@ export class transactionService {
     });
     return await this.transactionRepository.save(createTransaction);
   }
-  //CREATE TRANSACTION
 
-  //CHECK DUPLICATE TRANSACTIONS
-  async checkDuplicateTransactions(transactionId: string): Promise<boolean> {
-    const existing = await this.transactionRepository.findOne({
+  //CHECK EXITING TRANSACTION
+  async exitingTransaction(transactionId: string) {
+    return await this.transactionRepository.findOne({
+      where: { transactionId: transactionId },
+    });
+  }
+
+  //CHECK IF ROUNT HAS ROLLBACK
+  async isRoundRollbacked(roundId?: string, playerId?: string) {
+    if (!roundId || !playerId) return false;
+    const rollback = await this.transactionRepository.findOne({
       where: {
-        transactionId: transactionId,
+        roundId: roundId,
+        userId: playerId,
+        type: TransactionType.ROLLBACK,
       },
     });
-    return !!existing;
+    return !!rollback;
   }
-  //CHECK DUPLICATE TRANSACTIONS
 }
