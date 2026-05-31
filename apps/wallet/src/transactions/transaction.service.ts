@@ -56,4 +56,20 @@ export class transactionService {
     return null;
   }
   //CHECK DUPLICATE TRANSACTIONS
+
+  // CHECK IF ROUND ALREADY HAS ROLLBACK
+  async checkRoundRollback(roundId: string, playerId: string) {
+    const rollback = await this.transactionRepository.findOne({
+      where: {
+        roundId: roundId,
+        userId: playerId,
+        type: TransactionType.ROLLBACK,
+      },
+    });
+    return !!rollback;
+  }
+
+  async updateTransaction(transaction: TransactionEntity) {
+    return await this.transactionRepository.save(transaction);
+  }
 }

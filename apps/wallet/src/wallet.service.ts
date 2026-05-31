@@ -308,7 +308,6 @@ export class WalletService {
 
   //END WALLET CREDIT
 
-  //WALLET ROLLBACK
   async walletRollback(data: RollbackRequestDto) {
     try {
       const user = await this.userRepository.findOne({
@@ -319,6 +318,8 @@ export class WalletService {
       if (!user || !user.wallet) {
         return { code: 1501, data: null, message: 'User or Wallet Not Found' };
       }
+
+      // 1. შეამოწმე უკვე არის თუ არა ROLLBACK ჩანაწერი
       const existingTransaction = await this.transactionService.checkExiting(
         data.transactionId,
       );
@@ -335,12 +336,40 @@ export class WalletService {
         };
       }
 
+      // 2. შეამოწმე ამ round-ზე უკვე გაკეთდა თუ არა rollback
+      if (data.roundId) {
+        const roundRollback = await this.transactionService.checkRoundRollback(
+          data.roundId,
+          data.playerId,
+        );
+        if (roundRollback) {
+          return {
+            code: 200,
+            data: {
+              transactionId: null,
+              transactionStatus: 3,
+              balance: user.wallet.balance,
+            },
+            message: 'Round already rolled back',
+          };
+        }
+      }
+
       let oldBalance = user.wallet.balance;
       let newBalance = oldBalance;
       let rollbackAmount = 0;
-      console.log('test1');
 
-      if (data.relatedExternalDebitTransactionId) {
+      // 3. გაარკვიე rollback-ის ტიპი
+
+      // შემთხვევა 1: debitAndCredit-ის rollback
+      if (data.debitAmount !== undefined || data.creditAmount !== undefined) {
+        const debitRefund = data.debitAmount || 0;
+        const creditRemove = data.creditAmount || 0;
+        rollbackAmount = debitRefund - creditRemove;
+        newBalance = oldBalance + debitRefund - creditRemove;
+      }
+      // შემთხვევა 2: CREDIT-ის rollback (აქვს relatedExternalDebitTransactionId)
+      else if (data.relatedExternalDebitTransactionId) {
         if (existingTransaction?.type === TransactionType.CREDIT) {
           rollbackAmount = -(existingTransaction.amount ?? 0);
           newBalance = oldBalance - (existingTransaction.amount ?? 0);
@@ -348,7 +377,9 @@ export class WalletService {
           rollbackAmount = -(data.amount ?? 0);
           newBalance = oldBalance - (data.amount ?? 0);
         }
-      } else {
+      }
+      // შემთხვევა 3: DEBIT-ის rollback
+      else {
         if (existingTransaction?.type === TransactionType.DEBIT) {
           rollbackAmount = existingTransaction.amount ?? 0;
           newBalance = oldBalance + (existingTransaction.amount ?? 0);
@@ -357,30 +388,40 @@ export class WalletService {
           newBalance = oldBalance + (data.amount ?? 0);
         }
       }
-      console.log('test2');
 
+      // 4. განვაახლოთ ბალანსი
       if (newBalance !== oldBalance) {
         user.wallet.balance = newBalance;
         await this.walletRepository.save(user.wallet);
       }
 
+      // 5. შევქმნათ rollback ჩანაწერი (ან განვაახლოთ)
       const findGameSession = await this.gameRepository.findOne({
         where: { playerId: data.playerId, isActive: true },
       });
 
-      await this.transactionService.createTransaction({
-        type: TransactionType.ROLLBACK,
-        balanceAfter: newBalance,
-        balanceBefore: oldBalance,
-        amount: Math.abs(rollbackAmount),
-        gameId: data.gameId,
-        gameSessionId: findGameSession?.id,
-        roundId: data.roundId,
-        userId: data.playerId,
-        transactionId: data.transactionId,
-        reason: data.reason || 'Rollback performed',
-      });
-      console.log('test3');
+      // თუ ტრანზაქცია უკვე არსებობს, განვაახლოთ ROLLBACK ტიპზე
+      if (existingTransaction) {
+        existingTransaction.type = TransactionType.ROLLBACK;
+        existingTransaction.balanceAfter = newBalance;
+        existingTransaction.balanceBefore = oldBalance;
+        existingTransaction.reason = data.reason || 'Rollback performed';
+        await this.transactionService.updateTransaction(existingTransaction);
+      } else {
+        await this.transactionService.createTransaction({
+          type: TransactionType.ROLLBACK,
+          balanceAfter: newBalance,
+          balanceBefore: oldBalance,
+          amount: Math.abs(rollbackAmount),
+          gameId: data.gameId,
+          gameSessionId: findGameSession?.id,
+          roundId: data.roundId,
+          userId: data.playerId,
+          transactionId: data.transactionId,
+          reason: data.reason || 'Rollback performed',
+        });
+      }
+
       return {
         code: 200,
         data: {
@@ -392,7 +433,6 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
-      console.log('test error');
       console.error('Rollback error:', error);
       return { code: 1500, data: null, message: 'Internal Error' };
     }
