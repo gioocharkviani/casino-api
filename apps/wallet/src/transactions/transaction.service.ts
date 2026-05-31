@@ -12,22 +12,34 @@ export class transactionService {
     private readonly transactionRepository: Repository<TransactionEntity>,
   ) {}
 
-  //CREATE TRANSACTION
+  // CREATE OR UPDATE TRANSACTION
   async createTransaction(data: CreateTransactionDto) {
     const transactionType = data.type as TransactionType;
-    const createTransaction = this.transactionRepository.create({
-      amount: data.amount,
-      balanceAfter: data?.balanceAfter,
-      balanceBefore: data?.balanceBefore,
-      gameId: data?.gameId,
-      gameSessionId: data.gameSessionId,
-      reason: data?.reason,
-      roundId: data?.roundId,
-      userId: data.userId,
-      transactionId: data.transactionId,
-      type: transactionType,
+
+    let existingTransaction = await this.transactionRepository.findOne({
+      where: { transactionId: data.transactionId },
     });
-    return await this.transactionRepository.save(createTransaction);
+
+    if (existingTransaction) {
+      existingTransaction.type = transactionType;
+      existingTransaction.reason = data.reason;
+
+      return await this.transactionRepository.save(existingTransaction);
+    } else {
+      const createTransaction = this.transactionRepository.create({
+        amount: data.amount,
+        balanceAfter: data?.balanceAfter,
+        balanceBefore: data?.balanceBefore,
+        gameId: data?.gameId,
+        gameSessionId: data.gameSessionId,
+        reason: data?.reason,
+        roundId: data?.roundId,
+        userId: data.userId!,
+        transactionId: data.transactionId,
+        type: transactionType,
+      });
+      return await this.transactionRepository.save(createTransaction);
+    }
   }
   //CREATE TRANSACTION
 
