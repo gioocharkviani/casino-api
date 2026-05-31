@@ -15,7 +15,6 @@ export class RevolverSignatureGuard implements CanActivate {
     const response = context.switchToHttp().getResponse();
     const body = request.body;
 
-    // თუ sign არ არის
     if (!body.sign) {
       response.status(200).json({
         code: 1403,
@@ -49,14 +48,11 @@ export class RevolverSignatureGuard implements CanActivate {
       .update(signString)
       .digest('hex');
 
-    // თუ signature არასწორია
     if (calculatedSign !== receivedSign) {
       console.error('Signature validation failed', {
         expected: calculatedSign,
         received: receivedSign,
       });
-
-      // HTTP 200-ით ვაბრუნებთ 1403 კოდს
       response.status(200).json({
         code: 1403,
         data: null,

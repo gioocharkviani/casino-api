@@ -338,8 +338,8 @@ export class WalletService {
 
       if (!existingTransaction) {
         const balanceAfterCalculation = data.relatedExternalDebitTransactionId
-          ? -data.amount
-          : data.amount;
+          ? user.wallet.balance - data.amount
+          : user.wallet.balance + data.amount;
         await this.transactionService.createTransaction({
           type: TransactionType.ROLLBACK,
           userId: data.playerId,
