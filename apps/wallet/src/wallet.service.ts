@@ -310,8 +310,8 @@ export class WalletService {
   //END WALLET CREDIT
 
   //WALLET ROLLBACK
-
   async walletRollback(data: RollbackRequestDto) {
+    console.log('rollback data', data);
     try {
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
