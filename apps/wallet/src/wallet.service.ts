@@ -310,7 +310,6 @@ export class WalletService {
   //END WALLET CREDIT
 
   //WALLET ROLLBACK
-
   async walletRollback(data: RollbackRequestDto) {
     try {
       const existingTransaction = await this.transactionService.checkExiting(
@@ -368,7 +367,7 @@ export class WalletService {
       let rollbackType = 'UNKNOWN';
       let rollbackAmount = 0;
       if (data.amount) {
-        rollbackType = 'SIMPLE';
+        rollbackType = 'DEBIT';
         rollbackAmount = data.amount;
         newBalance = oldBalance + data.amount;
       } else if (data.debitAmount || data.creditAmount) {

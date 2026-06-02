@@ -14,7 +14,7 @@ async function bootstrap() {
   });
 
   app.use(cookieParser());
-
+  app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -37,14 +37,9 @@ async function bootstrap() {
   SwaggerModule.setup('swagger', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
-      docExpansion: 'none',
-      filter: true,
-      showRequestDuration: true,
     },
-    customCss: '.swagger-ui .models { display: block; }',
   });
 
-  app.setGlobalPrefix('api');
   console.log('API MODULE START SUCCESSFULLY');
   await app.listen(3000);
 }

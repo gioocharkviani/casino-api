@@ -34,6 +34,15 @@ export class GameService {
   }
   //------------------END GET ALL GAMES
 
+  //------------------ GET ALL GAMES BY CATEGORIES
+  async getGamesByCategoies() {
+    const res = await lastValueFrom(
+      this.client.send('GET_CATEGORIES_GAME', {}),
+    );
+    return await res;
+  }
+  //------------------ END GET ALL GAMES BY CATEGORIES
+
   //------------------REFRESH PROVIDER GAME LIST
   async refreshProvider() {
     const res = await lastValueFrom(this.client.send('REFRESH_PROVIDER', {}));

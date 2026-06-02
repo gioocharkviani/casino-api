@@ -15,6 +15,11 @@ export class GameController {
     return this.gameService.getAllGames(query);
   }
 
+  @Get('/categories')
+  getGamesByCategories() {
+    return this.gameService.getGamesByCategoies();
+  }
+
   @Post('revolver-refresh')
   refreshProvider() {
     return this.gameService.refreshProvider();

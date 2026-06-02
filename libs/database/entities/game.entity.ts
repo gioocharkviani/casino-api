@@ -91,6 +91,23 @@ export class Game {
   updatedAt?: Date;
 }
 
+//game categories
+@Entity('game_categories')
+export class GameCategories {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ nullable: false })
+  categories!: string;
+
+  @ManyToOne(() => Game, (game) => game.id)
+  @JoinColumn({ name: 'gameId' })
+  game!: Game;
+
+  @Column({ name: 'gameId' })
+  gameId!: number;
+}
+
 //game meta_data
 @Entity('game_meta_data')
 export class MetaData {

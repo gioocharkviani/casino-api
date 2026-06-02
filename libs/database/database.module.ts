@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import {
   Game,
+  GameCategories,
   GameProvider,
   GameSession,
   MetaData,
@@ -33,9 +34,10 @@ import { TransactionEntity } from './entities/transaction.entity';
         TransactionEntity,
         GameSession,
         UserSessionEntity,
+        GameCategories,
       ],
 
-      synchronize: false,
+      synchronize: process.env.NODE_ENV === 'development' ? true : false,
 
       timezone: '+04:00',
       charset: 'utf8mb4',
@@ -54,6 +56,7 @@ import { TransactionEntity } from './entities/transaction.entity';
       TransactionEntity,
       UserSessionEntity,
       GameSession,
+      GameCategories,
     ]),
   ],
   exports: [TypeOrmModule],

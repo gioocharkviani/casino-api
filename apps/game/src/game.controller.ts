@@ -14,6 +14,11 @@ export class GameController {
     return this.gameService.getAllGames(data);
   }
 
+  @MessagePattern('GET_CATEGORIES_GAME')
+  getAllGameByCategories() {
+    return this.gameService.getAllGameByCategories();
+  }
+
   @MessagePattern('LUNCH_GAME')
   lunchGame({ data, user }: { data: LaunchGameDto; user: UserEntity }) {
     return this.gameService.lunchGame(data, user);

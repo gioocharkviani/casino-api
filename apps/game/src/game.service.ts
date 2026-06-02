@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Game, GameSession } from 'libs/database/entities/game.entity';
+import {
+  Game,
+  GameCategories,
+  GameSession,
+} from 'libs/database/entities/game.entity';
 import { Repository } from 'typeorm';
 import { RevolverService } from './revolver/revolver.service';
 import { getRequestDto } from 'libs/common/dto/getRequest.dto';
@@ -12,6 +16,8 @@ export class GameService {
   constructor(
     @InjectRepository(Game)
     private readonly gameRepository: Repository<Game>,
+    @InjectRepository(GameCategories)
+    private readonly gameCategoriesRepo: Repository<GameCategories>,
     @InjectRepository(GameSession)
     private readonly gameSession: Repository<GameSession>,
     @InjectRepository(GameSession)
@@ -19,7 +25,7 @@ export class GameService {
     private readonly revolverProvider: RevolverService,
   ) {}
 
-  // get all games endpoint
+  //GET ALL GAME
   async getAllGames(data: getRequestDto) {
     const page = data?.page ? parseInt(data?.page as any) : 1;
     const limit = data?.limit ? parseInt(data?.limit as any) : 20;
@@ -47,6 +53,10 @@ export class GameService {
         'gameProvider.prefix',
         'gameProvider.logo',
       ]);
+
+    queryBuilder.andWhere('game.isActive = :isActive', {
+      isActive: true,
+    });
 
     if (data?.isActive !== undefined && data?.isActive !== null) {
       queryBuilder.andWhere('game.isActive = :isActive', {
@@ -90,6 +100,43 @@ export class GameService {
   }
 
   //GET ALL GAME
+
+  //GET ALL GAME BY CATEGORIES
+  async getAllGameByCategories() {
+    const categories = await this.gameCategoriesRepo.find({
+      where: {
+        game: { isActive: true },
+      },
+      select: {
+        categories: true,
+        gameId: false,
+        game: {
+          description: true,
+          gameHumanReadableId: true,
+          gameName: true,
+          gameProvider: true,
+          gameUUID: true,
+          id: true,
+          isActive: true,
+          marketingMaterialsZip: true,
+          metaData: true,
+          providerId: true,
+          rules: true,
+          status: true,
+          thumbnail: true,
+          createdAt: false,
+          updatedAt: false,
+        },
+      },
+      relations: { game: true },
+    });
+
+    return {
+      status: 'OK',
+      data: categories,
+    };
+  }
+  //GET ALL GAME BY CATEGORIES
 
   //LUNCH GAME
   async lunchGame(data: LaunchGameDto, user: UserEntity) {
