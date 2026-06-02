@@ -1,3 +1,4 @@
+import { game_categories } from 'libs/common/enums/gameCategories.enum';
 import {
   Entity,
   Column,
@@ -97,8 +98,8 @@ export class GameCategories {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ nullable: false })
-  categories!: string;
+  @Column({ nullable: false, type: 'enum', enum: game_categories })
+  categories!: game_categories;
 
   @ManyToOne(() => Game, (game) => game.id)
   @JoinColumn({ name: 'gameId' })
