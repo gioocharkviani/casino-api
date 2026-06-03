@@ -1,9 +1,4 @@
-import {
-  HttpException,
-  Inject,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -118,19 +113,23 @@ export class WalletService {
 
   //WALLET DEBIT
   async walletDebit(data: DebitRequestDto) {
-    if (data.amount < 0) {
-      return {
-        code: 199,
-        data: null,
-        message: 'amount cannot be negative',
-      };
-    }
-
     try {
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
         relations: { wallet: true },
       });
+
+      if (data.amount < 0) {
+        return {
+          code: 199,
+          data: {
+            transactionId: data.transactionId,
+            transactionStatus: 2,
+            balance: user?.wallet?.balance,
+          },
+          message: 'Success',
+        };
+      }
 
       console.log('Current balance:', user?.wallet?.balance);
       console.log('Debit amount:', data.amount);
