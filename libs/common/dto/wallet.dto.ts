@@ -178,6 +178,7 @@ export class RollbackRequestDto {
   @IsString()
   gameId!: string;
 
+  @IsOptional()
   @IsNumber()
   amount!: number;
 

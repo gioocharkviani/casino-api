@@ -33,7 +33,7 @@ export class WalletService {
     @InjectRepository(walletEntity)
     private readonly walletRepository: Repository<walletEntity>,
     @InjectRepository(GameSession)
-    private readonly gameRepository: Repository<GameSession>,
+    private readonly gameSessionRepository: Repository<GameSession>,
 
     private readonly transactionService: transactionService,
     private readonly configService: ConfigService,
@@ -147,7 +147,7 @@ export class WalletService {
           message: 'Duplicate transaction - already processed',
         };
       }
-      const findGameSession = await this.gameRepository.findOne({
+      const findGameSession = await this.gameSessionRepository.findOne({
         where: {
           playerId: data.playerId,
           isActive: true,
@@ -264,7 +264,7 @@ export class WalletService {
         };
       }
 
-      const findGameSession = await this.gameRepository.findOne({
+      const findGameSession = await this.gameSessionRepository.findOne({
         where: {
           playerId: data.playerId,
           isActive: true,
@@ -329,7 +329,7 @@ export class WalletService {
         };
       }
 
-      const findGameSession = await this.gameRepository.findOne({
+      const findGameSession = await this.gameSessionRepository.findOne({
         where: {
           playerId: data.playerId,
           isActive: true,
@@ -411,52 +411,69 @@ export class WalletService {
         data.transactionId,
       );
 
-      const findGameSession = await this.gameRepository.findOne({
+      if (existingTransaction) {
+        const user = await this.userRepository.findOne({
+          where: { id: data.playerId },
+          relations: { wallet: true },
+        });
+
+        return {
+          code: 200,
+          data: {
+            transactionId: existingTransaction.transactionId,
+            transactionStatus: 1,
+            balance: user?.wallet?.balance ?? 0,
+          },
+          message: 'Success',
+        };
+      }
+
+      const user = await this.userRepository.findOne({
+        where: { id: data.playerId },
+        relations: { wallet: true },
+      });
+
+      if (!user?.wallet) {
+        return {
+          code: 1501,
+          data: null,
+          message: 'User or wallet not found',
+        };
+      }
+
+      const findGameSession = await this.gameSessionRepository.findOne({
         where: {
           playerId: data.playerId,
           isActive: true,
         },
       });
 
-      const user = await this.userRepository.findOne({
-        where: {
-          id: data.playerId,
-        },
-        relations: {
-          wallet: true,
-        },
+      const currentBalance = user.wallet.balance;
+      const credit = data.creditAmount ?? 0;
+      const debit = data.debitAmount ?? 0;
+      const newBalance = currentBalance + (credit - debit);
+
+      user.wallet.balance = newBalance;
+      await this.userRepository.save(user);
+
+      await this.transactionService.createTransaction({
+        type: TransactionType.ROLLBACK,
+        userId: data.playerId,
+        transactionId: data.transactionId,
+        balanceBefore: currentBalance, // ← ძველი
+        balanceAfter: newBalance, // ← ახალი
+        gameId: data.gameId,
+        gameSessionId: findGameSession?.id,
+        roundId: data.roundId,
+        amount: Math.abs(credit - debit),
       });
-      if (!existingTransaction) {
-        const currentBalance = user?.wallet?.balance ?? 0;
-        const credit = data.creditAmount ?? 0;
-        const debit = data.debitAmount ?? 0;
-        const newBalance = currentBalance + (credit - debit);
-        await this.transactionService.createTransaction({
-          type: TransactionType.ROLLBACK,
-          userId: data.playerId,
-          transactionId: data.transactionId,
-          balanceAfter: currentBalance,
-          balanceBefore: newBalance,
-          gameId: data.gameId,
-          gameSessionId: findGameSession?.id,
-          roundId: data.roundId,
-        });
-        return {
-          code: 200,
-          data: {
-            transactionId: null,
-            transactionStatus: 1,
-            balance: user?.wallet?.balance,
-          },
-          message: 'Success',
-        };
-      }
+
       return {
         code: 200,
         data: {
-          transactionId: existingTransaction.transactionId,
+          transactionId: null,
           transactionStatus: 1,
-          balance: user?.wallet?.balance,
+          balance: newBalance,
         },
         message: 'Success',
       };
@@ -464,7 +481,7 @@ export class WalletService {
       return {
         code: 1500,
         data: null,
-        message: 'Internal Error: ',
+        message: `Internal Error`,
       };
     }
   }
