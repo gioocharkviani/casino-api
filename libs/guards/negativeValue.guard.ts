@@ -12,7 +12,7 @@ export class NegativeValueGuard implements CanActivate {
 
     if (data.amount !== undefined && data.amount < 0) {
       request.negativeValueError = {
-        code: 199,
+        code: 1503,
         data: null,
         message: 'amount cannot be negative',
       };
@@ -21,7 +21,7 @@ export class NegativeValueGuard implements CanActivate {
 
     if (data.debitAmount !== undefined && data.debitAmount < 0) {
       request.negativeValueError = {
-        code: 199,
+        code: 1503,
         data: null,
         message: 'debitAmount cannot be negative',
       };
@@ -30,7 +30,7 @@ export class NegativeValueGuard implements CanActivate {
 
     if (data.creditAmount !== undefined && data.creditAmount < 0) {
       request.negativeValueError = {
-        code: 199,
+        code: 1503,
         data: null,
         message: 'creditAmount cannot be negative',
       };
