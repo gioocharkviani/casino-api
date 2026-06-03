@@ -86,7 +86,7 @@ export class WalletService {
   }
   // END WALLET AUTH
 
-  //WALLET BALLANCE
+  //WALLET BALANCE
   async getWalletBallance(data: WalletBallanceDto) {
     const findWalletUser = await this.userRepository.findOne({
       where: {
@@ -114,7 +114,7 @@ export class WalletService {
       message: 'Success',
     };
   }
-  //END WALLET BALLANCE
+  //END WALLET BALANCE
 
   //WALLET DEBIT
   async walletDebit(data: DebitRequestDto) {
@@ -178,7 +178,7 @@ export class WalletService {
         };
       }
 
-      // ✅ INSUFFICIENT FUNDS CHECK (already exists but keeping it)
+      // ✅ INSUFFICIENT FUNDS CHECK
       if (user.wallet.balance < data.amount) {
         return {
           code: 1503,
@@ -325,7 +325,6 @@ export class WalletService {
       };
     }
   }
-
   //END WALLET CREDIT
 
   //WALLET ROLLBACK
@@ -379,8 +378,8 @@ export class WalletService {
 
       if (!existingTransaction) {
         const balanceAfterCalculation = data.relatedExternalDebitTransactionId
-          ? user.wallet.balance - data.amount
-          : user.wallet.balance + data.amount;
+          ? user.wallet.balance - (data.amount ?? 0)
+          : user.wallet.balance + (data.amount ?? 0);
 
         // ✅ CHECK IF BALANCE WOULD GO NEGATIVE
         if (balanceAfterCalculation < 0) {
@@ -417,12 +416,16 @@ export class WalletService {
       let oldBalance = user.wallet.balance;
       let newBalance = oldBalance;
       let rollbackAmount = 0;
-      if (data.amount) {
+
+      if (data.amount !== undefined) {
         rollbackAmount = data.amount;
         newBalance = oldBalance + rollbackAmount;
-      } else if (data.debitAmount || data.creditAmount) {
-        const debitRefund = data.debitAmount || 0;
-        const creditRemove = data.creditAmount || 0;
+      } else if (
+        data.debitAmount !== undefined ||
+        data.creditAmount !== undefined
+      ) {
+        const debitRefund = data.debitAmount ?? 0;
+        const creditRemove = data.creditAmount ?? 0;
         rollbackAmount = debitRefund - creditRemove;
         newBalance = oldBalance + (debitRefund - creditRemove);
       } else {
@@ -433,12 +436,15 @@ export class WalletService {
         };
       }
 
-      // ✅ CHECK IF NEW BALANCE WOULD GO NEGATIVE
+      // ✅ CRITICAL: CHECK IF NEW BALANCE WOULD GO NEGATIVE
+      // When rollbackAmount is negative (creditRemove > debitRefund),
+      // we are removing money from balance
       if (newBalance < 0) {
         return {
           code: 1503,
           data: null,
-          message: 'Insufficient Funds for rollback',
+          message:
+            'Insufficient Funds for rollback - Balance would become negative',
         };
       }
 
@@ -455,10 +461,11 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
+      console.error('Rollback error:', error);
       return {
         code: 1500,
         data: null,
-        message: 'Internal Error: ',
+        message: 'Internal Error',
       };
     }
   }
@@ -467,18 +474,14 @@ export class WalletService {
   //CREDIT AND DEBIT
   async creditAndDebit(data: DebitAndCreditDto) {
     // ✅ NEGATIVE VALUE VALIDATION
-    if (data.debitAmount !== undefined && data.debitAmount < 0) {
+    if (
+      (data.debitAmount !== undefined && data.debitAmount < 0) ||
+      (data.creditAmount !== undefined && data.creditAmount < 0)
+    ) {
       return {
         code: 199,
         data: null,
-        message: 'debitAmount cannot be negative',
-      };
-    }
-    if (data.creditAmount !== undefined && data.creditAmount < 0) {
-      return {
-        code: 199,
-        data: null,
-        message: 'creditAmount cannot be negative',
+        message: 'debitAmount and creditAmount cannot be negative',
       };
     }
 
@@ -527,18 +530,18 @@ export class WalletService {
       const credit = data.creditAmount ?? 0;
       const debit = data.debitAmount ?? 0;
 
-      // ✅ INSUFFICIENT FUNDS CHECK FOR DEBIT
+      // ✅ CHECK 1: Enough balance for debit
       if (currentBalance < debit) {
         return {
           code: 1503,
           data: null,
-          message: 'Insufficient Funds',
+          message: 'Insufficient Funds for debit',
         };
       }
 
       const newBalance = currentBalance + credit - debit;
 
-      // ✅ EXTRA SAFETY CHECK - NEW BALANCE SHOULD NOT BE NEGATIVE
+      // ✅ CHECK 2: Final balance should never be negative
       if (newBalance < 0) {
         return {
           code: 1503,
@@ -578,7 +581,7 @@ export class WalletService {
       return {
         code: 1500,
         data: null,
-        message: `Internal Error`,
+        message: `Internal Error: `,
       };
     }
   }

@@ -32,7 +32,6 @@ export class WalletController {
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
   async balance(@Body() body: WalletBallanceDto) {
-    console.log('debit balance', body);
     return this.walletService.balance(body);
   }
 
@@ -40,7 +39,6 @@ export class WalletController {
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
   async debit(@Body() body: DebitRequestDto) {
-    console.log('debit loging', body);
     return this.walletService.debit(body);
   }
 
@@ -48,7 +46,6 @@ export class WalletController {
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
   async credit(@Body() body: CreditRequestDto) {
-    console.log('debit credit', body);
     return this.walletService.credit(body);
   }
 
@@ -56,7 +53,6 @@ export class WalletController {
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
   async rollback(@Body() body: RollbackRequestDto) {
-    console.log('debit rollback', body);
     return this.walletService.rollback(body);
   }
 
@@ -64,7 +60,6 @@ export class WalletController {
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
   async debitAndCredit(@Body() body: DebitAndCreditDto) {
-    console.log('debit and credit ', body);
     return this.walletService.debitAndCredit(body);
   }
 }
