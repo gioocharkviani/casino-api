@@ -80,7 +80,7 @@ export class DebitRequestDto {
   transactionId?: string;
 
   @IsNumber()
-  @Min(0, { message: 'amount cannot be negative' })
+  @Min(1)
   amount!: number;
 
   @IsBoolean()
@@ -133,8 +133,7 @@ export class CreditRequestDto {
   transactionId?: string;
 
   @IsNumber()
-  @IsNumber()
-  @Min(0, { message: 'amount cannot be negative' })
+  @Min(1)
   amount!: number;
 
   @IsBoolean()
@@ -181,17 +180,14 @@ export class RollbackRequestDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(0, { message: 'amount cannot be negative' })
   amount!: number;
 
   @IsOptional()
   @IsNumber()
-  @Min(0, { message: 'amount cannot be negative' })
   debitAmount?: number;
 
   @IsOptional()
   @IsNumber()
-  @Min(0, { message: 'amount cannot be negative' })
   creditAmount?: number;
 
   @IsString()
@@ -239,12 +235,10 @@ export class DebitAndCreditDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(0, { message: 'amount cannot be negative' })
   debitAmount?: number;
 
   @IsOptional()
   @IsNumber()
-  @Min(0, { message: 'amount cannot be negative' })
   creditAmount?: number;
 
   @IsString()
