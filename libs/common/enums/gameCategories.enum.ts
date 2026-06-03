@@ -1,4 +1,4 @@
-export enum game_categories {
+export enum gameCategoriesEnum {
   NEW = 'NEW',
   TOP = 'TOP',
 }
