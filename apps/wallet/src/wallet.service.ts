@@ -182,7 +182,7 @@ export class WalletService {
 
       if (user.wallet.balance < data.amount) {
         return {
-          code: 1503,
+          code: 199,
           data: null,
           message: 'Insufficient Funds',
         };
