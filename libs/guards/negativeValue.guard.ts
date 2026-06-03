@@ -10,7 +10,6 @@ export class NegativeValueGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const data = request.body;
 
-    // შეამოწმე უარყოფითი მნიშვნელობები
     if (data.amount !== undefined && data.amount < 0) {
       request.negativeValueError = {
         code: 199,

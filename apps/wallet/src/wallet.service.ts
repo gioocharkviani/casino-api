@@ -178,6 +178,7 @@ export class WalletService {
         };
       }
 
+      // ✅ INSUFFICIENT FUNDS CHECK (already exists but keeping it)
       if (user.wallet.balance < data.amount) {
         return {
           code: 1503,
@@ -380,6 +381,16 @@ export class WalletService {
         const balanceAfterCalculation = data.relatedExternalDebitTransactionId
           ? user.wallet.balance - data.amount
           : user.wallet.balance + data.amount;
+
+        // ✅ CHECK IF BALANCE WOULD GO NEGATIVE
+        if (balanceAfterCalculation < 0) {
+          return {
+            code: 1503,
+            data: null,
+            message: 'Insufficient Funds for rollback',
+          };
+        }
+
         await this.transactionService.createTransaction({
           type: TransactionType.ROLLBACK,
           userId: data.playerId,
@@ -419,6 +430,15 @@ export class WalletService {
           code: 199,
           data: null,
           message: 'Bad Request - Missing amount or debitAmount/creditAmount',
+        };
+      }
+
+      // ✅ CHECK IF NEW BALANCE WOULD GO NEGATIVE
+      if (newBalance < 0) {
+        return {
+          code: 1503,
+          data: null,
+          message: 'Insufficient Funds for rollback',
         };
       }
 
@@ -507,6 +527,7 @@ export class WalletService {
       const credit = data.creditAmount ?? 0;
       const debit = data.debitAmount ?? 0;
 
+      // ✅ INSUFFICIENT FUNDS CHECK FOR DEBIT
       if (currentBalance < debit) {
         return {
           code: 1503,
@@ -516,6 +537,16 @@ export class WalletService {
       }
 
       const newBalance = currentBalance + credit - debit;
+
+      // ✅ EXTRA SAFETY CHECK - NEW BALANCE SHOULD NOT BE NEGATIVE
+      if (newBalance < 0) {
+        return {
+          code: 1503,
+          data: null,
+          message:
+            'Insufficient Funds - Transaction would make balance negative',
+        };
+      }
 
       user.wallet.balance = newBalance;
       await this.walletRepository.save(user.wallet);
