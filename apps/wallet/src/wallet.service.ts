@@ -118,6 +118,15 @@ export class WalletService {
 
   //WALLET DEBIT
   async walletDebit(data: DebitRequestDto) {
+    // ✅ NEGATIVE VALUE VALIDATION
+    if (data.amount < 0) {
+      return {
+        code: 199,
+        data: null,
+        message: 'amount cannot be negative',
+      };
+    }
+
     try {
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
@@ -217,6 +226,15 @@ export class WalletService {
 
   //WALLET CREDIT
   async walletCredit(data: CreditRequestDto) {
+    // ✅ NEGATIVE VALUE VALIDATION
+    if (data.amount < 0) {
+      return {
+        code: 199,
+        data: null,
+        message: 'amount cannot be negative',
+      };
+    }
+
     try {
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
@@ -311,6 +329,29 @@ export class WalletService {
 
   //WALLET ROLLBACK
   async walletRollback(data: RollbackRequestDto) {
+    // ✅ NEGATIVE VALUE VALIDATION
+    if (data.amount !== undefined && data.amount < 0) {
+      return {
+        code: 199,
+        data: null,
+        message: 'amount cannot be negative',
+      };
+    }
+    if (data.debitAmount !== undefined && data.debitAmount < 0) {
+      return {
+        code: 199,
+        data: null,
+        message: 'debitAmount cannot be negative',
+      };
+    }
+    if (data.creditAmount !== undefined && data.creditAmount < 0) {
+      return {
+        code: 199,
+        data: null,
+        message: 'creditAmount cannot be negative',
+      };
+    }
+
     try {
       const existingTransaction = await this.transactionService.checkExiting(
         data.transactionId,
@@ -405,6 +446,22 @@ export class WalletService {
 
   //CREDIT AND DEBIT
   async creditAndDebit(data: DebitAndCreditDto) {
+    // ✅ NEGATIVE VALUE VALIDATION
+    if (data.debitAmount !== undefined && data.debitAmount < 0) {
+      return {
+        code: 199,
+        data: null,
+        message: 'debitAmount cannot be negative',
+      };
+    }
+    if (data.creditAmount !== undefined && data.creditAmount < 0) {
+      return {
+        code: 199,
+        data: null,
+        message: 'creditAmount cannot be negative',
+      };
+    }
+
     try {
       const existingTransaction = await this.transactionService.checkExiting(
         data.transactionId,
