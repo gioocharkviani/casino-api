@@ -14,6 +14,7 @@ export class RevolverSignatureGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
     const body = request.body;
+    console.log(request);
 
     if (!body.sign) {
       response.status(200).json({
