@@ -119,6 +119,7 @@ export class WalletService {
   //WALLET DEBIT
   async walletDebit(data: DebitRequestDto) {
     if (data.amount < 0) {
+      console.log('i am negative value');
       return {
         code: 1503,
         data: null,
@@ -181,6 +182,7 @@ export class WalletService {
       }
 
       if (data.amount > user.wallet.balance) {
+        console.log('its balance naklebia ');
         return {
           code: 1503,
           data: null,
