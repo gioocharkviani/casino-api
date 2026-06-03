@@ -99,9 +99,9 @@ export class WalletService {
 
     if (!findWalletUser) {
       return {
-        code: 401,
+        code: 1501,
         data: {},
-        message: 'Unauthorized',
+        message: 'User Not Found',
       };
     }
 
@@ -182,7 +182,7 @@ export class WalletService {
 
       if (user.wallet.balance < data.amount) {
         return {
-          code: 199,
+          code: 1503,
           data: null,
           message: 'Insufficient Funds',
         };
@@ -374,24 +374,12 @@ export class WalletService {
       });
 
       if (!existingTransaction) {
-        const balanceAfterCalculation = data.relatedExternalDebitTransactionId
-          ? user.wallet.balance - (data.amount ?? 0)
-          : user.wallet.balance + (data.amount ?? 0);
-
-        if (balanceAfterCalculation < 0) {
-          return {
-            code: 1503,
-            data: null,
-            message: 'Insufficient Funds for rollback',
-          };
-        }
-
         await this.transactionService.createTransaction({
           type: TransactionType.ROLLBACK,
           userId: data.playerId,
           transactionId: data.transactionId,
           amount: data.amount,
-          balanceAfter: balanceAfterCalculation,
+          balanceAfter: user.wallet.balance,
           balanceBefore: user.wallet.balance,
           gameId: data.gameId,
           gameSessionId: findGameSession?.id,
@@ -431,6 +419,7 @@ export class WalletService {
           message: 'Bad Request - Missing amount or debitAmount/creditAmount',
         };
       }
+
       if (newBalance < 0) {
         return {
           code: 1503,
@@ -568,7 +557,7 @@ export class WalletService {
       return {
         code: 1500,
         data: null,
-        message: `Internal Error: `,
+        message: 'Internal Error',
       };
     }
   }
