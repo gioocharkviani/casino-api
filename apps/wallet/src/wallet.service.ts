@@ -118,8 +118,6 @@ export class WalletService {
 
   //WALLET DEBIT
   async walletDebit(data: DebitRequestDto) {
-    console.log('DEBIT DATA', data);
-
     if (data.amount < 0) {
       return {
         code: 199,
@@ -133,6 +131,9 @@ export class WalletService {
         where: { id: data.playerId },
         relations: { wallet: true },
       });
+
+      console.log('Current balance:', user?.wallet?.balance);
+      console.log('Debit amount:', data.amount);
 
       if (!data.transactionId) {
         return {
@@ -215,7 +216,6 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
-      console.error('Debit error:', error);
       return {
         code: 1500,
         data: null,
@@ -227,7 +227,6 @@ export class WalletService {
 
   //WALLET CREDIT
   async walletCredit(data: CreditRequestDto) {
-    console.log('CREDIT DATA', data);
     if (data.amount < 0) {
       return {
         code: 199,
@@ -317,7 +316,6 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
-      console.error('credit error:', error);
       return {
         code: 1500,
         data: null,
@@ -329,7 +327,6 @@ export class WalletService {
 
   //WALLET ROLLBACK
   async walletRollback(data: RollbackRequestDto) {
-    console.log('ROLLBACK DATA', data);
     if (data.amount !== undefined && data.amount < 0) {
       return {
         code: 199,
@@ -456,7 +453,6 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
-      console.error('Rollback error:', error);
       return {
         code: 1500,
         data: null,
@@ -468,7 +464,6 @@ export class WalletService {
 
   //CREDIT AND DEBIT
   async creditAndDebit(data: DebitAndCreditDto) {
-    console.log('CREDIT ADN DEBIT', data);
     if (
       (data.debitAmount !== undefined && data.debitAmount < 0) ||
       (data.creditAmount !== undefined && data.creditAmount < 0)
@@ -570,7 +565,6 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
-      console.error('creditAndDebit error:', error);
       return {
         code: 1500,
         data: null,
