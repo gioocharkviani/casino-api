@@ -118,7 +118,8 @@ export class WalletService {
 
   //WALLET DEBIT
   async walletDebit(data: DebitRequestDto) {
-    // ✅ NEGATIVE VALUE VALIDATION
+    console.log('DEBIT DATA', data);
+
     if (data.amount < 0) {
       return {
         code: 199,
@@ -178,7 +179,6 @@ export class WalletService {
         };
       }
 
-      // ✅ INSUFFICIENT FUNDS CHECK
       if (user.wallet.balance < data.amount) {
         return {
           code: 1503,
@@ -227,7 +227,7 @@ export class WalletService {
 
   //WALLET CREDIT
   async walletCredit(data: CreditRequestDto) {
-    // ✅ NEGATIVE VALUE VALIDATION
+    console.log('CREDIT DATA', data);
     if (data.amount < 0) {
       return {
         code: 199,
@@ -329,7 +329,7 @@ export class WalletService {
 
   //WALLET ROLLBACK
   async walletRollback(data: RollbackRequestDto) {
-    // ✅ NEGATIVE VALUE VALIDATION
+    console.log('ROLLBACK DATA', data);
     if (data.amount !== undefined && data.amount < 0) {
       return {
         code: 199,
@@ -381,7 +381,6 @@ export class WalletService {
           ? user.wallet.balance - (data.amount ?? 0)
           : user.wallet.balance + (data.amount ?? 0);
 
-        // ✅ CHECK IF BALANCE WOULD GO NEGATIVE
         if (balanceAfterCalculation < 0) {
           return {
             code: 1503,
@@ -435,10 +434,6 @@ export class WalletService {
           message: 'Bad Request - Missing amount or debitAmount/creditAmount',
         };
       }
-
-      // ✅ CRITICAL: CHECK IF NEW BALANCE WOULD GO NEGATIVE
-      // When rollbackAmount is negative (creditRemove > debitRefund),
-      // we are removing money from balance
       if (newBalance < 0) {
         return {
           code: 1503,
@@ -473,7 +468,7 @@ export class WalletService {
 
   //CREDIT AND DEBIT
   async creditAndDebit(data: DebitAndCreditDto) {
-    // ✅ NEGATIVE VALUE VALIDATION
+    console.log('CREDIT ADN DEBIT', data);
     if (
       (data.debitAmount !== undefined && data.debitAmount < 0) ||
       (data.creditAmount !== undefined && data.creditAmount < 0)
@@ -530,7 +525,6 @@ export class WalletService {
       const credit = data.creditAmount ?? 0;
       const debit = data.debitAmount ?? 0;
 
-      // ✅ CHECK 1: Enough balance for debit
       if (currentBalance < debit) {
         return {
           code: 1503,
@@ -541,7 +535,6 @@ export class WalletService {
 
       const newBalance = currentBalance + credit - debit;
 
-      // ✅ CHECK 2: Final balance should never be negative
       if (newBalance < 0) {
         return {
           code: 1503,
