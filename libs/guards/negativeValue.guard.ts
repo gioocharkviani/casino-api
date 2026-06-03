@@ -9,7 +9,6 @@ export class NegativeValueGuard implements CanActivate {
   ): boolean | Promise<boolean> | Observable<boolean> {
     const request = context.switchToHttp().getRequest();
     const data = request.body;
-    console.log(data);
 
     if (data.amount !== undefined && data.amount < 0) {
       request.negativeValueError = {

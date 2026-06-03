@@ -16,7 +16,6 @@ import {
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
 import { RevolverSignatureGuard } from 'libs/guards/revolver-signature.guard';
-import { NegativeValueGuard } from 'libs/guards/negativeValue.guard';
 
 @Controller('wallet')
 export class WalletController {
@@ -38,28 +37,28 @@ export class WalletController {
 
   @Post('debit')
   @HttpCode(200)
-  @UseGuards(RevolverSignatureGuard, NegativeValueGuard)
+  @UseGuards(RevolverSignatureGuard)
   async debit(@Body() body: DebitRequestDto) {
     return this.walletService.debit(body);
   }
 
   @Post('credit')
   @HttpCode(200)
-  @UseGuards(RevolverSignatureGuard, NegativeValueGuard)
+  @UseGuards(RevolverSignatureGuard)
   async credit(@Body() body: CreditRequestDto) {
     return this.walletService.credit(body);
   }
 
   @Post('rollback')
   @HttpCode(200)
-  @UseGuards(RevolverSignatureGuard, NegativeValueGuard)
+  @UseGuards(RevolverSignatureGuard)
   async rollback(@Body() body: RollbackRequestDto) {
     return this.walletService.rollback(body);
   }
 
   @Post('debitAndCredit')
   @HttpCode(200)
-  @UseGuards(RevolverSignatureGuard, NegativeValueGuard)
+  @UseGuards(RevolverSignatureGuard)
   async debitAndCredit(@Body() body: DebitAndCreditDto) {
     return this.walletService.debitAndCredit(body);
   }
