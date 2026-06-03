@@ -124,16 +124,25 @@ export class GameService {
           rules: true,
           status: true,
           thumbnail: true,
-          createdAt: false,
-          updatedAt: false,
         },
       },
       relations: { game: true },
     });
 
+    const groupedData = {};
+    for (const item of categories) {
+      const categoryName = item.categories;
+      if (!groupedData[categoryName]) {
+        groupedData[categoryName] = [];
+      }
+
+      groupedData[categoryName].push(item.game);
+    }
+
     return {
-      status: 'OK',
-      data: categories,
+      code: 200,
+      data: groupedData,
+      message: 'Success',
     };
   }
   //GET ALL GAME BY CATEGORIES
