@@ -9,6 +9,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   CreditRequestDto,
+  DebitAndCreditDto,
   DebitRequestDto,
   RollbackRequestDto,
   WalletAuthDto,
@@ -364,18 +365,15 @@ export class WalletService {
 
       let oldBalance = user.wallet.balance;
       let newBalance = oldBalance;
-      let rollbackType = 'UNKNOWN';
       let rollbackAmount = 0;
       if (data.amount) {
-        rollbackType = 'DEBIT';
         rollbackAmount = data.amount;
-        newBalance = oldBalance + data.amount;
+        newBalance = oldBalance + rollbackAmount;
       } else if (data.debitAmount || data.creditAmount) {
-        rollbackType = 'COMPLEX';
         const debitRefund = data.debitAmount || 0;
         const creditRemove = data.creditAmount || 0;
         rollbackAmount = debitRefund - creditRemove;
-        newBalance = oldBalance + debitRefund - creditRemove;
+        newBalance = oldBalance + (debitRefund - creditRemove);
       } else {
         return {
           code: 199,
@@ -405,4 +403,70 @@ export class WalletService {
     }
   }
   //END WALLET ROLLBACK
+
+  //CREDIT AND DEBIT
+  async creditAndDebit(data: DebitAndCreditDto) {
+    try {
+      const existingTransaction = await this.transactionService.checkExiting(
+        data.transactionId,
+      );
+
+      const findGameSession = await this.gameRepository.findOne({
+        where: {
+          playerId: data.playerId,
+          isActive: true,
+        },
+      });
+
+      const user = await this.userRepository.findOne({
+        where: {
+          id: data.playerId,
+        },
+        relations: {
+          wallet: true,
+        },
+      });
+      if (!existingTransaction) {
+        const currentBalance = user?.wallet?.balance ?? 0;
+        const credit = data.creditAmount ?? 0;
+        const debit = data.debitAmount ?? 0;
+        const newBalance = currentBalance + (credit - debit);
+        await this.transactionService.createTransaction({
+          type: TransactionType.ROLLBACK,
+          userId: data.playerId,
+          transactionId: data.transactionId,
+          balanceAfter: currentBalance,
+          balanceBefore: newBalance,
+          gameId: data.gameId,
+          gameSessionId: findGameSession?.id,
+          roundId: data.roundId,
+        });
+        return {
+          code: 200,
+          data: {
+            transactionId: null,
+            transactionStatus: 1,
+            balance: user?.wallet?.balance,
+          },
+          message: 'Success',
+        };
+      }
+      return {
+        code: 200,
+        data: {
+          transactionId: existingTransaction.transactionId,
+          transactionStatus: 1,
+          balance: user?.wallet?.balance,
+        },
+        message: 'Success',
+      };
+    } catch (error) {
+      return {
+        code: 1500,
+        data: null,
+        message: 'Internal Error: ',
+      };
+    }
+  }
+  //CREDIT AND DEBIT
 }

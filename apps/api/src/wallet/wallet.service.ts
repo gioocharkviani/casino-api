@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import {
   CreditRequestDto,
+  DebitAndCreditDto,
   DebitRequestDto,
   RollbackRequestDto,
   WalletAuthDto,
@@ -54,8 +55,9 @@ export class WalletService {
   //WALLET ROLLBACK
 
   //WALLET DEBIT AND CREDIT
-  async debitAndCredit(data) {
-    return data;
+  async debitAndCredit(data: DebitAndCreditDto) {
+    const result = await lastValueFrom(this.client.send('DEBIT&CREDIT', data));
+    return result;
   }
   //WALLET DEBIT AND CREDIT
 }

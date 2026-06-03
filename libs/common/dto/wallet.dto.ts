@@ -221,3 +221,41 @@ export class RollbackRequestDto {
   @IsString()
   sign?: string;
 }
+
+export class DebitAndCreditDto {
+  @IsString()
+  playerId!: string;
+
+  @IsString()
+  transactionId!: string;
+
+  @IsString()
+  gameId!: string;
+
+  @IsOptional()
+  @IsNumber()
+  debitAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  creditAmount?: number;
+
+  @IsString()
+  currency?: string;
+
+  @IsString()
+  roundId?: string;
+
+  @IsOptional()
+  @IsObject()
+  sessionState?: any;
+
+  @IsNumber()
+  channel?: number;
+
+  @IsNumber()
+  date?: number;
+
+  @IsString()
+  sign?: string;
+}

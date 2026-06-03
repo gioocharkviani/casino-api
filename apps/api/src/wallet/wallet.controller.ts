@@ -2,6 +2,7 @@ import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import {
   CreditRequestDto,
+  DebitAndCreditDto,
   DebitRequestDto,
   RollbackRequestDto,
   WalletAuthDto,
@@ -52,7 +53,7 @@ export class WalletController {
   @Post('debitAndCredit')
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
-  async debitAndCredit(@Body() body: any) {
+  async debitAndCredit(@Body() body: DebitAndCreditDto) {
     return this.walletService.debitAndCredit(body);
   }
 }
