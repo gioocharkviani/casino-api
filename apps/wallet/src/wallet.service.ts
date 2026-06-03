@@ -127,9 +127,6 @@ export class WalletService {
         };
       }
 
-      console.log('Current balance:', user?.wallet?.balance);
-      console.log('Debit amount:', data.amount);
-
       if (!data.transactionId) {
         return {
           code: 1504,
