@@ -120,7 +120,7 @@ export class WalletService {
   async walletDebit(data: DebitRequestDto) {
     if (data.amount < 0) {
       return {
-        code: 1503,
+        code: 199,
         data: null,
         message: 'amount cannot be negative',
       };
@@ -180,13 +180,13 @@ export class WalletService {
         };
       }
 
-      // if (data.amount > user.wallet.balance) {
-      //   return {
-      //     code: 1503,
-      //     data: null,
-      //     message: 'Insufficient Funds',
-      //   };
-      // }
+      if (user.wallet.balance < data.amount) {
+        return {
+          code: 199,
+          data: null,
+          message: 'Insufficient Funds',
+        };
+      }
 
       const oldBalance = user.wallet.balance;
       const newBalance = oldBalance - data.amount;
@@ -229,7 +229,7 @@ export class WalletService {
   async walletCredit(data: CreditRequestDto) {
     if (data.amount < 0) {
       return {
-        code: 1503,
+        code: 199,
         data: null,
         message: 'amount cannot be negative',
       };
@@ -329,7 +329,7 @@ export class WalletService {
   async walletRollback(data: RollbackRequestDto) {
     if (data.amount !== undefined && data.amount < 0) {
       return {
-        code: 1503,
+        code: 199,
         data: null,
         message: 'amount cannot be negative',
       };
