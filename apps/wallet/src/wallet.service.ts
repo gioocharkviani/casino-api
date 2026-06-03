@@ -135,7 +135,6 @@ export class WalletService {
       const isDuplicate = await this.transactionService.checkExiting(
         data.transactionId,
       );
-      console.log('is duplicate DEBIT', isDuplicate);
       if (isDuplicate) {
         return {
           code: 200,
@@ -251,7 +250,7 @@ export class WalletService {
       const isDuplicate = await this.transactionService.checkExiting(
         data.transactionId,
       );
-      console.log('is duplicate credit', isDuplicate);
+
       if (isDuplicate) {
         return {
           code: 200,
@@ -410,7 +409,6 @@ export class WalletService {
       const existingTransaction = await this.transactionService.checkExiting(
         data.transactionId,
       );
-      console.log('test1');
 
       if (existingTransaction) {
         const user = await this.userRepository.findOne({
@@ -427,7 +425,6 @@ export class WalletService {
           message: 'Success',
         };
       }
-      console.log('test2');
 
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
@@ -441,7 +438,6 @@ export class WalletService {
           message: 'User or wallet not found',
         };
       }
-      console.log('test3');
 
       const findGameSession = await this.gameSessionRepository.findOne({
         where: {
@@ -449,7 +445,6 @@ export class WalletService {
           isActive: true,
         },
       });
-      console.log('test4');
 
       const currentBalance = user.wallet.balance;
       const credit = data.creditAmount ?? 0;
@@ -464,11 +459,9 @@ export class WalletService {
       }
 
       const newBalance = currentBalance + credit - debit;
-      console.log('test5');
 
       user.wallet.balance = newBalance;
       await this.walletRepository.save(user.wallet);
-      console.log('test6');
 
       await this.transactionService.createTransaction({
         type: TransactionType.DEBIT_AND_CREDIT,
@@ -482,7 +475,6 @@ export class WalletService {
         amount: Math.abs(credit - debit),
         reason: `Debit: ${debit}, Credit: ${credit}`,
       });
-      console.log('test7');
 
       return {
         code: 200,
