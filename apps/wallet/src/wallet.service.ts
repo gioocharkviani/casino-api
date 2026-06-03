@@ -204,6 +204,7 @@ export class WalletService {
         roundId: data.roundId,
         userId: data.playerId,
         transactionId: data.transactionId,
+        reason: '',
       });
       return {
         code: 200,
