@@ -119,7 +119,6 @@ export class WalletService {
   //WALLET DEBIT
   async walletDebit(data: DebitRequestDto) {
     if (data.amount < 0) {
-      console.log('i am negative value');
       return {
         code: 1503,
         data: null,
@@ -181,14 +180,13 @@ export class WalletService {
         };
       }
 
-      if (data.amount > user.wallet.balance) {
-        console.log('its balance naklebia ');
-        return {
-          code: 1503,
-          data: null,
-          message: 'Insufficient Funds',
-        };
-      }
+      // if (data.amount > user.wallet.balance) {
+      //   return {
+      //     code: 1503,
+      //     data: null,
+      //     message: 'Insufficient Funds',
+      //   };
+      // }
 
       const oldBalance = user.wallet.balance;
       const newBalance = oldBalance - data.amount;
@@ -206,7 +204,6 @@ export class WalletService {
         roundId: data.roundId,
         userId: data.playerId,
         transactionId: data.transactionId,
-        reason: '',
       });
       return {
         code: 200,
