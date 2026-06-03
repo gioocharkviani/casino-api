@@ -120,7 +120,7 @@ export class WalletService {
   async walletDebit(data: DebitRequestDto) {
     if (data.amount < 0) {
       return {
-        code: 199,
+        code: 1503,
         data: null,
         message: 'amount cannot be negative',
       };
@@ -229,7 +229,7 @@ export class WalletService {
   async walletCredit(data: CreditRequestDto) {
     if (data.amount < 0) {
       return {
-        code: 199,
+        code: 1503,
         data: null,
         message: 'amount cannot be negative',
       };
@@ -329,7 +329,7 @@ export class WalletService {
   async walletRollback(data: RollbackRequestDto) {
     if (data.amount !== undefined && data.amount < 0) {
       return {
-        code: 199,
+        code: 1503,
         data: null,
         message: 'amount cannot be negative',
       };
