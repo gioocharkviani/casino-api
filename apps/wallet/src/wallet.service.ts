@@ -122,12 +122,8 @@ export class WalletService {
       if (data.amount < 0) {
         return {
           code: 199,
-          data: {
-            transactionId: data.transactionId,
-            transactionStatus: 2,
-            balance: user?.wallet?.balance,
-          },
-          message: 'Success',
+          data: null,
+          message: 'negative amount for debit',
         };
       }
 
@@ -452,18 +448,17 @@ export class WalletService {
 
   //CREDIT AND DEBIT
   async creditAndDebit(data: DebitAndCreditDto) {
-    if (
-      (data.debitAmount !== undefined && data.debitAmount < 0) ||
-      (data.creditAmount !== undefined && data.creditAmount < 0)
-    ) {
-      return {
-        code: 199,
-        data: null,
-        message: 'debitAmount and creditAmount cannot be negative',
-      };
-    }
-
     try {
+      if (
+        (data.debitAmount !== undefined && data.debitAmount < 0) ||
+        (data.creditAmount !== undefined && data.creditAmount < 0)
+      ) {
+        return {
+          code: 199,
+          data: null,
+          message: 'debitAmount and creditAmount cannot be negative',
+        };
+      }
       const existingTransaction = await this.transactionService.checkExiting(
         data.transactionId,
       );
