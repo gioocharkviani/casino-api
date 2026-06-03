@@ -410,13 +410,13 @@ export class WalletService {
       const existingTransaction = await this.transactionService.checkExiting(
         data.transactionId,
       );
+      console.log('test1');
 
       if (existingTransaction) {
         const user = await this.userRepository.findOne({
           where: { id: data.playerId },
           relations: { wallet: true },
         });
-
         return {
           code: 200,
           data: {
@@ -427,6 +427,7 @@ export class WalletService {
           message: 'Success',
         };
       }
+      console.log('test2');
 
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
@@ -440,6 +441,7 @@ export class WalletService {
           message: 'User or wallet not found',
         };
       }
+      console.log('test3');
 
       const findGameSession = await this.gameSessionRepository.findOne({
         where: {
@@ -447,26 +449,40 @@ export class WalletService {
           isActive: true,
         },
       });
+      console.log('test4');
 
       const currentBalance = user.wallet.balance;
       const credit = data.creditAmount ?? 0;
       const debit = data.debitAmount ?? 0;
-      const newBalance = currentBalance + (credit - debit);
+
+      if (currentBalance < debit) {
+        return {
+          code: 1503,
+          data: null,
+          message: 'Insufficient Funds',
+        };
+      }
+
+      const newBalance = currentBalance + credit - debit;
+      console.log('test5');
 
       user.wallet.balance = newBalance;
-      await this.userRepository.save(user);
+      await this.walletRepository.save(user.wallet);
+      console.log('test6');
 
       await this.transactionService.createTransaction({
-        type: TransactionType.ROLLBACK,
+        type: TransactionType.DEBIT_AND_CREDIT,
         userId: data.playerId,
         transactionId: data.transactionId,
-        balanceBefore: currentBalance, // ← ძველი
-        balanceAfter: newBalance, // ← ახალი
+        balanceBefore: currentBalance,
+        balanceAfter: newBalance,
         gameId: data.gameId,
         gameSessionId: findGameSession?.id,
         roundId: data.roundId,
         amount: Math.abs(credit - debit),
+        reason: `Debit: ${debit}, Credit: ${credit}`,
       });
+      console.log('test7');
 
       return {
         code: 200,
@@ -478,6 +494,7 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
+      console.error('creditAndDebit error:', error);
       return {
         code: 1500,
         data: null,

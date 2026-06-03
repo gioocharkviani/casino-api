@@ -32,8 +32,9 @@ export class TransactionEntity {
   })
   type?: TransactionType;
 
-  @Column({ type: 'bigint' })
+  @Column({ type: 'bigint', nullable: true })
   amount?: number;
+
   @Column({ type: 'bigint', name: 'balance_before' })
   balanceBefore!: number;
 

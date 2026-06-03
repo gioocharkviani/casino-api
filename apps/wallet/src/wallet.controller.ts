@@ -35,7 +35,7 @@ export class WalletController {
   walletRollback(data: RollbackRequestDto) {
     return this.walletService.walletRollback(data);
   }
-  @MessagePattern('DEBIT&CREDIT')
+  @MessagePattern('DEBIT_CREDIT')
   creditAndDebit(data: RollbackRequestDto) {
     return this.walletService.creditAndDebit(data);
   }

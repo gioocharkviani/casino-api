@@ -56,7 +56,7 @@ export class WalletService {
 
   //WALLET DEBIT AND CREDIT
   async debitAndCredit(data: DebitAndCreditDto) {
-    const result = await lastValueFrom(this.client.send('DEBIT&CREDIT', data));
+    const result = await lastValueFrom(this.client.send('DEBIT_CREDIT', data));
     return result;
   }
   //WALLET DEBIT AND CREDIT
