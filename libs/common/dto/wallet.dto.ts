@@ -42,22 +42,28 @@ export class WalletBallanceDto {
   @IsString()
   @IsNotEmpty()
   playerId!: string;
+
   @IsString()
   @IsNotEmpty()
   currency!: string;
+
   @IsString()
   @IsNotEmpty()
   gameId!: string;
+
   @IsObject()
   @IsOptional()
   sessionState?: Record<string, any>;
+
   @IsNumber()
   @IsNotEmpty()
   date?: number;
+
   @IsString()
   @IsNotEmpty()
   sign!: string;
 }
+
 export class DebitRequestDto {
   @IsString()
   playerId!: string;
@@ -80,7 +86,7 @@ export class DebitRequestDto {
   transactionId?: string;
 
   @IsNumber()
-  @Min(1)
+  @Min(0, { message: 'amount cannot be negative' })
   amount!: number;
 
   @IsBoolean()
@@ -111,6 +117,7 @@ export class DebitRequestDto {
   @IsString()
   transactionProviderPrefix?: string;
 }
+
 export class CreditRequestDto {
   @IsString()
   playerId!: string;
@@ -133,7 +140,7 @@ export class CreditRequestDto {
   transactionId?: string;
 
   @IsNumber()
-  @Min(1)
+  @Min(0, { message: 'amount cannot be negative' })
   amount!: number;
 
   @IsBoolean()
@@ -180,14 +187,17 @@ export class RollbackRequestDto {
 
   @IsOptional()
   @IsNumber()
+  @Min(0, { message: 'amount cannot be negative' })
   amount!: number;
 
   @IsOptional()
   @IsNumber()
+  @Min(0, { message: 'debitAmount cannot be negative' })
   debitAmount?: number;
 
   @IsOptional()
   @IsNumber()
+  @Min(0, { message: 'creditAmount cannot be negative' })
   creditAmount?: number;
 
   @IsString()
@@ -235,10 +245,12 @@ export class DebitAndCreditDto {
 
   @IsOptional()
   @IsNumber()
+  @Min(0, { message: 'debitAmount cannot be negative' })
   debitAmount?: number;
 
   @IsOptional()
   @IsNumber()
+  @Min(0, { message: 'creditAmount cannot be negative' })
   creditAmount?: number;
 
   @IsString()
