@@ -9,6 +9,8 @@ import {
   Matches,
   isNotEmpty,
   isString,
+  IsPositive,
+  IsOptional,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
@@ -83,4 +85,12 @@ export class SignInDtoMS {
 
   @IsString()
   ip?: string;
+}
+
+export class verifyDto {
+  @IsOptional()
+  @IsString()
+  token?: string;
+  @IsString()
+  otp?: string;
 }

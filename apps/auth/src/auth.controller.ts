@@ -1,7 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { MessagePattern } from '@nestjs/microservices';
-import { SignInDtoMS, SignUpDto } from 'libs/common';
+import { SignInDtoMS, SignUpDto, verifyDto } from 'libs/common';
 
 @Controller()
 export class AuthController {
@@ -32,5 +32,10 @@ export class AuthController {
   @MessagePattern('TOKEN_VALIDATION')
   tokenValidation(token?: string) {
     return this.authService.validateUserSession(token);
+  }
+  //USER VERIFICATION
+  @MessagePattern('USER_VERIFICATION')
+  verifyUser(data: verifyDto) {
+    return this.authService.userVerficiation(data);
   }
 }

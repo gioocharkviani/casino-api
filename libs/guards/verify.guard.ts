@@ -15,9 +15,7 @@ export class VerifyGuard implements CanActivate {
     const session_token = request?.cookies?.session_token;
 
     if (!session_token) {
-      throw new ForbiddenException(
-        'Session token missing. Please authenticate.',
-      );
+      throw new ForbiddenException(' token missing. Please authenticate.');
     }
 
     const userInfo = await this.authService.getUserInfo(session_token);

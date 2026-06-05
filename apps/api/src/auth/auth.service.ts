@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { SignInDto, SignInDtoMS, SignUpDto } from 'libs/common';
+import { SignInDto, SignInDtoMS, SignUpDto, verifyDto } from 'libs/common';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable()
@@ -40,6 +40,13 @@ export class AuthService {
   async validateUserSessionToken(token?: string) {
     const result = await lastValueFrom(
       this.client.send('TOKEN_VALIDATION', token),
+    );
+    return result;
+  }
+  //VALIDATE USER SESSION TOKEN
+  async verifyUser(data: verifyDto) {
+    const result = await lastValueFrom(
+      this.client.send('USER_VERIFICATION', data),
     );
     return result;
   }

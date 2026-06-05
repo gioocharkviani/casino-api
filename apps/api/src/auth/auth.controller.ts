@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { SignInDto, SignUpDto } from 'libs/common';
+import { SignInDto, SignUpDto, verifyDto } from 'libs/common';
 import type { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from 'libs/guards/auth.guard';
@@ -77,5 +77,19 @@ export class AuthController {
       ? req.cookies?.session_token
       : '';
     return this.authService.getUserInfo(session_token);
+  }
+
+  //USER VERIFICATION
+  @Post('verify')
+  @UseGuards(AuthGuard)
+  verifyUser(@Req() req: Request, @Body() body: verifyDto) {
+    const session_token = req.cookies?.session_token
+      ? req.cookies?.session_token
+      : '';
+    const data = {
+      token: session_token,
+      otp: body.otp,
+    };
+    return this.authService.verifyUser(data);
   }
 }

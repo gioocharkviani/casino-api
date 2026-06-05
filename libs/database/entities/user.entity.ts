@@ -36,9 +36,14 @@ export class UserEntity {
   @Column({ type: 'varchar', length: 100 })
   lastName!: string;
 
-  @OneToOne(() => CountryEntity, (country) => country.users)
-  @JoinColumn({ name: 'country' })
+  // CRITICAL FIX: changed JoinColumn name to countryId
+  @ManyToOne(() => CountryEntity, (country) => country.users)
+  @JoinColumn({ name: 'countryId' })
   country!: CountryEntity;
+
+  // Add this field explicitly
+  @Column({ nullable: true })
+  countryId!: number;
 
   @OneToOne(() => walletEntity, (wallet) => wallet.user, {
     cascade: ['insert', 'update'],
@@ -79,6 +84,20 @@ export class UserSessionEntity {
   @CreateDateColumn()
   createdAt?: Date;
 
+  @Column()
+  expiresAt!: Date;
+}
+
+@Entity('user-verify')
+export class userVerificationEntity {
+  @PrimaryGeneratedColumn()
+  id!: number;
+  @Column()
+  userId?: string;
+  @Column()
+  otp?: string;
+  @CreateDateColumn()
+  createdAt?: Date;
   @Column()
   expiresAt!: Date;
 }

@@ -9,7 +9,11 @@ import {
   MetaData,
 } from './entities/game.entity';
 import { walletEntity } from './entities/wallet.entity';
-import { UserEntity, UserSessionEntity } from './entities/user.entity';
+import {
+  UserEntity,
+  UserSessionEntity,
+  userVerificationEntity,
+} from './entities/user.entity';
 import { CountryEntity } from './entities/country.entity';
 import { TransactionEntity } from './entities/transaction.entity';
 
@@ -34,6 +38,7 @@ import { TransactionEntity } from './entities/transaction.entity';
         TransactionEntity,
         GameSession,
         UserSessionEntity,
+        userVerificationEntity,
         GameCategories,
       ],
 
@@ -49,13 +54,13 @@ import { TransactionEntity } from './entities/transaction.entity';
       Game,
       MetaData,
       GameProvider,
-      GameSession,
       walletEntity,
       UserEntity,
       CountryEntity,
       TransactionEntity,
-      UserSessionEntity,
       GameSession,
+      UserSessionEntity,
+      userVerificationEntity,
       GameCategories,
     ]),
   ],

@@ -11,16 +11,22 @@ import { UserEntity } from './user.entity';
 export class CountryEntity {
   @PrimaryGeneratedColumn()
   id!: number;
+
   @Column({ nullable: true })
   name?: string;
-  @Column({ nullable: true })
+
+  @Column({ nullable: true, unique: true })
   countryCode?: string;
+
   @Column({ nullable: true })
   license?: string;
+
   @Column({ nullable: true })
   language?: string;
+
   @CreateDateColumn()
   createdAt?: Date;
+
   @OneToMany(() => UserEntity, (user) => user.country)
   users!: UserEntity[];
 }

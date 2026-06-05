@@ -15,7 +15,7 @@ export class AuthGuard implements CanActivate {
     const session_token = request?.cookies?.session_token;
 
     if (!session_token) {
-      throw new UnauthorizedException('Session token not found');
+      throw new UnauthorizedException(' token not found');
     }
 
     const validation =

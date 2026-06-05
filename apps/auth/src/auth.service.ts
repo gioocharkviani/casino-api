@@ -1,18 +1,27 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpStatus,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import {
   UserEntity,
   UserSessionEntity,
+  userVerificationEntity,
 } from 'libs/database/entities/user.entity';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices';
-import { SignInDtoMS, SignUpDto } from 'libs/common';
+import { SignInDtoMS, SignUpDto, verifyDto } from 'libs/common';
 import * as crypto from 'crypto';
 import { walletEntity } from 'libs/database/entities/wallet.entity';
 import { CountryEntity } from 'libs/database/entities/country.entity';
+
+import { NotificationService } from 'apps/notification/src/notification.service';
+import { count } from 'console';
 
 @Injectable()
 export class AuthService {
@@ -23,9 +32,12 @@ export class AuthService {
     private readonly countryEntity: Repository<CountryEntity>,
     @InjectRepository(walletEntity)
     private readonly walletRepositroy: Repository<walletEntity>,
+    @InjectRepository(userVerificationEntity)
+    private readonly verifyRepo: Repository<userVerificationEntity>,
     @InjectRepository(UserSessionEntity)
     private readonly userSessionRepository: Repository<UserSessionEntity>,
     private readonly configService: ConfigService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   //SIGN UP USER
@@ -63,10 +75,8 @@ export class AuthService {
 
     const country = await this.findExistingCountry(data.country);
     user.country = country;
-
     try {
       const savedUser = await this.userRepository.save(user);
-
       const wallet = new walletEntity();
       wallet.balance = 0;
       wallet.currency = 'USD';
@@ -76,6 +86,12 @@ export class AuthService {
       const userWithWallet = await this.userRepository.findOne({
         where: { id: savedUser.id },
         relations: { wallet: true },
+      });
+
+      await this.notificationService.verifiation({
+        userEmail: savedUser.email,
+        userId: savedUser.id,
+        firstName: savedUser.firstName,
       });
 
       return userWithWallet;
@@ -187,6 +203,63 @@ export class AuthService {
     }
   }
   //GETUSER INFORAMTION
+
+  //USER VERIFICATION
+  async userVerficiation(data: verifyDto) {
+    const findUser = await this.validateUserSession(data.token);
+    if (!findUser) {
+      return new UnauthorizedException('UNAUTHORIZED');
+    }
+    console.log(data);
+    if (!data.otp) {
+      return {
+        code: 400,
+        message: 'OTP is required',
+      };
+    }
+
+    try {
+      const findOtp = await this.verifyRepo.findOne({
+        where: {
+          otp: data.otp,
+        },
+      });
+
+      if (findOtp && findOtp.expiresAt && findOtp.expiresAt < new Date()) {
+        return {
+          code: 401,
+          message: 'expired creadentials',
+        };
+      }
+
+      const verifyUser = await this.userRepository.findOne({
+        where: { id: findOtp?.userId, verified: false },
+      });
+      if (!verifyUser) {
+        return {
+          code: 401,
+          message: 'user not found or user already verifyd',
+        };
+      }
+
+      verifyUser.verified = true;
+      await this.userRepository.save(verifyUser);
+      await this.verifyRepo.delete({
+        id: findOtp?.id,
+      });
+      return {
+        code: 201,
+        mesasage: 'user verifyd successfully',
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        code: 500,
+        message: 'something when wrong during verification',
+      };
+    }
+  }
+  //USER VERIFICATION
 
   /////////////////////////////////////////////////////////////////////////
 
