@@ -36,12 +36,10 @@ export class UserEntity {
   @Column({ type: 'varchar', length: 100 })
   lastName!: string;
 
-  // CRITICAL FIX: changed JoinColumn name to countryId
-  @ManyToOne(() => CountryEntity, (country) => country.users)
+  @ManyToOne(() => CountryEntity, (country) => country.id)
   @JoinColumn({ name: 'countryId' })
   country!: CountryEntity;
 
-  // Add this field explicitly
   @Column({ nullable: true })
   countryId!: number;
 
