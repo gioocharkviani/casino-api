@@ -42,7 +42,7 @@ export class AuthController {
     res.cookie('session_token', result.token, {
       httpOnly: true,
       secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/',
       maxAge: parseInt(EXPIRE_DATE) * 60 * 60 * 1000,
     });

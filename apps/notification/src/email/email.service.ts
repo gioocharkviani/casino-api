@@ -34,6 +34,7 @@ export class EmailService {
       host: this.configService.get('EMAIL_HOST'),
       port: this.configService.get('EMAIL_PORT'),
       secure: false,
+      default: { from: `"No Reply" <${this.configService.get('EMAIL_HOST')}>` },
       auth: {
         user: this.configService.get('EMAIL_USER'),
         pass: this.configService.get('EMAIL_PASS'),
