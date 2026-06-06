@@ -9,7 +9,7 @@ export class NotificationController {
 
   //USER VERIFICATION
   @MessagePattern('SEND_VERIFICATION_REQUEST')
-  verification(data: { userId: string; userEmail: string }) {
+  verification(data: { userId: string; userEmail: string; firstName: string }) {
     return this.notificationService.verifiation(data);
   }
   //END USER VERIFICATION

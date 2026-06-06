@@ -42,7 +42,7 @@ import { TransactionEntity } from './entities/transaction.entity';
         GameCategories,
       ],
 
-      synchronize: process.env.NODE_ENV === 'development' ? true : false,
+      synchronize: false,
 
       timezone: '+04:00',
       charset: 'utf8mb4',
