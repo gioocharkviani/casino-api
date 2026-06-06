@@ -36,7 +36,7 @@ export class UserEntity {
   @Column({ type: 'varchar', length: 100 })
   lastName!: string;
 
-  @ManyToOne(() => CountryEntity, (country) => country.id)
+  @ManyToOne(() => CountryEntity, (country) => country.users)
   @JoinColumn({ name: 'countryId' })
   country!: CountryEntity;
 

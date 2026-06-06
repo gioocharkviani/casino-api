@@ -13,7 +13,7 @@ import { AuthModule } from '../auth/auth.module';
       {
         name: `GAME_M_SERVICE`,
         transport: Transport.TCP,
-        options: { host: 'localhost', port: 3030 },
+        options: { host: 'localhost', port: 3039 },
       },
     ]),
   ],

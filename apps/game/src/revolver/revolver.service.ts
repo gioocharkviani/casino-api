@@ -12,7 +12,7 @@ import { gameMetaData } from '../interface/metaData.interface';
 import { GameInterface } from '../interface/game.interface';
 import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
 import { ConfigService } from '@nestjs/config';
-import { randomBytes } from 'crypto';
+import { randomUUID } from 'crypto';
 import { UserEntity } from 'libs/database/entities/user.entity';
 import { GameService } from '../game.service';
 import { RpcException } from '@nestjs/microservices';
@@ -52,38 +52,39 @@ export class RevolverService {
 
   //LUNCH REVOLVER GAME
   async lunchRevolverGame(data: LaunchGameDto, user: UserEntity) {
-    const node_env = await this.configServce.get('NODE_ENV');
     const baseUrl = await this.configServce.get('REVOLVER_URL');
+
     const OPERATOOR = await this.configServce.get('REVOLVER_OPERATOR');
     const GAME_ID = data.gameId;
-    let TOKEN = randomBytes(32).toString('hex');
     const LANG = data.lang || 'en';
     const VARIANT = data.variant || 'desktop';
-    const DEMO = data.demo;
-    const EXIT_URL = 'close';
-    const LUNCH_GAME_URL = `${baseUrl}/launch/generic?operator=${OPERATOOR}&exit_url=${EXIT_URL}&game=${GAME_ID}&token=${TOKEN}&lang=${LANG}&variant=${VARIANT}&freeplay=${DEMO}`;
-    const request = await fetch(`${LUNCH_GAME_URL}`);
-    const res = await request.json();
+    const EXIT_URL = data.exitUrl || '';
 
-    if (
-      node_env !== 'development' &&
-      DEMO === '1' &&
-      res.data.TOKEN === 'DEMO'
-    ) {
-      return {
-        code: 200,
-        lunch_game_url: res.data.URL,
-      };
+    const isDemo = data.demo === '1' || data.demo === 'true';
+
+    const uuid = randomUUID().replace(/-/g, '');
+
+    let token = isDemo ? 'XYZ' : uuid;
+
+    const LUNCH_GAME_URL = `${baseUrl}/launch/generic?operator=${OPERATOOR}&exit_url=${EXIT_URL}&game=${GAME_ID}&token=${token}&lang=${LANG}&variant=${VARIANT}&freeplay=${isDemo}`;
+
+    const request = await fetch(`${LUNCH_GAME_URL}`);
+    console.log(request);
+    const res = await request.json();
+    console.log(res);
+
+    if (!isDemo) {
+      await this.createGameSession({
+        token: token,
+        gameId: GAME_ID,
+        playerId: user.id,
+        isActive: true,
+      });
     }
-    await this.createGameSession({
-      token: TOKEN,
-      gameId: GAME_ID,
-      playerId: user.id,
-      isActive: true,
-    });
+
     return {
       code: 200,
-      lunch_game_url: res.data.URL || '',
+      lunch_game_url: res.data.URL,
     };
   }
   //LUNCH REVOLVER GAME
