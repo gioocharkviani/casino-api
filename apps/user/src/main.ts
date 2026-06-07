@@ -14,7 +14,7 @@ async function bootstrap() {
       },
     },
   );
-  console.log('AUTH MODULE START SUCCESSFULLY');
+  console.log('User MODULE START SUCCESSFULLY');
   await app.listen();
 }
 bootstrap();
