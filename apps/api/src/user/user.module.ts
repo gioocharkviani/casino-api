@@ -11,7 +11,7 @@ import { UserController } from './user.controller';
     ConfigModule,
     ClientsModule.register([
       {
-        name: 'AUTH_MS_SERVICE',
+        name: 'USER_MS_SERVICE',
         transport: Transport.TCP,
         options: {
           host: 'localhost',

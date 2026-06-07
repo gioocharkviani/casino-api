@@ -6,7 +6,7 @@ import { lastValueFrom } from 'rxjs';
 @Injectable()
 export class UserService {
   constructor(
-    @Inject('AUTH_MS_SERVICE')
+    @Inject('USER_MS_SERVICE')
     private readonly client: ClientProxy,
   ) {}
   //USER REGISTER SERVICE
