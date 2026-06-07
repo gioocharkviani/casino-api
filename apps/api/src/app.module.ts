@@ -19,7 +19,7 @@ import { UserService } from './user/user.service';
     UserModule,
   ],
   controllers: [],
-  providers: [UserService, NotificationService],
-  exports: [UserService, NotificationService],
+  providers: [],
+  exports: [],
 })
 export class AppModule {}
