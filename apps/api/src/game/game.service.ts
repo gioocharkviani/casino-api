@@ -3,13 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
-import { AuthService } from '../auth/auth.service';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class GameService {
   constructor(
     @Inject('GAME_M_SERVICE') private client: ClientProxy,
-    private readonly authService: AuthService,
+    private readonly UserService: UserService,
   ) {}
 
   //------------------GET ALL GAMES
@@ -52,7 +52,7 @@ export class GameService {
 
   //-----------------Lunch game
   async lunchGame(data: LaunchGameDto, token: string) {
-    const user = await this.authService.getUserInfo(token);
+    const user = await this.UserService.getUserInfo(token);
     const res = await lastValueFrom(
       this.client.send('LUNCH_GAME', { data, user }),
     );

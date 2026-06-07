@@ -3,12 +3,11 @@ import { GameModule } from './game/game.module';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from 'libs/database/database.module';
 import { WalletModule } from './wallet/wallet.module';
-import { AuthModule } from './auth/auth.module';
-import { AuthService } from 'apps/auth/src/auth.service';
 
 import { NotificationModule } from './notification/notification.module';
-import { notificationService } from './notification/notification.service';
 import { NotificationService } from 'apps/notification/src/notification.service';
+import { UserModule } from './user/user.module';
+import { UserService } from './user/user.service';
 
 @Module({
   imports: [
@@ -17,10 +16,10 @@ import { NotificationService } from 'apps/notification/src/notification.service'
     GameModule,
     DatabaseModule,
     WalletModule,
-    AuthModule,
+    UserModule,
   ],
   controllers: [],
-  providers: [AuthService, NotificationService],
-  exports: [AuthService, NotificationService],
+  providers: [UserService, NotificationService],
+  exports: [UserService, NotificationService],
 })
 export class AppModule {}

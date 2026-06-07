@@ -4,11 +4,11 @@ import {
   ExecutionContext,
   ForbiddenException,
 } from '@nestjs/common';
-import { AuthService } from 'apps/api/src/auth/auth.service';
+import { UserService } from 'apps/api/src/user/user.service';
 
 @Injectable()
 export class VerifyGuard implements CanActivate {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly UserService: UserService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -18,7 +18,7 @@ export class VerifyGuard implements CanActivate {
       throw new ForbiddenException(' token missing. Please authenticate.');
     }
 
-    const userInfo = await this.authService.getUserInfo(session_token);
+    const userInfo = await this.UserService.getUserInfo(session_token);
 
     if (!userInfo || !userInfo.verified) {
       throw new ForbiddenException(

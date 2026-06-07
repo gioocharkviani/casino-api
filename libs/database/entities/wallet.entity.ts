@@ -19,3 +19,6 @@ export class walletEntity {
   @JoinColumn({ name: 'userId' })
   user?: UserEntity;
 }
+
+@Entity('bonus-wallet')
+export class bonusWallet {}

@@ -9,22 +9,23 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
+
 import { SignInDto, SignUpDto, verifyDto } from 'libs/common';
 import type { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from 'libs/guards/auth.guard';
+import { UserService } from './user.service';
 
-@Controller('auth')
-export class AuthController {
+@Controller('user')
+export class UserController {
   constructor(
-    private readonly authService: AuthService,
+    private readonly UserService: UserService,
     private readonly configService: ConfigService,
   ) {}
   //USER REGISTER API
   @Post('sign-up')
   signUp(@Body() data: SignUpDto) {
-    return this.authService.signUp(data);
+    return this.UserService.signUp(data);
   }
   //USER SIGNIN API
   @Post('sign-in')
@@ -35,7 +36,7 @@ export class AuthController {
   ) {
     const EXPIRE_DATE = this.configService.get('AUTH_TOKEN_EXPIRE_TIME');
     const requestIpAddress = ip;
-    const result = await this.authService.signIn({
+    const result = await this.UserService.signIn({
       ...data,
       ip: requestIpAddress,
     });
@@ -58,7 +59,7 @@ export class AuthController {
     const session_token = req.cookies?.session_token
       ? req.cookies?.session_token
       : '';
-    const result = this.authService.signOut(session_token);
+    const result = this.UserService.signOut(session_token);
     res.clearCookie('session_token', {
       httpOnly: true,
       secure: false,
@@ -76,7 +77,7 @@ export class AuthController {
     const session_token = req.cookies?.session_token
       ? req.cookies?.session_token
       : '';
-    return this.authService.getUserInfo(session_token);
+    return this.UserService.getUserInfo(session_token);
   }
 
   //USER VERIFICATION
@@ -90,6 +91,6 @@ export class AuthController {
       token: session_token,
       otp: body.otp,
     };
-    return this.authService.verifyUser(data);
+    return this.UserService.verifyUser(data);
   }
 }

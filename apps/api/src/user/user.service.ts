@@ -4,7 +4,7 @@ import { SignInDto, SignInDtoMS, SignUpDto, verifyDto } from 'libs/common';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable()
-export class AuthService {
+export class UserService {
   constructor(
     @Inject('AUTH_MS_SERVICE')
     private readonly client: ClientProxy,

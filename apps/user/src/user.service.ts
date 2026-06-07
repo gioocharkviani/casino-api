@@ -21,10 +21,9 @@ import { walletEntity } from 'libs/database/entities/wallet.entity';
 import { CountryEntity } from 'libs/database/entities/country.entity';
 
 import { NotificationService } from 'apps/notification/src/notification.service';
-import { count } from 'console';
 
 @Injectable()
-export class AuthService {
+export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,

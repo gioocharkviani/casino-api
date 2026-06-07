@@ -64,6 +64,15 @@
         "tsConfigPath": "apps/notification/tsconfig.app.json"
       }
     },
+    "promotions": {
+      "type": "application",
+      "root": "apps/promotions",
+      "entryFile": "main",
+      "sourceRoot": "apps/promotions/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/promotions/tsconfig.app.json"
+      }
+    },
     "revolver": {
       "type": "application",
       "root": "apps/revolver",
