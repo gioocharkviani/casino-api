@@ -54,6 +54,7 @@ export class WalletController {
   }
   @MessagePattern('WALLET_ROLLBACK')
   walletRollback(data: RollbackRequestDto) {
+    console.log('ROLLBACK data', data);
     return this.walletService.walletRollback(data);
   }
   @MessagePattern('DEBIT_CREDIT')
