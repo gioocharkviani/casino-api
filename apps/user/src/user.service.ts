@@ -209,7 +209,7 @@ export class UserService {
     if (!findUser) {
       return new UnauthorizedException('UNAUTHORIZED');
     }
-    console.log(data);
+
     if (!data.otp) {
       return {
         code: 400,

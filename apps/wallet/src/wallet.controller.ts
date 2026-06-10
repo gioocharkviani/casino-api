@@ -38,7 +38,7 @@ export class WalletController {
       data.amount,
       TransactionType.DEBIT,
     );
-    console.log('data in debit', data);
+
     return res;
   }
   @MessagePattern('WALLET_CREDIT')
@@ -49,7 +49,7 @@ export class WalletController {
       data.amount,
       TransactionType.CREDIT,
     );
-    console.log('data in credit', data);
+
     return res;
   }
   @MessagePattern('WALLET_ROLLBACK')
@@ -74,7 +74,7 @@ export class WalletController {
         creditAmount: data.creditAmount,
       },
     );
-    console.log('data in credit and debit', data);
+
     return res;
   }
 }

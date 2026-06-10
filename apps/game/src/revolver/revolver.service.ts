@@ -69,9 +69,8 @@ export class RevolverService {
     const LUNCH_GAME_URL = `${baseUrl}/launch/generic?operator=${OPERATOOR}&exit_url=${EXIT_URL}&game=${GAME_ID}&token=${token}&lang=${LANG}&variant=${VARIANT}&freeplay=${isDemo}`;
 
     const request = await fetch(`${LUNCH_GAME_URL}`);
-    console.log(request);
+
     const res = await request.json();
-    console.log(res);
 
     if (!isDemo) {
       await this.createGameSession({
