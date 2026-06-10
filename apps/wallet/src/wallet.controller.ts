@@ -53,9 +53,14 @@ export class WalletController {
     return res;
   }
   @MessagePattern('WALLET_ROLLBACK')
-  walletRollback(data: RollbackRequestDto) {
-    console.log('ROLLBACK data', data);
-    return this.walletService.walletRollback(data);
+  async walletRollback(data: RollbackRequestDto) {
+    const res = await this.walletService.walletRollback(data);
+    await this.wagerService.updateWageringStats(
+      data.playerId,
+      data.amount,
+      TransactionType.ROLLBACK,
+    );
+    return res;
   }
   @MessagePattern('DEBIT_CREDIT')
   async creditAndDebit(data: RollbackRequestDto) {

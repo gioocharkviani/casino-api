@@ -122,6 +122,9 @@ export class WageringService {
           stats.monthlyWagered += cleanAmount;
           break;
 
+        case TransactionType.ROLLBACK:
+          break;
+
         case TransactionType.DEBIT_AND_CREDIT:
           if (metadata) {
             if (metadata.debitAmount) {
