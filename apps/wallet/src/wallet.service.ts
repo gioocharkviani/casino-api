@@ -46,6 +46,7 @@ export class WalletService {
         data: null,
       };
     }
+
     const userData = await this.userRepository.findOne({
       where: {
         id: tokenValidationReq.data.playerId,
