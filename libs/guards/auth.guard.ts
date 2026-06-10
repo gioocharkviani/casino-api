@@ -12,10 +12,11 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
+    console.log(request);
     const session_token = request?.cookies?.session_token;
 
     if (!session_token) {
-      throw new UnauthorizedException(' token not found');
+      throw new UnauthorizedException('token not found');
     }
 
     const validation =
