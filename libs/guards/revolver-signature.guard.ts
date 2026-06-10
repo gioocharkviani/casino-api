@@ -12,7 +12,7 @@ export class RevolverSignatureGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    console.log(request);
+
     const response = context.switchToHttp().getResponse();
     const body = request.body;
 
