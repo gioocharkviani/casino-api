@@ -62,8 +62,8 @@ export class UserWageringStats {
   @Column({ type: 'timestamp', nullable: true })
   lastActivityDate!: Date;
 
-  @Column({ type: 'date', nullable: true })
-  lastResetDate!: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  lastResetDate?: Date;
 
   @CreateDateColumn()
   createdAt?: Date;
