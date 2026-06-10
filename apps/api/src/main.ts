@@ -9,12 +9,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: (origin: any, callback: any) => callback(null, origin),
+    origin: true, // 👈 ან (origin, callback) => callback(null, origin)
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Cookie'],
   });
-
   app.use(cookieParser());
   app.setGlobalPrefix('api');
   app.useGlobalPipes(
