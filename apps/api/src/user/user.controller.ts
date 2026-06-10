@@ -40,10 +40,12 @@ export class UserController {
       ...data,
       ip: requestIpAddress,
     });
+    const isProduction = process.env.NODE_ENV === 'production';
+
     res.cookie('session_token', result.token, {
       httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite: 'none',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       path: '/',
       maxAge: parseInt(EXPIRE_DATE) * 60 * 60 * 1000,
     });

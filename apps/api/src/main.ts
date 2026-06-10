@@ -9,17 +9,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: (origin, callback) => {
-      if (
-        !origin ||
-        origin.includes('localhost') ||
-        origin.includes('205.209.110.121')
-      ) {
-        callback(null, origin);
-      } else {
-        callback(null, origin);
-      }
-    },
+    origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Cookie', 'Authorization'],
