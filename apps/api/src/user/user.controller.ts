@@ -74,6 +74,7 @@ export class UserController {
   @Get('user')
   @UseGuards(AuthGuard)
   userInfo(@Req() req: Request) {
+    console.log(req);
     const session_token = req.cookies?.session_token
       ? req.cookies?.session_token
       : '';
