@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { UserWageringStats } from '../../database/entities/user-wagering.entity';
 import { TransactionType } from '../enums/transactionTypes.enum';
 import { IWageringStats } from '../interface/wagering.interface';
-
 @Injectable()
 export class WageringService {
   private readonly logger = new Logger(WageringService.name);
@@ -21,10 +20,17 @@ export class WageringService {
     metadata?: any,
   ) {
     try {
+      // NaN-ის შემოწმება
+      if (isNaN(amount) || amount === undefined || amount === null) {
+        this.logger.warn(`Invalid amount: ${amount} for user ${userId}`);
+        return null;
+      }
+
       let stats = await this.wageringRepository.findOne({
         where: { userId },
       });
 
+      // 🔥 ახალი მომხმარებელი - შექმენი და შეინახე
       if (!stats) {
         stats = this.wageringRepository.create({
           userId,
@@ -43,17 +49,27 @@ export class WageringService {
           lastResetDate: new Date(),
           lastActivityDate: new Date(),
         });
+
+        // ✅ პირველად შენახვა
+        stats = await this.wageringRepository.save(stats);
+        this.logger.log(`✅ Created new wagering stats for user ${userId}`);
       }
 
-      // დღიური რეზეტის შემოწმება
+      // ========== რეზეტების შემოწმება ==========
       const today = new Date();
       const todayDate = today.toISOString().split('T')[0];
 
+      // დღიური რეზეტი
       if (stats.lastResetDate) {
-        const lastReset = stats.lastResetDate.toISOString().split('T')[0];
+        const resetDate =
+          stats.lastResetDate instanceof Date
+            ? stats.lastResetDate
+            : new Date(stats.lastResetDate);
+        const lastReset = resetDate.toISOString().split('T')[0];
         if (lastReset !== todayDate) {
           stats.todayWagered = 0;
           stats.lastResetDate = today;
+          this.logger.debug(`Daily reset for user ${userId}`);
         }
       } else {
         stats.lastResetDate = today;
@@ -61,22 +77,30 @@ export class WageringService {
 
       // კვირის რეზეტი
       const currentWeek = this.getWeekNumber(today);
-      if (
-        stats.lastResetDate &&
-        this.getWeekNumber(stats.lastResetDate) !== currentWeek
-      ) {
-        stats.weeklyWagered = 0;
+      if (stats.lastResetDate) {
+        const resetDate =
+          stats.lastResetDate instanceof Date
+            ? stats.lastResetDate
+            : new Date(stats.lastResetDate);
+        if (this.getWeekNumber(resetDate) !== currentWeek) {
+          stats.weeklyWagered = 0;
+          this.logger.debug(`Weekly reset for user ${userId}`);
+        }
       }
 
       // თვის რეზეტი
-      if (
-        stats.lastResetDate &&
-        stats.lastResetDate.getMonth() !== today.getMonth()
-      ) {
-        stats.monthlyWagered = 0;
+      if (stats.lastResetDate) {
+        const resetDate =
+          stats.lastResetDate instanceof Date
+            ? stats.lastResetDate
+            : new Date(stats.lastResetDate);
+        if (resetDate.getMonth() !== today.getMonth()) {
+          stats.monthlyWagered = 0;
+          this.logger.debug(`Monthly reset for user ${userId}`);
+        }
       }
 
-      // ტრანზაქციის ტიპის მიხედვით განახლება
+      // ========== ტრანზაქციის ტიპის მიხედვით განახლება ==========
       switch (transactionType) {
         case TransactionType.CREDIT:
           stats.totalCredit += amount;
@@ -99,6 +123,9 @@ export class WageringService {
             if (metadata.debitAmount) {
               stats.totalDebit += metadata.debitAmount;
               stats.totalWagered += metadata.debitAmount;
+              stats.todayWagered += metadata.debitAmount;
+              stats.weeklyWagered += metadata.debitAmount;
+              stats.monthlyWagered += metadata.debitAmount;
             }
             if (metadata.creditAmount) {
               stats.totalCredit += metadata.creditAmount;
@@ -115,25 +142,28 @@ export class WageringService {
           break;
       }
 
-      // წმინდა მოგების გამოთვლა
+      // ========== მეტრიკების გამოთვლა ==========
       stats.netProfit = stats.totalCredit - stats.totalDebit;
 
-      // RTP-ს გამოთვლა
       if (stats.totalDebit > 0) {
-        stats.rtp = (stats.totalCredit / stats.totalDebit) * 100;
+        stats.rtp = Number(
+          ((stats.totalCredit / stats.totalDebit) * 100).toFixed(2),
+        );
       }
 
       stats.lastActivityDate = new Date();
 
+      // ✅ მეორედ შენახვა (განახლება)
       await this.wageringRepository.save(stats);
 
       this.logger.log(
-        `Updated wagering stats for user ${userId}: Wagered=${stats.totalWagered}, Net=${stats.netProfit}`,
+        `📊 Updated wagering stats for user ${userId}: ` +
+          `Wagered=${stats.totalWagered}, Net=${stats.netProfit}, RTP=${stats.rtp}%`,
       );
 
       return stats;
     } catch (error) {
-      this.logger.error(`Failed to update wagering stats`);
+      this.logger.error(`Failed to update wagering stats for user `);
       throw error;
     }
   }
@@ -141,10 +171,10 @@ export class WageringService {
   async getUserWageringStats(userId: string): Promise<UserWageringStats> {
     const stats = await this.wageringRepository.findOne({
       where: { userId },
-      relations: { user: true },
     });
 
     if (!stats) {
+      // აბრუნებს ახალ ობიექტს, მაგრამ არ ინახავს
       return this.wageringRepository.create({
         userId,
         totalDeposits: 0,
@@ -154,33 +184,15 @@ export class WageringService {
         totalWagered: 0,
         netProfit: 0,
         rtp: 0,
+        todayWagered: 0,
+        weeklyWagered: 0,
+        monthlyWagered: 0,
+        bonusBetsCount: 0,
+        bonusWinnings: 0,
       });
     }
 
     return stats;
-  }
-
-  async getBonusEligibility(
-    userId: string,
-    bonusRequirement: number,
-  ): Promise<{
-    eligible: boolean;
-    currentWagered: number;
-    remainingWagered: number;
-    progress: number;
-  }> {
-    const stats = await this.getUserWageringStats(userId);
-    const currentWagered = stats.totalWagered ?? 0;
-    const remaining = Math.max(0, bonusRequirement - currentWagered);
-    const progress =
-      bonusRequirement > 0 ? (currentWagered / bonusRequirement) * 100 : 100;
-
-    return {
-      eligible: currentWagered >= bonusRequirement,
-      currentWagered,
-      remainingWagered: remaining,
-      progress,
-    };
   }
 
   async resetUserWagering(
@@ -188,7 +200,6 @@ export class WageringService {
     type: 'daily' | 'weekly' | 'monthly' | 'full',
   ) {
     const stats = await this.wageringRepository.findOne({ where: { userId } });
-
     if (!stats) return;
 
     switch (type) {
@@ -207,10 +218,14 @@ export class WageringService {
         stats.totalCredit = 0;
         stats.netProfit = 0;
         stats.rtp = 0;
+        stats.todayWagered = 0;
+        stats.weeklyWagered = 0;
+        stats.monthlyWagered = 0;
         break;
     }
 
     await this.wageringRepository.save(stats);
+    this.logger.log(`Reset ${type} wagering stats for user ${userId}`);
   }
 
   private getWeekNumber(date: Date): number {
