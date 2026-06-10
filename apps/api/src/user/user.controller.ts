@@ -44,10 +44,10 @@ export class UserController {
 
     res.cookie('session_token', result.token, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: parseInt(EXPIRE_DATE) * 60 * 60 * 1000,
     });
     return {
       meesage: 'Login successful',
@@ -73,7 +73,7 @@ export class UserController {
   }
 
   //GET USER INFO
-  @Post('user')
+  @Get('user')
   @UseGuards(AuthGuard)
   userInfo(@Req() req: Request) {
     const session_token = req.cookies?.session_token
