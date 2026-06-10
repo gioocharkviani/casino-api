@@ -8,7 +8,7 @@ import {
   GameSession,
   MetaData,
 } from './entities/game.entity';
-import { walletEntity } from './entities/wallet.entity';
+import { bonusWallet, walletEntity } from './entities/wallet.entity';
 import {
   UserEntity,
   UserSessionEntity,
@@ -42,6 +42,7 @@ import { UserWageringStats } from './entities/user-wagering.entity';
         userVerificationEntity,
         GameCategories,
         UserWageringStats,
+        bonusWallet,
       ],
 
       synchronize: false,
@@ -65,6 +66,7 @@ import { UserWageringStats } from './entities/user-wagering.entity';
       userVerificationEntity,
       GameCategories,
       UserWageringStats,
+      bonusWallet,
     ]),
   ],
   exports: [TypeOrmModule],
