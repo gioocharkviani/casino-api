@@ -10,6 +10,7 @@ import {
 } from 'libs/common/dto/wallet.dto';
 import { WageringService } from 'libs/common/services/wagering.service';
 import { TransactionType } from 'libs/common';
+import { metadata } from 'reflect-metadata/no-conflict';
 
 @Controller()
 export class WalletController {
@@ -56,7 +57,15 @@ export class WalletController {
   @MessagePattern('DEBIT_CREDIT')
   creditAndDebit(data: RollbackRequestDto) {
     const res = this.walletService.creditAndDebit(data);
-
+    this.wagerService.updateWageringStats(
+      data.playerId,
+      data.amount,
+      TransactionType.DEBIT_AND_CREDIT,
+      {
+        debitAmount: data.debitAmount,
+        creditAmount: data.creditAmount,
+      },
+    );
     return res;
   }
 }
