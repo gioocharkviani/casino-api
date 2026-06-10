@@ -8,15 +8,21 @@ import {
   WalletAuthDto,
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
+import { WageringService } from 'libs/common/services/wagering.service';
+import { TransactionType } from 'libs/common';
 
 @Controller()
 export class WalletController {
-  constructor(private readonly walletService: WalletService) {}
+  constructor(
+    private readonly walletService: WalletService,
+    private readonly wagerService: WageringService,
+  ) {}
 
   //Wallet auth service
   @MessagePattern('WALLET_AUTH')
   walletAuth(data: WalletAuthDto) {
-    return this.walletService.walletAuth(data);
+    const res = this.walletService.walletAuth(data);
+    return res;
   }
 
   @MessagePattern('WALLET_BALANCE')
@@ -25,11 +31,23 @@ export class WalletController {
   }
   @MessagePattern('WALLET_DEBIT')
   walletDebit(data: DebitRequestDto) {
-    return this.walletService.walletDebit(data);
+    const res = this.walletService.walletDebit(data);
+    this.wagerService.updateWageringStats(
+      data.playerId,
+      data.amount,
+      TransactionType.DEBIT,
+    );
+    return res;
   }
   @MessagePattern('WALLET_CREDIT')
   walletCredit(data: CreditRequestDto) {
-    return this.walletService.walletCredit(data);
+    const res = this.walletService.walletCredit(data);
+    this.wagerService.updateWageringStats(
+      data.playerId,
+      data.amount,
+      TransactionType.CREDIT,
+    );
+    return res;
   }
   @MessagePattern('WALLET_ROLLBACK')
   walletRollback(data: RollbackRequestDto) {
@@ -37,6 +55,8 @@ export class WalletController {
   }
   @MessagePattern('DEBIT_CREDIT')
   creditAndDebit(data: RollbackRequestDto) {
-    return this.walletService.creditAndDebit(data);
+    const res = this.walletService.creditAndDebit(data);
+
+    return res;
   }
 }

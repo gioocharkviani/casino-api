@@ -5,6 +5,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { DatabaseModule } from 'libs/database/database.module';
 import { ConfigModule } from '@nestjs/config';
 import { transactionModule } from './transactions/transaction.module';
+import { WageringService } from 'libs/common/services/wagering.service';
 
 @Module({
   imports: [
@@ -20,6 +21,6 @@ import { transactionModule } from './transactions/transaction.module';
     ]),
   ],
   controllers: [WalletController],
-  providers: [WalletService],
+  providers: [WalletService, WageringService],
 })
 export class WalletModule {}

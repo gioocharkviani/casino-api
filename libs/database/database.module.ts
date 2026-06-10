@@ -16,6 +16,7 @@ import {
 } from './entities/user.entity';
 import { CountryEntity } from './entities/country.entity';
 import { TransactionEntity } from './entities/transaction.entity';
+import { UserWageringStats } from './entities/user-wagering.entity';
 
 @Global()
 @Module({
@@ -40,6 +41,7 @@ import { TransactionEntity } from './entities/transaction.entity';
         UserSessionEntity,
         userVerificationEntity,
         GameCategories,
+        UserWageringStats,
       ],
 
       synchronize: false,
@@ -62,6 +64,7 @@ import { TransactionEntity } from './entities/transaction.entity';
       UserSessionEntity,
       userVerificationEntity,
       GameCategories,
+      UserWageringStats,
     ]),
   ],
   exports: [TypeOrmModule],

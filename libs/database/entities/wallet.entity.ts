@@ -21,4 +21,7 @@ export class walletEntity {
 }
 
 @Entity('bonus-wallet')
-export class bonusWallet {}
+export class bonusWallet {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+}
