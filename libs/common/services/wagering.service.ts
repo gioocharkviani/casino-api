@@ -20,22 +20,14 @@ export class WageringService {
     metadata?: any,
   ) {
     try {
-      if (isNaN(amount) || amount === undefined || amount === null) {
-        this.logger.warn(`Invalid amount: ${amount} for user ${userId}`);
-        return null;
-      }
+      // 🔥 1. amount გადააქციე Number-ად
+      const cleanAmount = Number(amount);
 
       let stats = await this.wageringRepository.findOne({
         where: { userId },
-        cache: false,
       });
 
-      this.logger.log(
-        `🔍 BEFORE UPDATE - User ${userId}: totalDebit=${stats?.totalDebit}, totalWagered=${stats?.totalWagered}`,
-      );
-
       if (!stats) {
-        this.logger.log(`🆕 Creating new stats for user ${userId}`);
         stats = this.wageringRepository.create({
           userId,
           totalDeposits: 0,
@@ -54,14 +46,29 @@ export class WageringService {
           lastActivityDate: new Date(),
         });
 
-        this.logger.log(`✅ Created new wagering stats for user ${userId}`);
+        stats = await this.wageringRepository.save(stats);
       }
 
-      // ========== რესეტების შემოწმება ==========
+      // 🔥 2. მნიშვნელოვანი! TypeORM-დან წამოღებული მნიშვნელობები არის STRING!
+      stats.totalDebit = Number(stats.totalDebit) || 0;
+      stats.totalCredit = Number(stats.totalCredit) || 0;
+      stats.totalWagered = Number(stats.totalWagered) || 0;
+      stats.todayWagered = Number(stats.todayWagered) || 0;
+      stats.weeklyWagered = Number(stats.weeklyWagered) || 0;
+      stats.monthlyWagered = Number(stats.monthlyWagered) || 0;
+      stats.totalDeposits = Number(stats.totalDeposits) || 0;
+      stats.totalWithdrawals = Number(stats.totalWithdrawals) || 0;
+      stats.bonusWinnings = Number(stats.bonusWinnings) || 0;
+      stats.netProfit = Number(stats.netProfit) || 0;
+
+      this.logger.log(
+        `💰 BEFORE: totalDebit=${stats.totalDebit}, totalWagered=${stats.totalWagered}`,
+      );
+
+      // ========== რეზეტების შემოწმება ==========
       const today = new Date();
       const todayDate = today.toISOString().split('T')[0];
 
-      // დღიური რესეტი
       if (stats.lastResetDate) {
         const resetDate =
           stats.lastResetDate instanceof Date
@@ -71,13 +78,11 @@ export class WageringService {
         if (lastReset !== todayDate) {
           stats.todayWagered = 0;
           stats.lastResetDate = today;
-          this.logger.debug(`Daily reset for user ${userId}`);
         }
       } else {
         stats.lastResetDate = today;
       }
 
-      // კვირის რესეტი
       const currentWeek = this.getWeekNumber(today);
       if (stats.lastResetDate) {
         const resetDate =
@@ -86,11 +91,9 @@ export class WageringService {
             : new Date(stats.lastResetDate);
         if (this.getWeekNumber(resetDate) !== currentWeek) {
           stats.weeklyWagered = 0;
-          this.logger.debug(`Weekly reset for user ${userId}`);
         }
       }
 
-      // თვის რესეტი
       if (stats.lastResetDate) {
         const resetDate =
           stats.lastResetDate instanceof Date
@@ -98,54 +101,53 @@ export class WageringService {
             : new Date(stats.lastResetDate);
         if (resetDate.getMonth() !== today.getMonth()) {
           stats.monthlyWagered = 0;
-          this.logger.debug(`Monthly reset for user ${userId}`);
         }
       }
 
-      // ========== ტრანზაქციის ტიპის მიხედვით განახლება ==========
+      // ========== ტრანზაქციის ტიპი ==========
       switch (transactionType) {
-        case TransactionType.CREDIT:
-          stats.totalCredit += amount;
-          stats.totalWagered += amount;
-          stats.todayWagered += amount;
-          stats.weeklyWagered += amount;
-          stats.monthlyWagered += amount;
+        case TransactionType.DEBIT:
+          stats.totalDebit += cleanAmount;
+          stats.totalWagered += cleanAmount;
+          stats.todayWagered += cleanAmount;
+          stats.weeklyWagered += cleanAmount;
+          stats.monthlyWagered += cleanAmount;
           break;
 
-        case TransactionType.DEBIT:
-          stats.totalDebit += amount;
-          stats.totalWagered += amount;
-          stats.todayWagered += amount;
-          stats.weeklyWagered += amount;
-          stats.monthlyWagered += amount;
-
+        case TransactionType.CREDIT:
+          stats.totalCredit += cleanAmount;
+          stats.totalWagered += cleanAmount;
+          stats.todayWagered += cleanAmount;
+          stats.weeklyWagered += cleanAmount;
+          stats.monthlyWagered += cleanAmount;
           break;
 
         case TransactionType.DEBIT_AND_CREDIT:
           if (metadata) {
             if (metadata.debitAmount) {
-              stats.totalDebit += metadata.debitAmount;
-              stats.totalWagered += metadata.debitAmount;
-              stats.todayWagered += metadata.debitAmount;
-              stats.weeklyWagered += metadata.debitAmount;
-              stats.monthlyWagered += metadata.debitAmount;
+              const debitAmt = Number(metadata.debitAmount);
+              stats.totalDebit += debitAmt;
+              stats.totalWagered += debitAmt;
+              stats.todayWagered += debitAmt;
+              stats.weeklyWagered += debitAmt;
+              stats.monthlyWagered += debitAmt;
             }
             if (metadata.creditAmount) {
-              stats.totalCredit += metadata.creditAmount;
+              stats.totalCredit += Number(metadata.creditAmount);
             }
           }
           break;
 
         case TransactionType.DEPOSIT:
-          stats.totalDeposits += amount;
+          stats.totalDeposits += cleanAmount;
           break;
 
         case TransactionType.WITHDRAWAL:
-          stats.totalWithdrawals += amount;
+          stats.totalWithdrawals += cleanAmount;
           break;
       }
 
-      // ========== მეტრიკების გამოთვლა ==========
+      // ========== მეტრიკები ==========
       stats.netProfit = stats.totalCredit - stats.totalDebit;
 
       if (stats.totalDebit > 0) {
@@ -157,22 +159,14 @@ export class WageringService {
       stats.lastActivityDate = new Date();
 
       this.logger.log(
-        `📊 AFTER UPDATE (before save) - User ${userId}: totalDebit=${stats.totalDebit}, totalWagered=${stats.totalWagered}`,
+        `💰 AFTER: totalDebit=${stats.totalDebit}, totalWagered=${stats.totalWagered}`,
       );
 
       await this.wageringRepository.save(stats);
 
-      // 🔥 LOG: შენახვის შემდეგ
-      const verify = await this.wageringRepository.findOne({
-        where: { userId },
-      });
-      this.logger.log(
-        `✅ AFTER SAVE - User ${userId}: totalDebit=${verify?.totalDebit}, totalWagered=${verify?.totalWagered}`,
-      );
-
       return stats;
     } catch (error) {
-      this.logger.error(`Failed to update wagering stats for user `);
+      this.logger.error(`Failed: `);
       throw error;
     }
   }

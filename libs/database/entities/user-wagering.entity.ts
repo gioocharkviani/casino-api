@@ -42,18 +42,15 @@ export class UserWageringStats {
   @Column({ type: 'bigint', default: 0 })
   netProfit!: number;
 
-  // RTP - პროცენტი (2 ათწილადი საკმარისია)
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
   rtp!: number;
 
-  // ბონუსები
   @Column({ default: 0 })
   bonusBetsCount!: number;
 
   @Column({ type: 'bigint', default: 0 })
   bonusWinnings!: number;
 
-  // პერიოდული ველები - BIGINT
   @Column({ type: 'bigint', default: 0 })
   todayWagered!: number;
 
@@ -63,7 +60,6 @@ export class UserWageringStats {
   @Column({ type: 'bigint', default: 0 })
   monthlyWagered!: number;
 
-  // დროის ველები
   @Column({ type: 'timestamp', nullable: true })
   lastActivityDate!: Date;
 
