@@ -43,7 +43,7 @@ export class UserController {
     res.cookie('session_token', result.token, {
       httpOnly: true,
       secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite: 'lax',
+      sameSite: 'none',
       path: '/',
       maxAge: parseInt(EXPIRE_DATE) * 60 * 60 * 1000,
     });
@@ -63,7 +63,7 @@ export class UserController {
     res.clearCookie('session_token', {
       httpOnly: true,
       secure: false,
-      sameSite: 'lax',
+      sameSite: 'none',
       path: '/',
     });
 
