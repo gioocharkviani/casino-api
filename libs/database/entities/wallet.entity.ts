@@ -24,4 +24,6 @@ export class walletEntity {
 export class bonusWallet {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ nullable: true })
+  bonus?: string;
 }
