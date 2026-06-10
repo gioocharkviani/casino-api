@@ -27,6 +27,7 @@ export class WageringService {
 
       let stats = await this.wageringRepository.findOne({
         where: { userId },
+        cache: false,
       });
 
       this.logger.log(
