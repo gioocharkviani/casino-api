@@ -30,7 +30,6 @@ export class WageringService {
         where: { userId },
       });
 
-      // 🔥 ახალი მომხმარებელი - შექმენი და შეინახე
       if (!stats) {
         stats = this.wageringRepository.create({
           userId,
@@ -50,16 +49,14 @@ export class WageringService {
           lastActivityDate: new Date(),
         });
 
-        // ✅ პირველად შენახვა
-        stats = await this.wageringRepository.save(stats);
         this.logger.log(`✅ Created new wagering stats for user ${userId}`);
       }
 
-      // ========== რეზეტების შემოწმება ==========
+      // ========== რესეტების შემოწმება ==========
       const today = new Date();
       const todayDate = today.toISOString().split('T')[0];
 
-      // დღიური რეზეტი
+      // დღიური რესეტი
       if (stats.lastResetDate) {
         const resetDate =
           stats.lastResetDate instanceof Date
@@ -75,7 +72,7 @@ export class WageringService {
         stats.lastResetDate = today;
       }
 
-      // კვირის რეზეტი
+      // კვირის რესეტი
       const currentWeek = this.getWeekNumber(today);
       if (stats.lastResetDate) {
         const resetDate =
@@ -88,7 +85,7 @@ export class WageringService {
         }
       }
 
-      // თვის რეზეტი
+      // თვის რესეტი
       if (stats.lastResetDate) {
         const resetDate =
           stats.lastResetDate instanceof Date
@@ -103,6 +100,7 @@ export class WageringService {
       // ========== ტრანზაქციის ტიპის მიხედვით განახლება ==========
       switch (transactionType) {
         case TransactionType.CREDIT:
+          this.logger.debug(transactionType);
           stats.totalCredit += amount;
           stats.totalWagered += amount;
           stats.todayWagered += amount;
@@ -111,6 +109,7 @@ export class WageringService {
           break;
 
         case TransactionType.DEBIT:
+          this.logger.debug(transactionType);
           stats.totalDebit += amount;
           stats.totalWagered += amount;
           stats.todayWagered += amount;
@@ -119,6 +118,7 @@ export class WageringService {
           break;
 
         case TransactionType.DEBIT_AND_CREDIT:
+          this.logger.debug(transactionType);
           if (metadata) {
             if (metadata.debitAmount) {
               stats.totalDebit += metadata.debitAmount;
