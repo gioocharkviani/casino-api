@@ -29,7 +29,12 @@ export class WageringService {
         where: { userId },
       });
 
+      this.logger.log(
+        `🔍 BEFORE UPDATE - User ${userId}: totalDebit=${stats?.totalDebit}, totalWagered=${stats?.totalWagered}`,
+      );
+
       if (!stats) {
+        this.logger.log(`🆕 Creating new stats for user ${userId}`);
         stats = this.wageringRepository.create({
           userId,
           totalDeposits: 0,
@@ -151,10 +156,18 @@ export class WageringService {
       stats.lastActivityDate = new Date();
 
       this.logger.log(
-        `📊 Updated wagering stats for user ${userId}: ` +
-          `Wagered=${stats.totalWagered}, Net=${stats.netProfit}, RTP=${stats.rtp}%`,
+        `📊 AFTER UPDATE (before save) - User ${userId}: totalDebit=${stats.totalDebit}, totalWagered=${stats.totalWagered}`,
       );
+
       await this.wageringRepository.save(stats);
+
+      // 🔥 LOG: შენახვის შემდეგ
+      const verify = await this.wageringRepository.findOne({
+        where: { userId },
+      });
+      this.logger.log(
+        `✅ AFTER SAVE - User ${userId}: totalDebit=${verify?.totalDebit}, totalWagered=${verify?.totalWagered}`,
+      );
 
       return stats;
     } catch (error) {
