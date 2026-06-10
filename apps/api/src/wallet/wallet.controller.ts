@@ -26,7 +26,6 @@ export class WalletController {
   @UseGuards(RevolverSignatureGuard)
   walletAuth(@Body() body: WalletAuthDto) {
     const res = this.walletService.walletAuth(body);
-    console.log(res);
     return res;
   }
 

@@ -35,6 +35,13 @@ export class WageringService {
           totalWagered: 0,
           netProfit: 0,
           rtp: 0,
+          todayWagered: 0,
+          weeklyWagered: 0,
+          monthlyWagered: 0,
+          bonusBetsCount: 0,
+          bonusWinnings: 0,
+          lastResetDate: new Date(),
+          lastActivityDate: new Date(),
         });
       }
 
