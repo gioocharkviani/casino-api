@@ -20,7 +20,6 @@ export class WageringService {
     metadata?: any,
   ) {
     try {
-      // 🔥 1. amount გადააქციე Number-ად
       const cleanAmount = Number(amount);
 
       let stats = await this.wageringRepository.findOne({
@@ -49,7 +48,6 @@ export class WageringService {
         stats = await this.wageringRepository.save(stats);
       }
 
-      // 🔥 2. მნიშვნელოვანი! TypeORM-დან წამოღებული მნიშვნელობები არის STRING!
       stats.totalDebit = Number(stats.totalDebit) || 0;
       stats.totalCredit = Number(stats.totalCredit) || 0;
       stats.totalWagered = Number(stats.totalWagered) || 0;
@@ -60,10 +58,6 @@ export class WageringService {
       stats.totalWithdrawals = Number(stats.totalWithdrawals) || 0;
       stats.bonusWinnings = Number(stats.bonusWinnings) || 0;
       stats.netProfit = Number(stats.netProfit) || 0;
-
-      this.logger.log(
-        `💰 BEFORE: totalDebit=${stats.totalDebit}, totalWagered=${stats.totalWagered}`,
-      );
 
       // ========== რეზეტების შემოწმება ==========
       const today = new Date();
@@ -160,10 +154,6 @@ export class WageringService {
       }
 
       stats.lastActivityDate = new Date();
-
-      this.logger.log(
-        `💰 AFTER: totalDebit=${stats.totalDebit}, totalWagered=${stats.totalWagered}`,
-      );
 
       await this.wageringRepository.save(stats);
 
