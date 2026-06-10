@@ -33,34 +33,34 @@ export class WalletController {
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
   async balance(@Body() body: WalletBallanceDto) {
-    return this.walletService.balance(body);
+    return await this.walletService.balance(body);
   }
 
   @Post('debit')
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
   async debit(@Body() body: DebitRequestDto) {
-    return this.walletService.debit(body);
+    return await this.walletService.debit(body);
   }
 
   @Post('credit')
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
   async credit(@Body() body: CreditRequestDto) {
-    return this.walletService.credit(body);
+    return await this.walletService.credit(body);
   }
 
   @Post('rollback')
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
   async rollback(@Body() body: RollbackRequestDto) {
-    return this.walletService.rollback(body);
+    return await this.walletService.rollback(body);
   }
 
   @Post('debitAndCredit')
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
   async debitAndCredit(@Body() body: DebitAndCreditDto) {
-    return this.walletService.debitAndCredit(body);
+    return await this.walletService.debitAndCredit(body);
   }
 }

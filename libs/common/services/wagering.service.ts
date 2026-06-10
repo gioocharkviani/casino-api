@@ -20,7 +20,6 @@ export class WageringService {
     metadata?: any,
   ) {
     try {
-      // NaN-ის შემოწმება
       if (isNaN(amount) || amount === undefined || amount === null) {
         this.logger.warn(`Invalid amount: ${amount} for user ${userId}`);
         return null;
@@ -100,7 +99,6 @@ export class WageringService {
       // ========== ტრანზაქციის ტიპის მიხედვით განახლება ==========
       switch (transactionType) {
         case TransactionType.CREDIT:
-          this.logger.debug(transactionType);
           stats.totalCredit += amount;
           stats.totalWagered += amount;
           stats.todayWagered += amount;
@@ -109,16 +107,15 @@ export class WageringService {
           break;
 
         case TransactionType.DEBIT:
-          this.logger.debug(transactionType);
           stats.totalDebit += amount;
           stats.totalWagered += amount;
           stats.todayWagered += amount;
           stats.weeklyWagered += amount;
           stats.monthlyWagered += amount;
+
           break;
 
         case TransactionType.DEBIT_AND_CREDIT:
-          this.logger.debug(transactionType);
           if (metadata) {
             if (metadata.debitAmount) {
               stats.totalDebit += metadata.debitAmount;
@@ -153,79 +150,17 @@ export class WageringService {
 
       stats.lastActivityDate = new Date();
 
-      // ✅ მეორედ შენახვა (განახლება)
-      await this.wageringRepository.save(stats);
-
       this.logger.log(
         `📊 Updated wagering stats for user ${userId}: ` +
           `Wagered=${stats.totalWagered}, Net=${stats.netProfit}, RTP=${stats.rtp}%`,
       );
+      await this.wageringRepository.save(stats);
 
       return stats;
     } catch (error) {
       this.logger.error(`Failed to update wagering stats for user `);
       throw error;
     }
-  }
-
-  async getUserWageringStats(userId: string): Promise<UserWageringStats> {
-    const stats = await this.wageringRepository.findOne({
-      where: { userId },
-    });
-
-    if (!stats) {
-      // აბრუნებს ახალ ობიექტს, მაგრამ არ ინახავს
-      return this.wageringRepository.create({
-        userId,
-        totalDeposits: 0,
-        totalWithdrawals: 0,
-        totalDebit: 0,
-        totalCredit: 0,
-        totalWagered: 0,
-        netProfit: 0,
-        rtp: 0,
-        todayWagered: 0,
-        weeklyWagered: 0,
-        monthlyWagered: 0,
-        bonusBetsCount: 0,
-        bonusWinnings: 0,
-      });
-    }
-
-    return stats;
-  }
-
-  async resetUserWagering(
-    userId: string,
-    type: 'daily' | 'weekly' | 'monthly' | 'full',
-  ) {
-    const stats = await this.wageringRepository.findOne({ where: { userId } });
-    if (!stats) return;
-
-    switch (type) {
-      case 'daily':
-        stats.todayWagered = 0;
-        break;
-      case 'weekly':
-        stats.weeklyWagered = 0;
-        break;
-      case 'monthly':
-        stats.monthlyWagered = 0;
-        break;
-      case 'full':
-        stats.totalWagered = 0;
-        stats.totalDebit = 0;
-        stats.totalCredit = 0;
-        stats.netProfit = 0;
-        stats.rtp = 0;
-        stats.todayWagered = 0;
-        stats.weeklyWagered = 0;
-        stats.monthlyWagered = 0;
-        break;
-    }
-
-    await this.wageringRepository.save(stats);
-    this.logger.log(`Reset ${type} wagering stats for user ${userId}`);
   }
 
   private getWeekNumber(date: Date): number {
