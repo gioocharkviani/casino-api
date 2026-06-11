@@ -408,7 +408,10 @@ export class UserService {
         5000,
     );
 
-    console.log(calculateXp);
+    await this.userRepository.update(
+      { id: data.playerId },
+      { xp: calculateXp },
+    );
 
     return calculateXp;
   }
