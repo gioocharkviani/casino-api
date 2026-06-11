@@ -49,6 +49,9 @@ export class UserEntity {
   })
   wallet?: walletEntity;
 
+  @Column({ type: 'int', default: 0 })
+  xp?: number;
+
   @Column({ type: 'varchar', nullable: true, length: 100 })
   citizenship?: string;
 

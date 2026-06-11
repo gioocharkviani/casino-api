@@ -1,17 +1,13 @@
-import {
-  HttpStatus,
-  Inject,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import {
   UserEntity,
+  UserLevelsEntity,
   UserSessionEntity,
   userVerificationEntity,
 } from 'libs/database/entities/user.entity';
-import { Repository } from 'typeorm';
+import { LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices';
@@ -27,6 +23,8 @@ export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(UserLevelsEntity)
+    private readonly levelRepo: Repository<UserLevelsEntity>,
     @InjectRepository(CountryEntity)
     private readonly countryEntity: Repository<CountryEntity>,
     @InjectRepository(walletEntity)
@@ -176,7 +174,7 @@ export class UserService {
         });
       }
       const userId = validation.userId;
-      const findUser = await this.userRepository.findOne({
+      let findUser = await this.userRepository.findOne({
         where: { id: userId },
         select: {
           wallet: {
@@ -186,6 +184,7 @@ export class UserService {
         },
         relations: { wallet: true },
       });
+
       if (!findUser) {
         throw new RpcException({
           message: 'User not found',
@@ -193,7 +192,32 @@ export class UserService {
         });
       }
       const { password, ...userWithoutPassword } = findUser;
-      return userWithoutPassword;
+
+      const level = await this.levelRepo.findOne({
+        where: {
+          isActive: true,
+          minPoints: LessThanOrEqual(findUser.xp ?? 0),
+          maxPoints: MoreThanOrEqual(findUser.xp ?? 0),
+        },
+        select: {
+          minPoints: true,
+          maxPoints: true,
+          name: true,
+          badgeUrl: true,
+          createdAt: false,
+          description: false,
+          id: false,
+          isActive: false,
+          order: false,
+          updatedAt: false,
+        },
+      });
+
+      if (!level) {
+        return userWithoutPassword;
+      }
+
+      return { ...userWithoutPassword, level: level ?? null };
     } catch (error) {
       throw new RpcException({
         message: 'UNAUTHORIZED',
