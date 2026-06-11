@@ -108,6 +108,11 @@ export class GameService {
   async getAllProvider() {
     const allProvider = await this.providerRepo.find({
       select: {
+        id: true,
+        logo: true,
+        name: true,
+        prefix: true,
+        games: false,
         createdAt: false,
         updatedAt: false,
       },
