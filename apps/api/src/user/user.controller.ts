@@ -46,10 +46,9 @@ export class UserController {
   @Post('sign-out')
   @HttpCode(200)
   userSignOut(@Res({ passthrough: true }) res: Response, @Req() req: Request) {
-    const session_token = req.cookies?.session_token
-      ? req.cookies?.session_token
-      : '';
-    const result = this.UserService.signOut(session_token);
+    const header = req.headers?.authorization;
+    const token = header?.startsWith('Bearer ') ? header.split(' ')[1] : '';
+    const result = this.UserService.signOut(token);
     res.clearCookie('Autorization', {
       httpOnly: true,
       secure: false,
@@ -64,21 +63,19 @@ export class UserController {
   @Get('user')
   @UseGuards(AuthGuard)
   userInfo(@Req() req: Request) {
-    const session_token = req.cookies?.session_token
-      ? req.cookies?.session_token
-      : '';
-    return this.UserService.getUserInfo(session_token);
+    const header = req.headers?.authorization;
+    const token = header?.startsWith('Bearer ') ? header.split(' ')[1] : '';
+    return this.UserService.getUserInfo(token);
   }
 
   //USER VERIFICATION
   @Post('verify')
   @UseGuards(AuthGuard)
   verifyUser(@Req() req: Request, @Body() body: verifyDto) {
-    const session_token = req.cookies?.session_token
-      ? req.cookies?.session_token
-      : '';
+    const header = req.headers?.authorization;
+    const token = header?.startsWith('Bearer ') ? header.split(' ')[1] : '';
     const data = {
-      token: session_token,
+      token: token,
       otp: body.otp,
     };
     return this.UserService.verifyUser(data);
