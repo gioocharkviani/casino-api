@@ -11,6 +11,7 @@ import {
 import { bonusWallet, walletEntity } from './entities/wallet.entity';
 import {
   UserEntity,
+  UserLevelsEntity,
   UserSessionEntity,
   userVerificationEntity,
 } from './entities/user.entity';
@@ -43,6 +44,7 @@ import { UserWageringStats } from './entities/user-wagering.entity';
         GameCategories,
         UserWageringStats,
         bonusWallet,
+        UserLevelsEntity,
       ],
 
       synchronize: false,
@@ -67,6 +69,7 @@ import { UserWageringStats } from './entities/user-wagering.entity';
       GameCategories,
       UserWageringStats,
       bonusWallet,
+      UserLevelsEntity,
     ]),
   ],
   exports: [TypeOrmModule],

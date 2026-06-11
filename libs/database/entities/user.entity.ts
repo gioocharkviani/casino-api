@@ -99,3 +99,34 @@ export class userVerificationEntity {
   @Column()
   expiresAt!: Date;
 }
+
+@Entity('user-levels')
+export class UserLevelsEntity {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: 'varchar', length: 100 })
+  name!: string;
+
+  @Column({ type: 'int' })
+  minPoints!: number;
+
+  @Column({ type: 'int' })
+  maxPoints!: number;
+
+  @Column({ type: 'int', default: 0 })
+  order!: number;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  description?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  badgeUrl?: string; // ლეველის ბეჯის სურათი
+
+  @Column({ type: 'boolean', default: true })
+  isActive!: boolean;
+  @CreateDateColumn()
+  createdAt!: Date;
+  @UpdateDateColumn()
+  updatedAt!: Date;
+}
