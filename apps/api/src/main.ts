@@ -12,9 +12,9 @@ async function bootstrap() {
     origin: 'http://localhost:3000',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: true,
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Cookies'],
+    exposedHeaders: ['Set-Cookie'],
   });
-
   app.use(cookieParser());
   app.setGlobalPrefix('api');
   app.useGlobalPipes(
