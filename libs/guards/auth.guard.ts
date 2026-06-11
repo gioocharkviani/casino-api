@@ -5,17 +5,20 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { UserService } from 'apps/api/src/user/user.service';
-
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private readonly UserService: UserService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const session_token = request?.cookies?.session_token;
-    console.log(request);
+
+    const authHeader = request.headers?.authorization;
+    const session_token = authHeader?.startsWith('Bearer ')
+      ? authHeader.split(' ')[1]
+      : null;
+
     if (!session_token) {
-      throw new UnauthorizedException(' token not found');
+      throw new UnauthorizedException('Token not found');
     }
 
     const validation =
@@ -26,7 +29,6 @@ export class AuthGuard implements CanActivate {
     }
 
     request.userId = validation.userId;
-
     return true;
   }
 }

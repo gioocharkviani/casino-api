@@ -29,18 +29,12 @@ export class UserController {
   }
   //USER SIGNIN API
   @Post('sign-in')
-  async signIn(
-    @Body() data: SignInDto,
-    @Res({ passthrough: true }) res: Response,
-    @Ip() ip: string,
-  ) {
-    const EXPIRE_DATE = this.configService.get('AUTH_TOKEN_EXPIRE_TIME');
+  async signIn(@Body() data: SignInDto, @Ip() ip: string) {
     const requestIpAddress = ip;
     const result = await this.UserService.signIn({
       ...data,
       ip: requestIpAddress,
     });
-    const isProduction = process.env.NODE_ENV === 'production';
 
     return {
       meesage: 'Login successful',
