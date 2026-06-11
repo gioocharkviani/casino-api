@@ -38,7 +38,7 @@ export class WalletController {
       data.amount,
       TransactionType.DEBIT,
     );
-    this.userClient.emit('USER_XP', { userId: data.playerId });
+    this.userClient.send('USER_XP', { userId: data.playerId });
     return res;
   }
   @MessagePattern('WALLET_CREDIT')
@@ -49,7 +49,7 @@ export class WalletController {
       data.amount,
       TransactionType.CREDIT,
     );
-    this.userClient.emit('USER_XP', { userId: data.playerId });
+    this.userClient.send('USER_XP', { userId: data.playerId });
     return res;
   }
   @MessagePattern('WALLET_ROLLBACK')
@@ -60,7 +60,7 @@ export class WalletController {
       data.amount,
       TransactionType.ROLLBACK,
     );
-    this.userClient.emit('USER_XP', { userId: data.playerId });
+    this.userClient.send('USER_XP', { userId: data.playerId });
     return res;
   }
   @MessagePattern('DEBIT_CREDIT')
@@ -75,7 +75,7 @@ export class WalletController {
         creditAmount: data.creditAmount,
       },
     );
-    this.userClient.emit('USER_XP', { userId: data.playerId });
+    this.userClient.send('USER_XP', { userId: data.playerId });
     return res;
   }
 }
