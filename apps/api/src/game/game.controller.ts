@@ -14,7 +14,7 @@ export class GameController {
   getAllGame(@Query() query: getRequestDto) {
     return this.gameService.getAllGames(query);
   }
-  @Get('privider')
+  @Get('provider')
   getAllProvider() {
     return this.gameService.getAllProvider();
   }

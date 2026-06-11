@@ -106,7 +106,12 @@ export class GameService {
 
   //GET ALL PROVIDER
   async getAllProvider() {
-    const allProvider = await this.providerRepo.find();
+    const allProvider = await this.providerRepo.find({
+      select: {
+        createdAt: false,
+        updatedAt: false,
+      },
+    });
     return {
       code: 200,
       data: allProvider,
