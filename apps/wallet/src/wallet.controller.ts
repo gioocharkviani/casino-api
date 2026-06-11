@@ -10,13 +10,14 @@ import {
 } from 'libs/common/dto/wallet.dto';
 import { WageringService } from 'libs/common/services/wagering.service';
 import { TransactionType } from 'libs/common';
+import { lastValueFrom } from 'rxjs';
 
 @Controller()
 export class WalletController {
   constructor(
     private readonly walletService: WalletService,
     private readonly wagerService: WageringService,
-    @Inject('USER_M_SERVICE') private readonly userClient: ClientProxy,
+    @Inject('USER_MS_SERVICE') private readonly userClient: ClientProxy,
   ) {}
 
   //Wallet auth service
@@ -38,7 +39,9 @@ export class WalletController {
       data.amount,
       TransactionType.DEBIT,
     );
-    this.userClient.send('USER_XP', { userId: data.playerId });
+    await lastValueFrom(
+      this.userClient.send('USER_XP', { userId: data.playerId }),
+    );
     return res;
   }
   @MessagePattern('WALLET_CREDIT')
@@ -49,7 +52,9 @@ export class WalletController {
       data.amount,
       TransactionType.CREDIT,
     );
-    this.userClient.send('USER_XP', { userId: data.playerId });
+    await lastValueFrom(
+      this.userClient.send('USER_XP', { userId: data.playerId }),
+    );
     return res;
   }
   @MessagePattern('WALLET_ROLLBACK')
@@ -60,7 +65,9 @@ export class WalletController {
       data.amount,
       TransactionType.ROLLBACK,
     );
-    this.userClient.send('USER_XP', { userId: data.playerId });
+    await lastValueFrom(
+      this.userClient.send('USER_XP', { userId: data.playerId }),
+    );
     return res;
   }
   @MessagePattern('DEBIT_CREDIT')
@@ -75,7 +82,9 @@ export class WalletController {
         creditAmount: data.creditAmount,
       },
     );
-    this.userClient.send('USER_XP', { userId: data.playerId });
+    await lastValueFrom(
+      this.userClient.send('USER_XP', { userId: data.playerId }),
+    );
     return res;
   }
 }

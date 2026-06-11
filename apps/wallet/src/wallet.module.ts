@@ -21,7 +21,7 @@ import { UserModule } from 'apps/user/src/user.module';
         options: { host: 'localhost', port: 3039 },
       },
       {
-        name: 'USER_M_SERVICE',
+        name: 'USER_MS_SERVICE',
         transport: Transport.TCP,
         options: { host: 'localhost', port: 3035 },
       },
