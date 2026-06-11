@@ -12,7 +12,7 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const session_token = request?.cookies?.session_token;
+    const session_token = request?.cookies?.sessionHash;
     // Debug logging
     console.log('Headers:', request.headers);
     console.log('Cookies from cookie-parser:', request.cookies);

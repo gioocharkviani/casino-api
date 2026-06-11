@@ -42,7 +42,7 @@ export class UserController {
     });
     const isProduction = process.env.NODE_ENV === 'production';
 
-    res.cookie('session_token', result.token, {
+    res.cookie('sessionHash', result.token, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
@@ -62,7 +62,7 @@ export class UserController {
       ? req.cookies?.session_token
       : '';
     const result = this.UserService.signOut(session_token);
-    res.clearCookie('session_token', {
+    res.clearCookie('sessionHash', {
       httpOnly: true,
       secure: false,
       sameSite: 'none',
