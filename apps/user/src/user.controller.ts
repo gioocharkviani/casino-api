@@ -40,7 +40,7 @@ export class UserController {
   }
   //CHANGE USER XP
   @MessagePattern('USER_XP')
-  changeUserXp(data: { userId: string }) {
-    return this.UserService.changeUserLevel(data.userId);
+  changeUserXp(userId: string) {
+    return this.UserService.changeUserLevel(userId);
   }
 }

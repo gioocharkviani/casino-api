@@ -403,7 +403,6 @@ export class UserService {
   //CHANGE USER XP
 
   async changeUserLevel(playerId: string) {
-    console.log(playerId);
     const findUserWager = await this.userWagerRepo.findOne({
       where: { userId: playerId },
     });
@@ -419,7 +418,7 @@ export class UserService {
     const calculateXp = Math.floor(total / 5000);
 
     await this.userRepository.update({ id: playerId }, { xp: calculateXp });
-    console.log(calculateXp);
+
     return calculateXp;
   }
   //CHANGE USER XP
