@@ -28,9 +28,8 @@ export class GameController {
   @Get('lunch-game')
   @UseGuards(AuthGuard, VerifyGuard)
   lunchGame(@Query() query: LaunchGameDto, @Req() req: Request) {
-    const session_token = req.cookies?.session_token
-      ? req.cookies?.session_token
-      : '';
-    return this.gameService.lunchGame(query, session_token);
+    const header = req.headers?.authorization;
+    const token = header?.startsWith('Bearer ') ? header.split(' ')[1] : '';
+    return this.gameService.lunchGame(query, token);
   }
 }

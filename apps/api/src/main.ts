@@ -37,7 +37,7 @@ async function bootstrap() {
     .addTag('Casino')
     .addTag('Auth')
     .addBearerAuth()
-    .addCookieAuth('session_token')
+
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
