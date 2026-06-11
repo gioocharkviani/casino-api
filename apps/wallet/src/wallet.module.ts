@@ -6,11 +6,12 @@ import { DatabaseModule } from 'libs/database/database.module';
 import { ConfigModule } from '@nestjs/config';
 import { transactionModule } from './transactions/transaction.module';
 import { WageringService } from 'libs/common/services/wagering.service';
-import { UserService } from 'apps/user/src/user.service';
+import { UserModule } from 'apps/user/src/user.module';
 
 @Module({
   imports: [
     DatabaseModule,
+    UserModule,
     ConfigModule,
     transactionModule,
     ClientsModule.register([
@@ -22,6 +23,6 @@ import { UserService } from 'apps/user/src/user.service';
     ]),
   ],
   controllers: [WalletController],
-  providers: [WalletService, WageringService, UserService],
+  providers: [WalletService, WageringService],
 })
 export class WalletModule {}
