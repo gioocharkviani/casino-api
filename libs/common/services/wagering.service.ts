@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserWageringStats } from '../../database/entities/user-wagering.entity';
 import { TransactionType } from '../enums/transactionTypes.enum';
-import { IWageringStats } from '../interface/wagering.interface';
+import { UserService } from 'apps/user/src/user.service';
 @Injectable()
 export class WageringService {
   private readonly logger = new Logger(WageringService.name);
@@ -11,6 +11,8 @@ export class WageringService {
   constructor(
     @InjectRepository(UserWageringStats)
     private wageringRepository: Repository<UserWageringStats>,
+    ////////////////////////
+    private readonly userService: UserService,
   ) {}
 
   async updateWageringStats(
@@ -144,7 +146,6 @@ export class WageringService {
           break;
       }
 
-      // ========== მეტრიკები ==========
       stats.netProfit = stats.totalCredit - stats.totalDebit;
 
       if (stats.totalDebit > 0) {
@@ -156,6 +157,9 @@ export class WageringService {
       stats.lastActivityDate = new Date();
 
       await this.wageringRepository.save(stats);
+
+      //CHANGE USER XP
+      await this.userService.changeUserLevel({ playerId: userId });
 
       return stats;
     } catch (error) {

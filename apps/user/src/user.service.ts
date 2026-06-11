@@ -17,6 +17,7 @@ import { walletEntity } from 'libs/database/entities/wallet.entity';
 import { CountryEntity } from 'libs/database/entities/country.entity';
 
 import { NotificationService } from 'apps/notification/src/notification.service';
+import { UserWageringStats } from 'libs/database/entities/user-wagering.entity';
 
 @Injectable()
 export class UserService {
@@ -33,6 +34,8 @@ export class UserService {
     private readonly verifyRepo: Repository<userVerificationEntity>,
     @InjectRepository(UserSessionEntity)
     private readonly userSessionRepository: Repository<UserSessionEntity>,
+    @InjectRepository(UserWageringStats)
+    private readonly userWagerRepo: Repository<UserWageringStats>,
     private readonly configService: ConfigService,
     private readonly notificationService: NotificationService,
   ) {}
@@ -391,5 +394,24 @@ export class UserService {
     return country;
   }
   //FIND COUNTRY
+
+  //CHANGE USER XP
+  async changeUserLevel(data: { playerId: string }) {
+    const findUserWager = await this.userWagerRepo.findOne({
+      where: {
+        userId: data.playerId,
+      },
+    });
+
+    const calculateXp = Math.floor(
+      ((findUserWager?.totalDebit ?? 0) + (findUserWager?.totalDeposits ?? 0)) /
+        5000,
+    );
+
+    console.log(calculateXp);
+
+    return calculateXp;
+  }
+  //CHANGE USER XP
   /////////////////////////////////////////////////////////////////////////
 }
