@@ -153,7 +153,7 @@ export class WalletService {
         data.amount,
         TransactionType.DEBIT,
       );
-      this.userClient.send('USER_XP', data.playerId);
+      this.userClient.emit('USER_XP', data.playerId);
 
       return {
         code: 200,
@@ -231,7 +231,7 @@ export class WalletService {
         data.amount,
         TransactionType.CREDIT,
       );
-      this.userClient.send('USER_XP', data.playerId);
+      this.userClient.emit('USER_XP', data.playerId);
 
       return {
         code: 200,
@@ -331,7 +331,7 @@ export class WalletService {
         data.amount,
         TransactionType.ROLLBACK,
       );
-      this.userClient.send('USER_XP', data.playerId);
+      this.userClient.emit('USER_XP', data.playerId);
 
       return {
         code: 200,
@@ -429,7 +429,7 @@ export class WalletService {
         TransactionType.DEBIT_AND_CREDIT,
         { debitAmount: data.debitAmount, creditAmount: data.creditAmount },
       );
-      this.userClient.send('USER_XP', data.playerId);
+      this.userClient.emit('USER_XP', data.playerId);
 
       return {
         code: 200,
