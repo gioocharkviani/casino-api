@@ -14,6 +14,11 @@ export class GameController {
     return this.gameService.getAllGames(data);
   }
 
+  @MessagePattern('GET_ALL_PROVIDER')
+  getAllProvider() {
+    return this.gameService.getAllProvider(data);
+  }
+
   @MessagePattern('GET_CATEGORIES_GAME')
   getAllGameByCategories() {
     return this.gameService.getAllGameByCategories();

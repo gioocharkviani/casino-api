@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   Game,
   GameCategories,
+  GameProvider,
   GameSession,
 } from 'libs/database/entities/game.entity';
 import { Repository } from 'typeorm';
@@ -16,6 +17,8 @@ export class GameService {
   constructor(
     @InjectRepository(Game)
     private readonly gameRepository: Repository<Game>,
+    @InjectRepository(GameProvider)
+    private readonly providerRepo: Repository<GameProvider>,
     @InjectRepository(GameCategories)
     private readonly gameCategoriesRepo: Repository<GameCategories>,
     @InjectRepository(GameSession)
@@ -100,6 +103,17 @@ export class GameService {
   }
 
   //GET ALL GAME
+
+  //GET ALL PROVIDER
+  async getAllProvider() {
+    const allProvider = await this.providerRepo.find();
+    return {
+      code: 200,
+      data: allProvider,
+      message: 'Success',
+    };
+  }
+  //GET ALL PROVIDER
 
   //GET ALL GAME BY CATEGORIES
   async getAllGameByCategories() {
