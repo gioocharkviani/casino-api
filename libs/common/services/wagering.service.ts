@@ -1,9 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserWageringStats } from '../../database/entities/user-wagering.entity';
 import { TransactionType } from '../enums/transactionTypes.enum';
 import { UserService } from 'apps/user/src/user.service';
+import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 @Injectable()
 export class WageringService {
   private readonly logger = new Logger(WageringService.name);
@@ -11,8 +13,6 @@ export class WageringService {
   constructor(
     @InjectRepository(UserWageringStats)
     private wageringRepository: Repository<UserWageringStats>,
-    ////////////////////////
-    private readonly userService: UserService,
   ) {}
 
   async updateWageringStats(
@@ -155,11 +155,7 @@ export class WageringService {
       }
 
       stats.lastActivityDate = new Date();
-
       await this.wageringRepository.save(stats);
-
-      //CHANGE USER XP
-      await this.userService.changeUserLevel(userId);
 
       return stats;
     } catch (error) {
