@@ -402,7 +402,8 @@ export class UserService {
 
   //CHANGE USER XP
 
-  async changeUserLevel(playerId: string) {
+  async changeUserLevel(playerId?: string) {
+    console.log(playerId);
     const findUserWager = await this.userWagerRepo.findOne({
       where: { userId: playerId },
     });
