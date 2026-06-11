@@ -50,7 +50,7 @@ export class UserController {
       ? req.cookies?.session_token
       : '';
     const result = this.UserService.signOut(session_token);
-    res.clearCookie('session_token', {
+    res.clearCookie('Autorization', {
       httpOnly: true,
       secure: false,
       sameSite: 'none',
