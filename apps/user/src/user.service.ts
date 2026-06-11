@@ -396,22 +396,39 @@ export class UserService {
   //FIND COUNTRY
 
   //CHANGE USER XP
-  async changeUserLevel(data: { playerId: string }) {
+  //CHANGE USER XP
+  async changeUserLevel(playerId: string) {
     const findUserWager = await this.userWagerRepo.findOne({
       where: {
-        userId: data.playerId,
+        userId: playerId,
       },
     });
 
-    const calculateXp = Math.floor(
-      ((findUserWager?.totalDebit ?? 0) + (findUserWager?.totalDeposits ?? 0)) /
-        5000,
-    );
+    console.log('Wager data:', {
+      totalDebit: findUserWager?.totalDebit,
+      totalDeposits: findUserWager?.totalDeposits,
+    });
 
-    await this.userRepository.update(
-      { id: data.playerId },
+    const total =
+      (findUserWager?.totalDebit ?? 0) + (findUserWager?.totalDeposits ?? 0);
+    const calculateXp = Math.floor(total / 5000);
+
+    console.log(`Total: ${total}, Calculated XP: ${calculateXp}`);
+
+    const updateResult = await this.userRepository.update(
+      { id: playerId },
       { xp: calculateXp },
     );
+
+    console.log('Update result:', updateResult);
+    console.log('Affected:', updateResult.affected);
+
+    const updatedUser = await this.userRepository.findOne({
+      where: { id: playerId },
+      select: { xp: true },
+    });
+
+    console.log('XP in DB after update:', updatedUser?.xp);
 
     return calculateXp;
   }

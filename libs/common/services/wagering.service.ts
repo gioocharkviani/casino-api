@@ -159,7 +159,7 @@ export class WageringService {
       await this.wageringRepository.save(stats);
 
       //CHANGE USER XP
-      await this.userService.changeUserLevel({ playerId: userId });
+      await this.userService.changeUserLevel(userId);
 
       return stats;
     } catch (error) {
