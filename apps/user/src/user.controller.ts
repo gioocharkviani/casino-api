@@ -41,7 +41,6 @@ export class UserController {
   //CHANGE USER XP
   @EventPattern('USER_XP')
   changeUserXp(@Payload() userId?: string) {
-    console.log('controller', userId);
     return this.UserService.changeUserLevel(userId);
   }
 }
