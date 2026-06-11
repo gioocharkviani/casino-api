@@ -401,14 +401,13 @@ export class UserService {
   //FIND COUNTRY
 
   //CHANGE USER XP
-  private readonly logger = new Logger(UserService.name);
-  public async changeUserLevel(playerId: string) {
+
+  async changeUserLevel(playerId: string) {
     const findUserWager = await this.userWagerRepo.findOne({
       where: { userId: playerId },
     });
 
     if (!findUserWager) {
-      this.logger.warn(`No wager stats found for player: ${playerId}`);
       return 0;
     }
 
@@ -419,10 +418,6 @@ export class UserService {
     const calculateXp = Math.floor(total / 5000);
 
     await this.userRepository.update({ id: playerId }, { xp: calculateXp });
-
-    this.logger.log(
-      `Player ${playerId} | total: ${total} | xp: ${calculateXp}`,
-    );
 
     return calculateXp;
   }

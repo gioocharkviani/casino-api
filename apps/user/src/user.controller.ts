@@ -1,6 +1,6 @@
 import { Controller } from '@nestjs/common';
 import { UserService } from './user.service';
-import { MessagePattern } from '@nestjs/microservices';
+import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { SignInDtoMS, SignUpDto, verifyDto } from 'libs/common';
 
 @Controller()
@@ -37,5 +37,10 @@ export class UserController {
   @MessagePattern('USER_VERIFICATION')
   verifyUser(data: verifyDto) {
     return this.UserService.userVerficiation(data);
+  }
+  //CHANGE USER XP
+  @EventPattern('USER_XP')
+  changeUserXp(@Payload() data: { userId: string }) {
+    return this.UserService.changeUserLevel(data.userId);
   }
 }

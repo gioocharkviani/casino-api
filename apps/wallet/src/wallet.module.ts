@@ -20,6 +20,11 @@ import { UserModule } from 'apps/user/src/user.module';
         transport: Transport.TCP,
         options: { host: 'localhost', port: 3039 },
       },
+      {
+        name: 'USER_M_SERVICE',
+        transport: Transport.TCP,
+        options: { host: 'localhost', port: 3005 },
+      },
     ]),
   ],
   controllers: [WalletController],

@@ -1,6 +1,6 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Inject } from '@nestjs/common';
 import { WalletService } from './wallet.service';
-import { MessagePattern } from '@nestjs/microservices';
+import { ClientProxy, MessagePattern } from '@nestjs/microservices';
 import {
   CreditRequestDto,
   DebitRequestDto,
@@ -10,15 +10,13 @@ import {
 } from 'libs/common/dto/wallet.dto';
 import { WageringService } from 'libs/common/services/wagering.service';
 import { TransactionType } from 'libs/common';
-import { metadata } from 'reflect-metadata/no-conflict';
-import { UserService } from 'apps/user/src/user.service';
 
 @Controller()
 export class WalletController {
   constructor(
     private readonly walletService: WalletService,
     private readonly wagerService: WageringService,
-    private readonly userService: UserService,
+    @Inject('USER_M_SERVICE') private readonly userClient: ClientProxy,
   ) {}
 
   //Wallet auth service
@@ -40,7 +38,7 @@ export class WalletController {
       data.amount,
       TransactionType.DEBIT,
     );
-    await this.userService.changeUserLevel(data.playerId);
+    this.userClient.emit('USER_XP', { userId: data.playerId });
     return res;
   }
   @MessagePattern('WALLET_CREDIT')
@@ -51,7 +49,7 @@ export class WalletController {
       data.amount,
       TransactionType.CREDIT,
     );
-    await this.userService.changeUserLevel(data.playerId);
+    this.userClient.emit('USER_XP', { userId: data.playerId });
     return res;
   }
   @MessagePattern('WALLET_ROLLBACK')
@@ -62,7 +60,7 @@ export class WalletController {
       data.amount,
       TransactionType.ROLLBACK,
     );
-    await this.userService.changeUserLevel(data.playerId);
+    this.userClient.emit('USER_XP', { userId: data.playerId });
     return res;
   }
   @MessagePattern('DEBIT_CREDIT')
@@ -77,7 +75,7 @@ export class WalletController {
         creditAmount: data.creditAmount,
       },
     );
-    await this.userService.changeUserLevel(data.playerId);
+    this.userClient.emit('USER_XP', { userId: data.playerId });
     return res;
   }
 }
