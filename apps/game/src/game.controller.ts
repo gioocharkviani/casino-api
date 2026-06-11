@@ -16,7 +16,7 @@ export class GameController {
 
   @MessagePattern('GET_ALL_PROVIDER')
   getAllProvider() {
-    return this.gameService.getAllProvider(data);
+    return this.gameService.getAllProvider();
   }
 
   @MessagePattern('GET_CATEGORIES_GAME')
