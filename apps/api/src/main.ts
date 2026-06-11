@@ -10,11 +10,11 @@ async function bootstrap() {
 
   app.enableCors({
     origin: [
-      'htpp://localhost:3000',
-      'htpp://localhost:3001',
-      'htpp://localhost:3003',
-      'htpp://localhost:3004',
-      'htpp://localhost:3005',
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3003',
+      'http://localhost:3004',
+      'http://localhost:3005',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
