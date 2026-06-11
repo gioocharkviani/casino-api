@@ -1,4 +1,9 @@
-import { HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  HttpStatus,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import {
@@ -396,39 +401,28 @@ export class UserService {
   //FIND COUNTRY
 
   //CHANGE USER XP
-  //CHANGE USER XP
+  private readonly logger = new Logger(UserService.name);
   async changeUserLevel(playerId: string) {
     const findUserWager = await this.userWagerRepo.findOne({
-      where: {
-        userId: playerId,
-      },
+      where: { userId: playerId },
     });
 
-    console.log('Wager data:', {
-      totalDebit: findUserWager?.totalDebit,
-      totalDeposits: findUserWager?.totalDeposits,
-    });
+    if (!findUserWager) {
+      this.logger.warn(`No wager stats found for player: ${playerId}`);
+      return 0;
+    }
 
     const total =
-      (findUserWager?.totalDebit ?? 0) + (findUserWager?.totalDeposits ?? 0);
+      Number(findUserWager.totalDebit ?? 0) +
+      Number(findUserWager.totalDeposits ?? 0);
+
     const calculateXp = Math.floor(total / 5000);
 
-    console.log(`Total: ${total}, Calculated XP: ${calculateXp}`);
+    await this.userRepository.update({ id: playerId }, { xp: calculateXp });
 
-    const updateResult = await this.userRepository.update(
-      { id: playerId },
-      { xp: calculateXp },
+    this.logger.log(
+      `Player ${playerId} | total: ${total} | xp: ${calculateXp}`,
     );
-
-    console.log('Update result:', updateResult);
-    console.log('Affected:', updateResult.affected);
-
-    const updatedUser = await this.userRepository.findOne({
-      where: { id: playerId },
-      select: { xp: true },
-    });
-
-    console.log('XP in DB after update:', updatedUser?.xp);
 
     return calculateXp;
   }

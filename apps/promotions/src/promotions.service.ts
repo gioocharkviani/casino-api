@@ -5,11 +5,6 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class PromotionsService {
-  constructor(
-    @InjectRepository(PromotionEntity)
-    private readonly promotionRepository: Repository<PromotionEntity>,
-  ) {}
-
   //CREATE NEW PROMOTION
   createNewPromotion() {
     return 'new promotion created';
