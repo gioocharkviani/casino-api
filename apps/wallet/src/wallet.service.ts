@@ -10,28 +10,29 @@ import {
   WalletAuthDto,
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
+import { TransactionType } from 'libs/common';
 import { UserEntity } from 'libs/database/entities/user.entity';
 import { walletEntity } from 'libs/database/entities/wallet.entity';
-
-import { lastValueFrom } from 'rxjs';
+import { GameSession } from 'libs/database/entities/game.entity';
 import { Repository } from 'typeorm';
 import { transactionService } from './transactions/transaction.service';
-import { TransactionType } from 'libs/common';
-import { GameSession } from 'libs/database/entities/game.entity';
+import { WageringService } from 'libs/common/services/wagering.service';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class WalletService {
   constructor(
     @Inject('GAME_M_SERVICE') private client: ClientProxy,
+    @Inject('USER_MS_SERVICE') private userClient: ClientProxy,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
     @InjectRepository(walletEntity)
     private readonly walletRepository: Repository<walletEntity>,
     @InjectRepository(GameSession)
     private readonly gameSessionRepository: Repository<GameSession>,
-
     private readonly transactionService: transactionService,
     private readonly configService: ConfigService,
+    private readonly wageringService: WageringService,
   ) {}
 
   // WALLET AUTH
@@ -39,102 +40,72 @@ export class WalletService {
     const tokenValidationReq = await lastValueFrom(
       this.client.send('VALIDATE_GAME_SESSION', data.token),
     );
+
     if (!tokenValidationReq.valid) {
-      return {
-        code: 1403,
-        message: 'Unauthorized wallet',
-        data: null,
-      };
+      return { code: 1403, message: 'Unauthorized wallet', data: null };
     }
 
     const userData = await this.userRepository.findOne({
-      where: {
-        id: tokenValidationReq.data.playerId,
-      },
-      relations: {
-        country: true,
-        wallet: true,
-      },
-      select: {
-        country: true,
-        wallet: true,
-      },
+      where: { id: tokenValidationReq.data.playerId },
+      relations: { country: true, wallet: true },
+      select: { country: true, wallet: true },
     });
-
-    const resData = {
-      playerId: userData?.id,
-      currency: this.configService.get('DEFAULT_CURRENCY') || 'USD',
-      language: userData?.country.language || 'en',
-      nickname: userData?.userName,
-      balance: userData?.wallet?.balance,
-      license: userData?.country.license || null,
-      countryCode: userData?.country.countryCode,
-      sessionState: {},
-      brand: this.configService.get('WEBSITE_BRAND'),
-      additionalData: {},
-    };
-
-    return {
-      code: 200,
-      data: resData,
-      message: 'Success',
-    };
-  }
-  // END WALLET AUTH
-
-  //WALLET BALANCE
-  async getWalletBallance(data: WalletBallanceDto) {
-    const findWalletUser = await this.userRepository.findOne({
-      where: {
-        id: data.playerId,
-      },
-      relations: {
-        wallet: true,
-      },
-    });
-
-    if (!findWalletUser) {
-      return {
-        code: 1501,
-        data: {},
-        message: 'User Not Found',
-      };
-    }
 
     return {
       code: 200,
       data: {
-        balance: findWalletUser.wallet?.balance || 0,
-        sessionState: null,
+        playerId: userData?.id,
+        currency: this.configService.get('DEFAULT_CURRENCY') || 'USD',
+        language: userData?.country.language || 'en',
+        nickname: userData?.userName,
+        balance: userData?.wallet?.balance,
+        license: userData?.country.license || null,
+        countryCode: userData?.country.countryCode,
+        sessionState: {},
+        brand: this.configService.get('WEBSITE_BRAND'),
+        additionalData: {},
       },
       message: 'Success',
     };
   }
-  //END WALLET BALANCE
 
-  //WALLET DEBIT
+  // WALLET BALANCE
+  async getWalletBallance(data: WalletBallanceDto) {
+    const user = await this.userRepository.findOne({
+      where: { id: data.playerId },
+      relations: { wallet: true },
+    });
+
+    if (!user) {
+      return { code: 1501, data: {}, message: 'User Not Found' };
+    }
+
+    return {
+      code: 200,
+      data: { balance: user.wallet?.balance || 0, sessionState: null },
+      message: 'Success',
+    };
+  }
+
+  // WALLET DEBIT
   async walletDebit(data: DebitRequestDto) {
     try {
+      if (data.amount < 0) {
+        return { code: 199, data: null, message: 'negative amount for debit' };
+      }
+
+      if (!data.transactionId) {
+        return { code: 1504, data: null, message: 'Missing transactionId' };
+      }
+
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
         relations: { wallet: true },
       });
 
-      if (data.amount < 0) {
-        return {
-          code: 199,
-          data: null,
-          message: 'negative amount for debit',
-        };
-      }
-
-      if (!data.transactionId) {
-        return {
-          code: 1504,
-          data: null,
-          message: 'Missing transactionId',
-        };
-      }
+      if (!user) return { code: 1501, data: null, message: 'User Not Found' };
+      if (!user.wallet)
+        return { code: 1502, data: null, message: 'Wallet Not Found' };
 
       const isDuplicate = await this.transactionService.checkExiting(
         data.transactionId,
@@ -145,45 +116,22 @@ export class WalletService {
           data: {
             transactionId: data.transactionId,
             transactionStatus: 1,
-            balance: user?.wallet?.balance || 0,
+            balance: user.wallet.balance,
           },
           message: 'Duplicate transaction - already processed',
         };
       }
-      const findGameSession = await this.gameSessionRepository.findOne({
-        where: {
-          playerId: data.playerId,
-          isActive: true,
-        },
-      });
-
-      if (!user) {
-        return {
-          code: 1501,
-          data: null,
-          message: 'User Not Found',
-        };
-      }
-
-      if (!user.wallet) {
-        return {
-          code: 1502,
-          data: null,
-          message: 'Wallet Not Found',
-        };
-      }
 
       if (user.wallet.balance < data.amount) {
-        return {
-          code: 1503,
-          data: null,
-          message: 'Insufficient Funds',
-        };
+        return { code: 1503, data: null, message: 'Insufficient Funds' };
       }
+
+      const findGameSession = await this.gameSessionRepository.findOne({
+        where: { playerId: data.playerId, isActive: true },
+      });
 
       const oldBalance = user.wallet.balance;
       const newBalance = oldBalance - data.amount;
-
       user.wallet.balance = newBalance;
       await this.walletRepository.save(user.wallet);
 
@@ -199,6 +147,14 @@ export class WalletService {
         transactionId: data.transactionId,
         reason: '',
       });
+
+      await this.wageringService.updateWageringStats(
+        data.playerId,
+        data.amount,
+        TransactionType.DEBIT,
+      );
+      this.userClient.send('USER_XP', { userId: data.playerId });
+
       return {
         code: 200,
         data: {
@@ -209,76 +165,47 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
-      return {
-        code: 1500,
-        data: null,
-        message: 'Internal Error',
-      };
+      return { code: 1500, data: null, message: 'Internal Error' };
     }
   }
-  //END WALLET DEBIT
 
-  //WALLET CREDIT
+  // WALLET CREDIT
   async walletCredit(data: CreditRequestDto) {
-    if (data.amount < 0) {
-      return {
-        code: 199,
-        data: null,
-        message: 'amount cannot be negative',
-      };
-    }
-
     try {
+      if (data.amount < 0) {
+        return { code: 199, data: null, message: 'amount cannot be negative' };
+      }
+
+      if (!data.transactionId) {
+        return { code: 1504, data: null, message: 'Missing transactionId' };
+      }
+
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
         relations: { wallet: true },
       });
 
-      if (!user) {
-        return {
-          code: 1501,
-          data: null,
-          message: 'User Not Found',
-        };
-      }
-
-      if (!user.wallet) {
-        return {
-          code: 1502,
-          data: null,
-          message: 'Wallet Not Found',
-        };
-      }
-
-      if (!data.transactionId) {
-        return {
-          code: 1504,
-          data: null,
-          message: 'Missing transactionId',
-        };
-      }
+      if (!user) return { code: 1501, data: null, message: 'User Not Found' };
+      if (!user.wallet)
+        return { code: 1502, data: null, message: 'Wallet Not Found' };
 
       const isDuplicate = await this.transactionService.checkExiting(
         data.transactionId,
       );
-
       if (isDuplicate) {
         return {
           code: 200,
           data: {
             transactionId: data.transactionId,
             transactionStatus: 1,
-            balance: user?.wallet?.balance || 0,
+            balance: user.wallet.balance,
           },
           message: 'Duplicate transaction - already processed',
         };
       }
 
       const findGameSession = await this.gameSessionRepository.findOne({
-        where: {
-          playerId: data.playerId,
-          isActive: true,
-        },
+        where: { playerId: data.playerId, isActive: true },
       });
 
       const oldBalance = user.wallet.balance;
@@ -299,6 +226,13 @@ export class WalletService {
         reason: '',
       });
 
+      await this.wageringService.updateWageringStats(
+        data.playerId,
+        data.amount,
+        TransactionType.CREDIT,
+      );
+      this.userClient.send('USER_XP', { userId: data.playerId });
+
       return {
         code: 200,
         data: {
@@ -309,62 +243,33 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
-      return {
-        code: 1500,
-        data: null,
-        message: 'Internal Error',
-      };
+      return { code: 1500, data: null, message: 'Internal Error' };
     }
   }
-  //END WALLET CREDIT
 
-  //WALLET ROLLBACK
+  // WALLET ROLLBACK
   async walletRollback(data: RollbackRequestDto) {
-    if (data.amount !== undefined && data.amount < 0) {
-      return {
-        code: 199,
-        data: null,
-        message: 'amount cannot be negative',
-      };
-    }
-    if (data.debitAmount !== undefined && data.debitAmount < 0) {
-      return {
-        code: 199,
-        data: null,
-        message: 'debitAmount cannot be negative',
-      };
-    }
-    if (data.creditAmount !== undefined && data.creditAmount < 0) {
-      return {
-        code: 199,
-        data: null,
-        message: 'creditAmount cannot be negative',
-      };
-    }
-
     try {
-      const existingTransaction = await this.transactionService.checkExiting(
-        data.transactionId,
-      );
+      if (data.amount !== undefined && data.amount < 0) {
+        return { code: 199, data: null, message: 'amount cannot be negative' };
+      }
+
       const user = await this.userRepository.findOne({
         where: { id: data.playerId },
         relations: { wallet: true },
       });
 
       if (!user || !user.wallet) {
-        return {
-          code: 1501,
-          data: null,
-          message: 'User or Wallet Not Found',
-        };
+        return { code: 1501, data: null, message: 'User or Wallet Not Found' };
       }
 
       const findGameSession = await this.gameSessionRepository.findOne({
-        where: {
-          playerId: data.playerId,
-          isActive: true,
-        },
+        where: { playerId: data.playerId, isActive: true },
       });
+
+      const existingTransaction = await this.transactionService.checkExiting(
+        data.transactionId,
+      );
 
       if (!existingTransaction) {
         await this.transactionService.createTransaction({
@@ -379,6 +284,7 @@ export class WalletService {
           reason: data.reason,
           roundId: data.roundId,
         });
+
         return {
           code: 200,
           data: {
@@ -390,26 +296,22 @@ export class WalletService {
         };
       }
 
-      let oldBalance = user.wallet.balance;
-      let newBalance = oldBalance;
-      let rollbackAmount = 0;
+      let newBalance = user.wallet.balance;
 
       if (data.amount !== undefined) {
-        rollbackAmount = data.amount;
-        newBalance = oldBalance + rollbackAmount;
+        newBalance = user.wallet.balance + data.amount;
       } else if (
         data.debitAmount !== undefined ||
         data.creditAmount !== undefined
       ) {
         const debitRefund = data.debitAmount ?? 0;
         const creditRemove = data.creditAmount ?? 0;
-        rollbackAmount = debitRefund - creditRemove;
-        newBalance = oldBalance + (debitRefund - creditRemove);
+        newBalance = user.wallet.balance + (debitRefund - creditRemove);
       } else {
         return {
           code: 199,
           data: null,
-          message: 'Bad Request - Missing amount or debitAmount/creditAmount',
+          message: 'Bad Request - Missing amount',
         };
       }
 
@@ -417,13 +319,19 @@ export class WalletService {
         return {
           code: 1503,
           data: null,
-          message:
-            'Insufficient Funds for rollback - Balance would become negative',
+          message: 'Insufficient Funds for rollback',
         };
       }
 
       user.wallet.balance = newBalance;
       await this.walletRepository.save(user.wallet);
+
+      await this.wageringService.updateWageringStats(
+        data.playerId,
+        data.amount,
+        TransactionType.ROLLBACK,
+      );
+      this.userClient.send('USER_XP', { userId: data.playerId });
 
       return {
         code: 200,
@@ -435,46 +343,18 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
-      return {
-        code: 1500,
-        data: null,
-        message: 'Internal Error',
-      };
+      return { code: 1500, data: null, message: 'Internal Error' };
     }
   }
-  //END WALLET ROLLBACK
 
-  //CREDIT AND DEBIT
+  // CREDIT AND DEBIT
   async creditAndDebit(data: DebitAndCreditDto) {
     try {
       if (
         (data.debitAmount !== undefined && data.debitAmount < 0) ||
         (data.creditAmount !== undefined && data.creditAmount < 0)
       ) {
-        return {
-          code: 199,
-          data: null,
-          message: 'debitAmount and creditAmount cannot be negative',
-        };
-      }
-      const existingTransaction = await this.transactionService.checkExiting(
-        data.transactionId,
-      );
-
-      if (existingTransaction) {
-        const user = await this.userRepository.findOne({
-          where: { id: data.playerId },
-          relations: { wallet: true },
-        });
-        return {
-          code: 200,
-          data: {
-            transactionId: existingTransaction.transactionId,
-            transactionStatus: 1,
-            balance: user?.wallet?.balance ?? 0,
-          },
-          message: 'Success',
-        };
+        return { code: 199, data: null, message: 'amounts cannot be negative' };
       }
 
       const user = await this.userRepository.findOne({
@@ -483,23 +363,31 @@ export class WalletService {
       });
 
       if (!user?.wallet) {
+        return { code: 1501, data: null, message: 'User or wallet not found' };
+      }
+
+      const isDuplicate = await this.transactionService.checkExiting(
+        data.transactionId,
+      );
+      if (isDuplicate) {
         return {
-          code: 1501,
-          data: null,
-          message: 'User or wallet not found',
+          code: 200,
+          data: {
+            transactionId: isDuplicate.transactionId,
+            transactionStatus: 1,
+            balance: user.wallet.balance,
+          },
+          message: 'Success',
         };
       }
 
       const findGameSession = await this.gameSessionRepository.findOne({
-        where: {
-          playerId: data.playerId,
-          isActive: true,
-        },
+        where: { playerId: data.playerId, isActive: true },
       });
 
-      const currentBalance = user.wallet.balance;
       const credit = data.creditAmount ?? 0;
       const debit = data.debitAmount ?? 0;
+      const currentBalance = user.wallet.balance;
 
       if (currentBalance < debit) {
         return {
@@ -515,8 +403,7 @@ export class WalletService {
         return {
           code: 1503,
           data: null,
-          message:
-            'Insufficient Funds - Transaction would make balance negative',
+          message: 'Insufficient Funds - balance would be negative',
         };
       }
 
@@ -536,6 +423,14 @@ export class WalletService {
         reason: `Debit: ${debit}, Credit: ${credit}`,
       });
 
+      await this.wageringService.updateWageringStats(
+        data.playerId,
+        0,
+        TransactionType.DEBIT_AND_CREDIT,
+        { debitAmount: data.debitAmount, creditAmount: data.creditAmount },
+      );
+      this.userClient.send('USER_XP', { userId: data.playerId });
+
       return {
         code: 200,
         data: {
@@ -546,12 +441,7 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
-      return {
-        code: 1500,
-        data: null,
-        message: 'Internal Error',
-      };
+      return { code: 1500, data: null, message: 'Internal Error' };
     }
   }
-  //CREDIT AND DEBIT
 }

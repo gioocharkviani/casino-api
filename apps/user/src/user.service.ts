@@ -418,7 +418,7 @@ export class UserService {
     const calculateXp = Math.floor(total / 5000);
 
     await this.userRepository.update({ id: playerId }, { xp: calculateXp });
-
+    console.log(calculateXp);
     return calculateXp;
   }
   //CHANGE USER XP

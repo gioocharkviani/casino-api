@@ -1,6 +1,6 @@
 import { Controller } from '@nestjs/common';
 import { UserService } from './user.service';
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { SignInDtoMS, SignUpDto, verifyDto } from 'libs/common';
 
 @Controller()
@@ -41,7 +41,6 @@ export class UserController {
   //CHANGE USER XP
   @MessagePattern('USER_XP')
   changeUserXp(userId: string) {
-    console.log(userId);
     return this.UserService.changeUserLevel(userId);
   }
 }
