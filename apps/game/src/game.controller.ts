@@ -29,9 +29,9 @@ export class GameController {
   getAllfavoriteGame(user: UserEntity) {
     return this.gameService.getAllfavoriteGame(user);
   }
-  @MessagePattern('ADD_FAVORITE_GAME')
-  addFavGame(data: favGameDto) {
-    return this.gameService.addFavGame(data);
+  @MessagePattern('TOGGLE_FAVORITE_GAME')
+  toggleFavGame(data: favGameDto) {
+    return this.gameService.toggleFavGame(data);
   }
 
   @MessagePattern('LUNCH_GAME')

@@ -35,12 +35,12 @@ export class GameController {
     return this.gameService.getAllfavorite(token);
   }
 
-  @Post('add-favorite')
+  @Post('toggle-favorite')
   @UseGuards(AuthGuard)
-  addFavGame(@Req() req: Request, @Body() body: { gameId: string }) {
+  toggleFavGame(@Req() req: Request, @Body() body: { gameId: string }) {
     const header = req.headers?.authorization;
     const token = header?.startsWith('Bearer ') ? header.split(' ')[1] : '';
-    return this.gameService.addFavGame({ token, gameId: body.gameId });
+    return this.gameService.toggleFavGame({ token, gameId: body.gameId });
   }
 
   @Get('/categories')

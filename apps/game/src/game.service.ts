@@ -124,24 +124,28 @@ export class GameService {
   //GET ALL FAVORITE GAME
 
   //ADD OR REMOVE FAVORITE GAME
-  async addFavGame(data: favGameDto) {
-    const findGame = await this.favGameRepo.find({
+  async toggleFavGame(data: favGameDto) {
+    const findGame = await this.favGameRepo.findOne({
       where: {
         gameId: data.gameId,
         playerId: data.playerId,
       },
     });
+
     if (findGame) {
-      await this.favGameRepo.delete(findGame);
+      await this.favGameRepo.delete(findGame.id);
       return {
         code: 201,
-        message: 'game remove successfully',
+        message: 'Game removed from favorites successfully',
+        isFavorite: false,
       };
     }
+
     await this.favGameRepo.save(data);
     return {
       code: 201,
-      message: 'game add successfully',
+      message: 'Game added to favorites successfully',
+      isFavorite: true,
     };
   }
   //ADD OR REMOVE FAVORITE GAME
