@@ -48,10 +48,9 @@ export class GameService {
   //------------------ADD OR REMOVE FAVORITE GAME
   async toggleFavGame({ token, gameId }: { token: string; gameId: string }) {
     const userReq = await this.UserService.getUserInfo(token);
-    const userRes = await userReq.json();
     const res = await lastValueFrom(
       this.client.send('TOGGLE_FAVORITE_GAME', {
-        playerId: userRes.id,
+        playerId: userReq.id,
         gameId,
       }),
     );
