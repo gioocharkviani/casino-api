@@ -157,3 +157,22 @@ export class GameSession {
   @UpdateDateColumn({ nullable: true })
   updatedAt?: Date;
 }
+
+//favorite game
+@Entity('favorite-games')
+export class FavoriteGame {
+  @PrimaryGeneratedColumn()
+  id?: number;
+
+  @Column()
+  playerId!: string;
+
+  @Column({ nullable: false })
+  gameId!: string;
+
+  @CreateDateColumn()
+  createdAt?: Date;
+
+  @UpdateDateColumn({ nullable: true })
+  updatedAt?: Date;
+}

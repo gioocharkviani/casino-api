@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { GameService } from './game.service';
 import { getRequestDto } from 'libs/common/dto/getRequest.dto';
 import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
@@ -17,6 +25,22 @@ export class GameController {
   @Get('provider')
   getAllProvider() {
     return this.gameService.getAllProvider();
+  }
+
+  @Get('favorite')
+  @UseGuards(AuthGuard)
+  getUserFavoriteGame(@Req() req: Request) {
+    const header = req.headers?.authorization;
+    const token = header?.startsWith('Bearer ') ? header.split(' ')[1] : '';
+    return this.gameService.getAllfavorite(token);
+  }
+
+  @Post('add-favorite')
+  @UseGuards(AuthGuard)
+  addFavGame(@Req() req: Request, @Body() body: { gameId: string }) {
+    const header = req.headers?.authorization;
+    const token = header?.startsWith('Bearer ') ? header.split(' ')[1] : '';
+    return this.gameService.addFavGame({ token, gameId: body.gameId });
   }
 
   @Get('/categories')

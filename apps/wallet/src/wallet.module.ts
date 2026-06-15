@@ -25,6 +25,11 @@ import { UserModule } from 'apps/user/src/user.module';
         transport: Transport.TCP,
         options: { host: 'localhost', port: 3035 },
       },
+      {
+        name: 'PROMOTION_MS_SERVICE',
+        transport: Transport.TCP,
+        options: { host: 'localhost', port: 3038 },
+      },
     ]),
   ],
   controllers: [WalletController],

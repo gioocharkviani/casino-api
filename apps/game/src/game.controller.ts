@@ -4,6 +4,7 @@ import { MessagePattern } from '@nestjs/microservices';
 import { getRequestDto } from 'libs/common/dto/getRequest.dto';
 import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
 import { UserEntity } from 'libs/database/entities/user.entity';
+import { favGameDto } from 'libs/common/dto/favGame.dto';
 
 @Controller()
 export class GameController {
@@ -22,6 +23,15 @@ export class GameController {
   @MessagePattern('GET_CATEGORIES_GAME')
   getAllGameByCategories() {
     return this.gameService.getAllGameByCategories();
+  }
+
+  @MessagePattern('GET_FAVORITE_GAME')
+  getAllfavoriteGame(user: UserEntity) {
+    return this.gameService.getAllfavoriteGame(user);
+  }
+  @MessagePattern('ADD_FAVORITE_GAME')
+  addFavGame(data: favGameDto) {
+    return this.gameService.addFavGame(data);
   }
 
   @MessagePattern('LUNCH_GAME')

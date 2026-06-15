@@ -4,6 +4,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
 import { UserService } from '../user/user.service';
+import { UserEntity } from 'libs/database/entities/user.entity';
 
 @Injectable()
 export class GameService {
@@ -33,6 +34,27 @@ export class GameService {
     return result;
   }
   //------------------END GET ALL GAMES
+
+  //------------------GET ALL FAVORITE GAME
+  async getAllfavorite(token: string) {
+    const user = await this.UserService.getUserInfo(token);
+    const res = await lastValueFrom(
+      this.client.send('GET_FAVORITE_GAME', user),
+    );
+    return await res;
+  }
+  //------------------GET ALL FAVORITE GAME
+
+  //------------------ADD OR REMOVE FAVORITE GAME
+  async addFavGame({ token, gameId }: { token: string; gameId: string }) {
+    const userReq = await this.UserService.getUserInfo(token);
+    const userRes = await userReq.json();
+    const res = await lastValueFrom(
+      this.client.send('ADD_FAVORITE_GAME', { playerId: userRes.id, gameId }),
+    );
+    return await res;
+  }
+  //------------------ADD OR REMOVE FAVORITE GAME
 
   //------------------GET ALL PROVIDER
   async getAllProvider() {

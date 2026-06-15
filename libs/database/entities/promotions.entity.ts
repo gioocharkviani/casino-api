@@ -1,11 +1,44 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
 
-@Entity('promotions')
-export class PromotionEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
-  @Column()
-  name?: string;
-  @Column({ type: 'boolean', default: true })
-  isActive?: boolean;
+// ===========================
+// ENUMS
+// ===========================
+export enum PromoType {
+  WELCOME = 'welcome',
+  NO_DEPOSIT = 'nodeposit',
+  FREE_SPINS = 'freespins',
+  RELOAD = 'reload',
+  CASHBACK = 'cashback',
+  HIGH_ROLLER = 'highroller',
+  LOYALTY = 'loyalty',
+  TOURNAMENT = 'tournament',
+  BIRTHDAY = 'birthday',
+  REFERRAL = 'referral',
+  NO_WAGER = 'nowager',
+  DRIP = 'drip',
+  RELOCATION = 'relocation',
+  ACHIEVEMENT = 'achievement',
 }
+
+export enum PromotionStatus {
+  DRAFT = 'draft',
+  ACTIVE = 'active',
+  PAUSED = 'paused',
+  EXPIRED = 'expired',
+  ARCHIVED = 'archived',
+}
+
+// ===========================
+// EXPORT
+// ===========================
+export const entities = [];

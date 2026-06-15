@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
+  FavoriteGame,
   Game,
   GameCategories,
   GameProvider,
@@ -11,12 +12,15 @@ import { RevolverService } from './revolver/revolver.service';
 import { getRequestDto } from 'libs/common/dto/getRequest.dto';
 import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
 import { UserEntity } from 'libs/database/entities/user.entity';
+import { favGameDto } from 'libs/common/dto/favGame.dto';
 
 @Injectable()
 export class GameService {
   constructor(
     @InjectRepository(Game)
     private readonly gameRepository: Repository<Game>,
+    @InjectRepository(FavoriteGame)
+    private readonly favGameRepo: Repository<FavoriteGame>,
     @InjectRepository(GameProvider)
     private readonly providerRepo: Repository<GameProvider>,
     @InjectRepository(GameCategories)
@@ -103,6 +107,44 @@ export class GameService {
   }
 
   //GET ALL GAME
+
+  //GET ALL FAVORITE GAME
+  async getAllfavoriteGame(user: UserEntity) {
+    const req = await this.favGameRepo.find({
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+    return {
+      code: 200,
+      data: req,
+      message: 'Success',
+    };
+  }
+  //GET ALL FAVORITE GAME
+
+  //ADD OR REMOVE FAVORITE GAME
+  async addFavGame(data: favGameDto) {
+    const findGame = await this.favGameRepo.find({
+      where: {
+        gameId: data.gameId,
+        playerId: data.playerId,
+      },
+    });
+    if (findGame) {
+      await this.favGameRepo.delete(findGame);
+      return {
+        code: 201,
+        message: 'game remove successfully',
+      };
+    }
+    await this.favGameRepo.save(data);
+    return {
+      code: 201,
+      message: 'game add successfully',
+    };
+  }
+  //ADD OR REMOVE FAVORITE GAME
 
   //GET ALL PROVIDER
   async getAllProvider() {

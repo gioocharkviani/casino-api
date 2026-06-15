@@ -1,5 +1,5 @@
 import { Controller, Inject } from '@nestjs/common';
-import { ClientProxy, MessagePattern } from '@nestjs/microservices';
+import { MessagePattern } from '@nestjs/microservices';
 import { WalletService } from './wallet.service';
 import {
   CreditRequestDto,
