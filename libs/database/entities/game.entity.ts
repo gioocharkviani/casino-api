@@ -168,10 +168,10 @@ export class FavoriteGame {
   playerId!: string;
 
   @Column({ nullable: false })
-  gameId!: string;
+  gameUUID!: string;
 
   @ManyToOne(() => Game, { eager: false, nullable: false })
-  @JoinColumn({ name: 'gameId' })
+  @JoinColumn({ name: 'gameUUID' })
   game!: Game;
 
   @CreateDateColumn()

@@ -116,7 +116,7 @@ export class GameService {
         createdAt: false,
         updatedAt: false,
         game: true,
-        gameId: false,
+        gameUUID: false,
         playerId: false,
         id: false,
       },
@@ -137,7 +137,7 @@ export class GameService {
   async toggleFavGame(data: favGameDto) {
     const findGame = await this.favGameRepo.findOne({
       where: {
-        gameId: data.gameId,
+        gameUUID: data.gameId,
         playerId: data.playerId,
       },
     });
@@ -151,7 +151,10 @@ export class GameService {
       };
     }
 
-    await this.favGameRepo.save(data);
+    await this.favGameRepo.save({
+      gameUUID: data.gameId,
+      playerId: data.playerId,
+    });
     return {
       code: 201,
       message: 'Game added to favorites successfully',
