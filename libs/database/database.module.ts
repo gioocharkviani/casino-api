@@ -2,6 +2,7 @@ import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import {
+  FavoriteGame,
   Game,
   GameCategories,
   GameProvider,
@@ -45,6 +46,7 @@ import { UserWageringStats } from './entities/user-wagering.entity';
         UserWageringStats,
         bonusWallet,
         UserLevelsEntity,
+        FavoriteGame,
       ],
 
       synchronize: false,
@@ -70,6 +72,7 @@ import { UserWageringStats } from './entities/user-wagering.entity';
       UserWageringStats,
       bonusWallet,
       UserLevelsEntity,
+      FavoriteGame,
     ]),
   ],
   exports: [TypeOrmModule],
