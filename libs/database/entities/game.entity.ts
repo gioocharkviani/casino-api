@@ -162,13 +162,17 @@ export class GameSession {
 @Entity('favorite-games')
 export class FavoriteGame {
   @PrimaryGeneratedColumn()
-  id?: number;
+  id!: number;
 
   @Column()
   playerId!: string;
 
   @Column({ nullable: false })
   gameId!: string;
+
+  @ManyToOne(() => Game, { eager: false, nullable: false })
+  @JoinColumn({ name: 'gameId' })
+  game!: Game;
 
   @CreateDateColumn()
   createdAt?: Date;

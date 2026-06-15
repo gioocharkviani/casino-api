@@ -111,6 +111,16 @@ export class GameService {
   //GET ALL FAVORITE GAME
   async getAllfavoriteGame(user: UserEntity) {
     const req = await this.favGameRepo.find({
+      where: { playerId: user.id },
+      select: {
+        createdAt: false,
+        updatedAt: false,
+        game: true,
+        gameId: false,
+        playerId: false,
+        id: false,
+      },
+      relations: { game: true },
       order: {
         createdAt: 'DESC',
       },
