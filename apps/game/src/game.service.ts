@@ -132,7 +132,7 @@ export class GameService {
       },
     });
 
-    if (findGame) {
+    if (findGame && findGame.id) {
       await this.favGameRepo.delete(findGame.id);
       return {
         code: 201,
