@@ -141,9 +141,10 @@ export class GameService {
         createdAt: 'DESC',
       },
     });
+    const games = req.map((fav) => fav.game);
     return {
       code: 200,
-      data: req,
+      data: games,
       message: 'Success',
     };
   }
