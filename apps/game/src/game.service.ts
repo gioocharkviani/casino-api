@@ -116,6 +116,13 @@ export class GameService {
         createdAt: false,
         updatedAt: false,
         game: {
+          gameName: true,
+          gameUUID: true,
+          id: true,
+          gameHumanReadableId: true,
+          thumbnail: true,
+          isActive: true,
+          providerId: true,
           createdAt: false,
           description: false,
           gameProvider: false,
