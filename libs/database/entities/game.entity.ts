@@ -158,7 +158,6 @@ export class GameSession {
   updatedAt?: Date;
 }
 
-//favorite game
 @Entity('favorite-games')
 export class FavoriteGame {
   @PrimaryGeneratedColumn()
@@ -167,16 +166,16 @@ export class FavoriteGame {
   @Column()
   playerId!: string;
 
-  @Column({ nullable: false })
+  @Column({ nullable: false, type: 'varchar' })
   gameUUID!: string;
 
   @ManyToOne(() => Game, { eager: false, nullable: false })
-  @JoinColumn({ name: 'gameUUID' })
+  @JoinColumn({ name: 'gameUUID', referencedColumnName: 'gameUUID' })
   game!: Game;
 
   @CreateDateColumn()
   createdAt?: Date;
 
-  @UpdateDateColumn({ nullable: true })
+  @UpdateDateColumn()
   updatedAt?: Date;
 }

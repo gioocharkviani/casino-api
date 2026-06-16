@@ -115,7 +115,16 @@ export class GameService {
       select: {
         createdAt: false,
         updatedAt: false,
-        game: true,
+        game: {
+          createdAt: false,
+          description: false,
+          gameProvider: false,
+          updatedAt: false,
+          marketingMaterialsZip: false,
+          rules: false,
+          metaData: false,
+          status: false,
+        },
         gameUUID: false,
         playerId: false,
         id: false,
