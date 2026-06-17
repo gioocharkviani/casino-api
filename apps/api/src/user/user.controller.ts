@@ -95,6 +95,7 @@ export class UserController {
       token: token,
       ...body,
     };
+    console.log(data);
     return this.UserService.changeUserInfo(data);
   }
 }
