@@ -10,7 +10,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import { SignInDto, SignUpDto, verifyDto } from 'libs/common';
+import {
+  changeUserInfoDto,
+  SignInDto,
+  SignUpDto,
+  verifyDto,
+} from 'libs/common';
 import type { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from 'libs/guards/auth.guard';
@@ -79,5 +84,17 @@ export class UserController {
       otp: body.otp,
     };
     return this.UserService.verifyUser(data);
+  }
+  //USER CHANGE INFO
+  @Post('change')
+  @UseGuards(AuthGuard)
+  changeUserInfo(@Req() req: Request, @Body() body: changeUserInfoDto) {
+    const header = req.headers?.authorization;
+    const token = header?.startsWith('Bearer ') ? header.split(' ')[1] : '';
+    const data = {
+      token: token,
+      ...body,
+    };
+    return this.UserService.changeUserInfo(data);
   }
 }

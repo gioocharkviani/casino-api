@@ -11,6 +11,7 @@ import {
   isString,
   IsPositive,
   IsOptional,
+  IsNumber,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
@@ -93,4 +94,34 @@ export class verifyDto {
   token?: string;
   @IsString()
   otp?: string;
+}
+
+export class changeUserInfoDto {
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsNumber()
+  phone?: number;
+
+  @IsString()
+  @IsOptional()
+  oldPassword?: string;
+  @IsOptional()
+  @IsString()
+  newPassword?: string;
+
+  @IsOptional()
+  @IsDateString(
+    {},
+    { message: 'Birthday must be a valid ISO date (YYYY-MM-DD)' },
+  )
+  @Type(() => String)
+  birthDay!: string;
+
+  //token for find user
+  @IsString()
+  @IsOptional()
+  token?: string;
 }

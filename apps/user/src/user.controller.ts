@@ -1,7 +1,12 @@
 import { Controller } from '@nestjs/common';
 import { UserService } from './user.service';
 import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
-import { SignInDtoMS, SignUpDto, verifyDto } from 'libs/common';
+import {
+  changeUserInfoDto,
+  SignInDtoMS,
+  SignUpDto,
+  verifyDto,
+} from 'libs/common';
 
 @Controller()
 export class UserController {
@@ -42,5 +47,10 @@ export class UserController {
   @EventPattern('USER_XP')
   changeUserXp(@Payload() userId?: string) {
     return this.UserService.changeUserLevel(userId);
+  }
+  //CHANGE USER INFO
+  @MessagePattern('CHANGE_USER_INFO')
+  changeUserInfo(@Payload() data: changeUserInfoDto) {
+    return this.UserService.changeUserInfo(data);
   }
 }

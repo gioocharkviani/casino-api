@@ -1,6 +1,12 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { SignInDto, SignInDtoMS, SignUpDto, verifyDto } from 'libs/common';
+import {
+  changeUserInfoDto,
+  SignInDto,
+  SignInDtoMS,
+  SignUpDto,
+  verifyDto,
+} from 'libs/common';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable()
@@ -36,6 +42,14 @@ export class UserService {
     return result;
   }
 
+  //CHANGE USER INFORMATION
+  async changeUserInfo(data: changeUserInfoDto) {
+    const result = await lastValueFrom(
+      this.client.send('CHANGE_USER_INFO', data),
+    );
+    return result;
+  }
+
   //VALIDATE USER SESSION TOKEN
   async validateUserSessionToken(token?: string) {
     const result = await lastValueFrom(
@@ -43,7 +57,7 @@ export class UserService {
     );
     return result;
   }
-  //VALIDATE USER SESSION TOKEN
+  //VERIFY USER
   async verifyUser(data: verifyDto) {
     const result = await lastValueFrom(
       this.client.send('USER_VERIFICATION', data),

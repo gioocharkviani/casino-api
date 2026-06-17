@@ -16,7 +16,12 @@ import { LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices';
-import { SignInDtoMS, SignUpDto, verifyDto } from 'libs/common';
+import {
+  changeUserInfoDto,
+  SignInDtoMS,
+  SignUpDto,
+  verifyDto,
+} from 'libs/common';
 import * as crypto from 'crypto';
 import { walletEntity } from 'libs/database/entities/wallet.entity';
 import { CountryEntity } from 'libs/database/entities/country.entity';
@@ -291,6 +296,67 @@ export class UserService {
     }
   }
   //USER VERIFICATION
+
+  //CHANGE USER INFO
+
+  async changeUserInfo(data: changeUserInfoDto) {
+    const user = await this.getUserInfo(data.token);
+    if (!user) {
+      throw new RpcException({
+        message: 'UNAUTHORIZED',
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
+    }
+
+    const fullUser = await this.userRepository.findOne({
+      where: { id: user.id },
+    });
+
+    if (!fullUser) {
+      throw new RpcException({
+        message: 'USER_NOT_FOUND',
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    }
+    const updateData: any = { ...fullUser };
+
+    if (data.email && data.email !== fullUser.email) {
+      updateData.email = data.email;
+      updateData.isVerified = false;
+    }
+
+    if (data.oldPassword && data.newPassword) {
+      const bcryptSalt = await this.configService.get('BCRYPT_SALT');
+
+      const isPasswordValid = await bcrypt.compare(
+        data.oldPassword,
+        fullUser.password,
+      );
+
+      if (!isPasswordValid) {
+        throw new RpcException({
+          message: 'INVALID_OLD_PASSWORD',
+          statusCode: HttpStatus.BAD_REQUEST,
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(data.newPassword, bcryptSalt);
+      updateData.password = hashedPassword;
+    }
+
+    if (data.phone !== undefined) updateData.phone = data.phone;
+
+    await this.userRepository.save(updateData);
+    const newUserData = await this.getUserInfo(data.token);
+
+    return {
+      status: 201,
+      data: newUserData,
+      message: 'user inforamtion changed successfully',
+    };
+  }
+
+  //CHANGE USER INFO
 
   /////////////////////////////////////////////////////////////////////////
 
