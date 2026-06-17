@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EmailService } from './email/email.service';
-import { emailDto, verifyDto } from 'libs/common';
+import { emailDto, verifyDto, verifyDtoNotification } from 'libs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { userVerificationEntity } from 'libs/database/entities/user.entity';
@@ -16,11 +16,7 @@ export class NotificationService {
   ) {}
 
   //VERIFICATION USER
-  async verifiation(data: {
-    userId: string;
-    userEmail: string;
-    firstName: string;
-  }) {
+  async verifiation(data: verifyDtoNotification) {
     const OTP = this.generateOTP();
     const time = this.configService.get('OTP_TIME');
     const expiresAtDate = new Date();

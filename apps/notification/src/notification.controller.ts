@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { MessagePattern } from '@nestjs/microservices';
-import { verifyDto } from 'libs/common';
+import { verifyDto, verifyDtoNotification } from 'libs/common';
 
 @Controller()
 export class NotificationController {
@@ -9,7 +9,7 @@ export class NotificationController {
 
   //USER VERIFICATION
   @MessagePattern('SEND_VERIFICATION_REQUEST')
-  verification(data: { userId: string; userEmail: string; firstName: string }) {
+  verification(data: verifyDtoNotification) {
     return this.notificationService.verifiation(data);
   }
   //END USER VERIFICATION
