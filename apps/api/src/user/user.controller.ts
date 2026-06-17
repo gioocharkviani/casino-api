@@ -91,7 +91,7 @@ export class UserController {
   changeUserInfo(@Req() req: Request, @Body() body: changeUserInfoDto) {
     const header = req.headers?.authorization;
     const token = header?.startsWith('Bearer ') ? header.split(' ')[1] : '';
-    console.log(token);
+
     const data = {
       ...body,
       token: token,
