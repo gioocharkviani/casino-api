@@ -3,7 +3,10 @@ import { EmailService } from './email/email.service';
 import { emailDto, verifyDto, verifyDtoNotification } from 'libs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { userVerificationEntity } from 'libs/database/entities/user.entity';
+import {
+  UserEntity,
+  userVerificationEntity,
+} from 'libs/database/entities/user.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -13,6 +16,8 @@ export class NotificationService {
     private configService: ConfigService,
     @InjectRepository(userVerificationEntity)
     private readonly verifyRepository: Repository<userVerificationEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userEntity: Repository<UserEntity>,
   ) {}
 
   //VERIFICATION USER
@@ -21,8 +26,11 @@ export class NotificationService {
     const time = this.configService.get('OTP_TIME');
     const expiresAtDate = new Date();
     expiresAtDate.setMinutes(expiresAtDate.getMinutes() + parseInt(time));
+    const user = await this.userEntity.findOne({
+      where: { email: data.userEmail },
+    });
     const createOpt = this.verifyRepository.create({
-      userId: data.userId,
+      userId: user?.id,
       otp: OTP,
       expiresAt: expiresAtDate,
     });
