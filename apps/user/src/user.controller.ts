@@ -51,7 +51,6 @@ export class UserController {
   //CHANGE USER INFO
   @MessagePattern('CHANGE_USER_INFO')
   changeUserInfo(@Payload() data: changeUserInfoDto) {
-    console.log(data);
     return this.UserService.changeUserInfo(data);
   }
 }

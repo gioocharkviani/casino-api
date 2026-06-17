@@ -301,7 +301,7 @@ export class UserService {
 
   async changeUserInfo(data: changeUserInfoDto) {
     const user = await this.getUserInfo(data.token);
-    console.log(user);
+
     console.log(data);
     if (!user) {
       throw new RpcException({

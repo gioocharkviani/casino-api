@@ -44,9 +44,8 @@ export class UserService {
 
   //CHANGE USER INFORMATION
   async changeUserInfo(data: changeUserInfoDto) {
-    console.log('inside api service', data);
     const result = await lastValueFrom(
-      this.client.send('CHANGE_USER_INFO', { data }),
+      this.client.send('CHANGE_USER_INFO', data),
     );
     return result;
   }
