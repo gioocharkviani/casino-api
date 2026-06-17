@@ -341,7 +341,10 @@ export class UserService {
         });
       }
 
-      const hashedPassword = await bcrypt.hash(data.newPassword, bcryptSalt);
+      const hashedPassword = await bcrypt.hash(
+        data.newPassword,
+        parseInt(bcryptSalt),
+      );
       updateData.password = hashedPassword;
     }
 
