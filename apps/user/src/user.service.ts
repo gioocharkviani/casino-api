@@ -324,7 +324,7 @@ export class UserService {
 
     if (data.email && data.email !== fullUser.email) {
       updateData.email = data.email;
-      updateData.isVerified = false;
+      updateData.verified = false;
     }
 
     if (data.oldPassword && data.newPassword) {
