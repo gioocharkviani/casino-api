@@ -102,9 +102,8 @@ export class changeUserInfoDto {
   email?: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsString()
   phone?: number;
-
   @IsString()
   @IsOptional()
   oldPassword?: string;
