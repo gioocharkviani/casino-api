@@ -8,7 +8,6 @@ import {
   Index,
 } from 'typeorm';
 import { UserEntity } from './user.entity';
-import { Game } from './game.entity';
 import {
   TransactionStatusEnum,
   TransactionType,
@@ -18,7 +17,6 @@ import {
 @Index('idx_user_created', ['userId', 'createdAt'])
 @Index('idx_transaction_id', ['transactionId'], { unique: true })
 @Index('idx_round_id', ['roundId'])
-@Index('idx_game_id', ['gameId'])
 export class TransactionEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -52,14 +50,8 @@ export class TransactionEntity {
   @Column({ type: 'bigint', name: 'balance_after' })
   balanceAfter?: number;
 
-  // Game ID - VARCHAR (რადგან GAP-დან მოდის UUID ან სხვა სტრინგი)
   @Column({ type: 'varchar', nullable: true, name: 'game_id' })
   gameId?: string;
-
-  // Game relationship - OPTIONAL, თუ გინდათ Game-ის დეტალების ამოღება
-  @ManyToOne(() => Game, { nullable: true })
-  @JoinColumn({ name: 'game_id', referencedColumnName: 'gameUUID' }) // დააკავშირეთ gameUUID-თან
-  game!: Game | null;
 
   @Column({ type: 'varchar', nullable: true, name: 'round_id' })
   roundId?: string;
