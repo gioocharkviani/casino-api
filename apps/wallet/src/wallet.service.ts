@@ -89,6 +89,7 @@ export class WalletService {
 
   // WALLET DEBIT
   async walletDebit(data: DebitRequestDto) {
+    console.log('debit data', data);
     try {
       if (data.amount < 0) {
         return { code: 199, data: null, message: 'negative amount for debit' };
@@ -140,7 +141,7 @@ export class WalletService {
         balanceAfter: newBalance,
         balanceBefore: oldBalance,
         amount: data.amount,
-        gameId: findGameSession?.gameId,
+        gameId: data.gameId,
         gameSessionId: findGameSession?.id,
         roundId: data.roundId,
         userId: data.playerId,
@@ -171,6 +172,7 @@ export class WalletService {
 
   // WALLET CREDIT
   async walletCredit(data: CreditRequestDto) {
+    console.log('credit data', data);
     try {
       if (data.amount < 0) {
         return { code: 199, data: null, message: 'amount cannot be negative' };
@@ -218,7 +220,7 @@ export class WalletService {
         balanceAfter: newBalance,
         balanceBefore: oldBalance,
         amount: data.amount,
-        gameId: findGameSession?.gameId,
+        gameId: data.gameId,
         gameSessionId: findGameSession?.id,
         roundId: data.roundId,
         userId: data.playerId,
@@ -249,6 +251,7 @@ export class WalletService {
 
   // WALLET ROLLBACK
   async walletRollback(data: RollbackRequestDto) {
+    console.log('rollback data', data);
     try {
       if (data.amount !== undefined && data.amount < 0) {
         return { code: 199, data: null, message: 'amount cannot be negative' };
@@ -279,7 +282,7 @@ export class WalletService {
           amount: data.amount,
           balanceAfter: user.wallet.balance,
           balanceBefore: user.wallet.balance,
-          gameId: findGameSession?.gameId,
+          gameId: data.gameId,
           gameSessionId: findGameSession?.id,
           reason: data.reason,
           roundId: data.roundId,
@@ -349,6 +352,7 @@ export class WalletService {
 
   // CREDIT AND DEBIT
   async creditAndDebit(data: DebitAndCreditDto) {
+    console.log('credit and debit data', data);
     try {
       if (
         (data.debitAmount !== undefined && data.debitAmount < 0) ||
@@ -416,7 +420,7 @@ export class WalletService {
         transactionId: data.transactionId,
         balanceBefore: currentBalance,
         balanceAfter: newBalance,
-        gameId: findGameSession?.gameId,
+        gameId: data.gameId,
         gameSessionId: findGameSession?.id,
         roundId: data.roundId,
         amount: Math.abs(credit - debit),
