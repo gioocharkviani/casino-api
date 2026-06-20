@@ -7,6 +7,8 @@ import { ConfigModule } from '@nestjs/config';
 import { transactionModule } from './transactions/transaction.module';
 import { WageringService } from 'libs/common/services/wagering.service';
 import { UserModule } from 'apps/user/src/user.module';
+import { PaymentService } from './payment/payment.service';
+import { transactionService } from './transactions/transaction.service';
 
 @Module({
   imports: [
@@ -33,6 +35,7 @@ import { UserModule } from 'apps/user/src/user.module';
     ]),
   ],
   controllers: [WalletController],
-  providers: [WalletService, WageringService],
+  providers: [PaymentService, WalletService, WageringService],
+  exports: [PaymentService],
 })
 export class WalletModule {}

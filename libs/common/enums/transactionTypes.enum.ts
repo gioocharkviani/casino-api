@@ -8,3 +8,11 @@ export enum TransactionType {
   ROLLBACK = 'rollback',
   ADJUSTMENT = 'adjustment',
 }
+
+export enum TransactionStatusEnum {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  PROCESSING = 'processing',
+  SUCCEEDED = 'succeeded',
+  FAILD = 'faild',
+}

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ClientProxy } from '@nestjs/microservices';
+import { depositDto } from 'libs/common/dto/payment.dto';
 import {
   CreditRequestDto,
   DebitAndCreditDto,
@@ -60,4 +61,32 @@ export class WalletService {
     return result;
   }
   //WALLET DEBIT AND CREDIT
+
+  //DEPOSIT
+  async deposit(data: depositDto) {
+    console.log(data);
+    const result = await lastValueFrom(
+      this.client.send('WALLET_DEPOSIT', data),
+    );
+    return result;
+  }
+  //DEPOSIT
+
+  //DEPOSIT
+  async withdrawal(data: any) {
+    const result = await lastValueFrom(
+      this.client.send('WALLET_WITHDRAWAL', data),
+    );
+    return result;
+  }
+  //DEPOSIT
+
+  //USER TRANSACTIONS
+  async userTansactions(token: string) {
+    const result = await lastValueFrom(
+      this.client.send('GET_USER_TRANSACTIONS', token),
+    );
+    return result;
+  }
+  //USER TRANSACTIONS
 }

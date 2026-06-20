@@ -8,10 +8,17 @@ import {
   WalletAuthDto,
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
+import { PaymentService } from './payment/payment.service';
+import { depositDto, withdrawalDto } from 'libs/common/dto/payment.dto';
+import { transactionService } from './transactions/transaction.service';
 
 @Controller()
 export class WalletController {
-  constructor(private readonly walletService: WalletService) {}
+  constructor(
+    private readonly walletService: WalletService,
+    private readonly paymentService: PaymentService,
+    private readonly transactionService: transactionService,
+  ) {}
 
   @MessagePattern('WALLET_AUTH')
   walletAuth(data: WalletAuthDto) {
@@ -41,5 +48,21 @@ export class WalletController {
   @MessagePattern('DEBIT_CREDIT')
   creditAndDebit(data: RollbackRequestDto) {
     return this.walletService.creditAndDebit(data);
+  }
+
+  //GET ALL USER TRANSACTION
+  @MessagePattern('GET_USER_TRANSACTIONS')
+  getTransaction(token: string) {
+    return this.transactionService.getUserTransactions(token);
+  }
+
+  //WALLET DEPIT AND withdrawal
+  @MessagePattern('WALLET_DEPOSIT')
+  deposit(data: depositDto) {
+    return this.paymentService.deposit(data);
+  }
+  @MessagePattern('WALLET_WITHDRAWAL')
+  withdrawal(data: withdrawalDto) {
+    return this.paymentService.withdrawal(data);
   }
 }

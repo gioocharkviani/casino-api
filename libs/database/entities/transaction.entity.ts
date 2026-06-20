@@ -8,7 +8,11 @@ import {
   Index,
 } from 'typeorm';
 import { UserEntity } from './user.entity';
-import { TransactionType } from '../../common/enums/transactionTypes.enum';
+import { Game } from './game.entity';
+import {
+  TransactionStatusEnum,
+  TransactionType,
+} from '../../common/enums/transactionTypes.enum';
 
 @Entity('transactions')
 @Index('idx_user_created', ['userId', 'createdAt'])
@@ -35,11 +39,21 @@ export class TransactionEntity {
   @Column({ type: 'bigint', nullable: true })
   amount?: number;
 
+  @Column({ type: 'enum', enum: TransactionStatusEnum, nullable: true })
+  status?: TransactionStatusEnum;
+
+  @Column({ type: 'varchar', nullable: true })
+  paymentId?: string;
+
   @Column({ type: 'bigint', name: 'balance_before' })
   balanceBefore!: number;
 
   @Column({ type: 'bigint', name: 'balance_after' })
   balanceAfter?: number;
+
+  @ManyToOne(() => Game, { nullable: true })
+  @JoinColumn({ name: 'game_id' })
+  game!: Game | null;
 
   @Column({ type: 'varchar', nullable: true, name: 'game_id' })
   gameId?: string;

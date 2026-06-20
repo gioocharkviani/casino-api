@@ -1,13 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TransactionType } from 'libs/common';
 import { CreateTransactionDto } from 'libs/common/dto/transaction.dto';
 import { TransactionEntity } from 'libs/database/entities/transaction.entity';
+import { lastValueFrom } from 'rxjs';
 import { DeepPartial, Repository } from 'typeorm';
 
 @Injectable()
 export class transactionService {
   constructor(
+    @Inject('USER_MS_SERVICE') private userClient: ClientProxy,
     @InjectRepository(TransactionEntity)
     private readonly transactionRepository: Repository<TransactionEntity>,
   ) {}
@@ -37,6 +40,7 @@ export class transactionService {
         userId: data.userId!,
         transactionId: data.transactionId,
         type: transactionType,
+        status: data.status,
       });
       return await this.transactionRepository.save(createTransaction);
     }
@@ -70,5 +74,56 @@ export class transactionService {
 
   async updateTransaction(transaction: TransactionEntity) {
     return await this.transactionRepository.save(transaction);
+  }
+
+  //GET ALL USER TRANSATCTION
+  async getUserTransactions(token: string) {
+    try {
+      const user = await lastValueFrom(this.userClient.send('GET_USER', token));
+      if (!user) {
+        throw new RpcException({
+          message: 'UNAUTHORIZED',
+          statusCode: HttpStatus.UNAUTHORIZED,
+        });
+      }
+      const [findTransaction, count] =
+        await this.transactionRepository.findAndCount({
+          where: {
+            userId: user.id,
+          },
+          relations: {
+            game: true,
+          },
+          select: {
+            amount: true,
+            createdAt: true,
+            type: true,
+            user: false,
+            balanceAfter: false,
+            balanceBefore: false,
+            gameId: false,
+            game: {
+              gameName: true,
+            },
+            gameSessionId: false,
+            id: false,
+            paymentId: false,
+            reason: false,
+            roundId: false,
+            status: false,
+            transactionId: false,
+            userId: false,
+          },
+        });
+
+      return {
+        count: count,
+        data: findTransaction,
+      };
+    } catch (error) {
+      throw new RpcException(
+        'something wend wrong duaring fetch user transactions',
+      );
+    }
   }
 }

@@ -6,7 +6,7 @@ import {
   IsEnum,
   Min,
 } from 'class-validator';
-import { TransactionType } from 'libs/common';
+import { TransactionStatusEnum, TransactionType } from 'libs/common';
 
 // CREATE TRANSACTION DTO
 export class CreateTransactionDto {
@@ -49,4 +49,12 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsNumber()
   gameSessionId?: number;
+
+  @IsOptional()
+  @IsEnum({ enum: TransactionStatusEnum })
+  status?: TransactionStatusEnum;
+
+  @IsOptional()
+  @IsString()
+  paymentId?: string;
 }
