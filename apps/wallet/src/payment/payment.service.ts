@@ -70,7 +70,7 @@ export class PaymentService {
       cardDetails: {
         cardNumber: data.cardNumber,
         cardholderName: data.cardholderName,
-        cardExpMonth: formattedMonthgit,
+        cardExpMonth: formattedMonth,
         cardExpYear: data.cardExpYear,
         cvv: data.cvv,
       },
