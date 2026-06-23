@@ -78,9 +78,9 @@ export class PaymentService {
         orderType: 'subscription',
       },
     };
-
+    const headers = this.buildHeaders(apiKey, merchantId, apiKey);
     const endpoint = `${baseUrl}/payments/deposits`;
-
+    console.log(headers);
     try {
       const req = await fetch(endpoint, {
         method: 'POST',
@@ -94,10 +94,9 @@ export class PaymentService {
         },
         body: JSON.stringify(reqBody),
       });
-      console.log(req);
+      console.log(req.headers);
 
       const res = await req.json();
-      console.log(res);
       return res;
     } catch (error) {
       console.log(error);
