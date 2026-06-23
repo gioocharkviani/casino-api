@@ -18,16 +18,7 @@ async function bootstrap() {
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Accept',
-      'Authorization',
-      'Cookie',
-      'X-API-Key',
-      'X-Merchant-Id',
-      'X-Idempotency-Key',
-      'User-Agent',
-    ],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Cookie'],
     exposedHeaders: ['Set-Cookie'],
   });
   app.use(cookieParser());
