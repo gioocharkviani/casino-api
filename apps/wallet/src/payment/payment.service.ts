@@ -86,7 +86,7 @@ export class PaymentService {
       secret,
     );
 
-    const endpoint = `${baseUrl}/payments/deposit`;
+    const endpoint = `${baseUrl}/payments/deposits`;
     console.log(endpoint);
 
     try {
