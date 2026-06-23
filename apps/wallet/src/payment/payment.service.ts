@@ -30,19 +30,21 @@ export class PaymentService {
     const merchantId = await this.configService.get('PAYMENT_EXTRA_ID');
     const apiKey = await this.configService.get('PAYMENT_EXTRA_API_KEY');
 
+    const idempotencyKey = randomUUID();
+
     if (!baseUrl || !merchantId || !apiKey) {
       throw new RpcException({
         message: 'Payment provider is not configured',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       });
     }
-    return { baseUrl, merchantId, apiKey };
+    return { baseUrl, merchantId, apiKey, idempotencyKey };
   }
 
   //DEPOIST SERVICE
   async deposit(data: depositDto) {
-    console.log(data);
-    const { baseUrl, merchantId, apiKey } = await this.getPayinExtraConfig();
+    const { baseUrl, merchantId, apiKey, idempotencyKey } =
+      await this.getPayinExtraConfig();
     const user = await lastValueFrom(
       this.userClient.send('GET_USER', data.token),
     );
@@ -53,8 +55,6 @@ export class PaymentService {
         statusCode: HttpStatus.UNAUTHORIZED,
       });
     }
-    const idempotencyKey = randomUUID();
-    console.log(user);
 
     const reqBody = {
       amount: data.amount,
@@ -78,18 +78,23 @@ export class PaymentService {
       },
     };
 
-    const headers = this.buildHeaders(apiKey, merchantId);
+    const headers = this.buildHeaders(apiKey, merchantId, idempotencyKey);
 
-    const req = await fetch(`${baseUrl}/payment/deposit`, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(reqBody),
-    });
+    try {
+      const req = await fetch(`${baseUrl}/payment/deposit`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(reqBody),
+      });
+      console.log('Response status:', req.status);
+      console.log('Response headers:', req.headers);
 
-    console.log(req);
-
-    const res = await req.json();
-    console.log(res);
+      const res = await req.json();
+      console.log(res);
+      return res;
+    } catch (error) {
+      throw new RpcException('something whent wrong');
+    }
 
     // const saveTransaction = await this.transactionService.createTransaction({
     //   amount: data.amount,
@@ -102,8 +107,6 @@ export class PaymentService {
     //   userId: user.id,
     //   reason: 'DEPOSIT money with card ',
     // });
-
-    return res;
   }
 
   //WITHDRAWAL SERVICE
@@ -125,11 +128,15 @@ export class PaymentService {
 
   ///////////////////////////////////////////////////////////////
   //BUILD HEADERS HELPER
-  private buildHeaders(apiKey: string, merchantId: string) {
+  private buildHeaders(
+    apiKey: string,
+    merchantId: string,
+    idempotencyKey: string,
+  ) {
     return {
       'X-API-Key': apiKey,
       'X-Merchant-Id': merchantId,
-      'X-Idempotency-Key': randomUUID(),
+      'X-Idempotency-Key': idempotencyKey,
       'Content-Type': 'application/json',
     };
   }
