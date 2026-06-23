@@ -93,6 +93,7 @@ export class PaymentService {
       console.log(res);
       return res;
     } catch (error) {
+      console.log(error);
       throw new RpcException('something whent wrong');
     }
 
