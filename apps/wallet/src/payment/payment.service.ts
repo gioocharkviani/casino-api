@@ -86,16 +86,14 @@ export class PaymentService {
       const req = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'X-API-Key': apiKey,
-          'X-Merchant-Id': merchantId,
-          'X-Idempotency-Key': idempotencyKey,
+          ...headers,
           'Content-Type': 'application/json',
           Accept: 'application/json',
           'User-Agent': 'Casino-API/1.0',
         },
         body: JSON.stringify(reqBody),
       });
-      console.log(req.headers);
+      console.log(req);
 
       const res = await req.json();
       return res;
@@ -146,8 +144,6 @@ export class PaymentService {
       'X-API-Key': apiKey,
       'X-Merchant-Id': merchantId,
       'X-Idempotency-Key': idempotencyKey,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
     };
 
     if (apiSecret) {
