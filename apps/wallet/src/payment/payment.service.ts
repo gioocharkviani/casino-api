@@ -43,168 +43,77 @@ export class PaymentService {
   }
 
   //DEPOIST SERVICE
-  //DEPOSIT SERVICE
   async deposit(data: depositDto) {
-    try {
-      const { baseUrl, merchantId, apiKey, secret } =
-        await this.getPayinExtraConfig();
+    const { baseUrl, merchantId, apiKey, idempotencyKey, secret } =
+      await this.getPayinExtraConfig();
+    const user = await lastValueFrom(
+      this.userClient.send('GET_USER', data.token),
+    );
 
-      const user = await lastValueFrom(
-        this.userClient.send('GET_USER', data.token),
-      );
-
-      if (!user) {
-        throw new RpcException({
-          message: 'Unauthorized user',
-          statusCode: HttpStatus.UNAUTHORIZED,
-        });
-      }
-
-      // Generate unique idempotency key (UUID v4 recommended)
-      const idempotencyKey = randomUUID();
-
-      // Format card expiration month to 2 digits (01-12)
-      const formattedMonth = String(data.cardExpMonth).padStart(2, '0');
-
-      const cleanCardNumber = data.cardNumber?.replace(/\s/g, '');
-
-      const reqBody = {
-        amount: data.amount,
-        currency: this.configService.get('DEFAULT_CURRENCY') || 'TRY',
-        paymentMethod: 'credit_card_international', // or 'credit_card_tr'
-        merchantReference: `order-${user.id}-${Date.now()}`,
-        customer: {
-          name: user.firstName || user.name || 'Customer',
-          email: user.email,
-          reference: `user-${user.id}`,
-        },
-        cardDetails: {
-          cardNumber: cleanCardNumber,
-          cardholderName: data.cardholderName?.toUpperCase(),
-          cardExpMonth: parseInt(formattedMonth), // Send as integer (1-12)
-          cardExpYear: data.cardExpYear,
-          cvv: data.cvv,
-        },
-        metadata: {
-          orderType: 'subscription',
-          userId: user.id,
-          timestamp: new Date().toISOString(),
-        },
-      };
-
-      // Build headers with required authentication
-      const headers = {
-        'X-API-Key': apiKey,
-        'X-Merchant-Id': merchantId,
-        'X-Idempotency-Key': idempotencyKey,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      };
-
-      // Add API Secret if provided
-      if (secret) {
-        headers['X-API-Secret'] = secret;
-      }
-
-      // Correct endpoint according to documentation: /api/v1/payments/deposits
-      const endpoint = `${baseUrl}/payments/deposits`;
-
-      console.log('Making deposit request:', {
-        endpoint: endpoint,
-        idempotencyKey: idempotencyKey,
-        amount: data.amount,
-        currency: reqBody.currency,
-        merchantReference: reqBody.merchantReference,
+    if (!user) {
+      throw new RpcException({
+        message: 'Unauthorized user',
+        statusCode: HttpStatus.UNAUTHORIZED,
       });
+    }
+    const formattedMonth = String(data.cardExpMonth).padStart(2, '0');
+    const reqBody = {
+      amount: data.amount,
+      currency: this.configService.get('DEFAULT_CURRENCY'),
+      paymentMethod: 'credit_card_international',
+      merchantReference: `order-${user.id}-${idempotencyKey}`,
+      customer: {
+        name: user.firstName,
+        email: user.email,
+        reference: `user-${user.id}`,
+      },
+      cardDetails: {
+        cardNumber: data.cardNumber,
+        cardholderName: data.cardholderName,
+        cardExpMonth: formattedMonth,
+        cardExpYear: data.cardExpYear,
+        cvv: data.cvv,
+      },
+      metadata: {
+        orderType: 'subscription',
+      },
+    };
 
-      const response = await fetch(endpoint, {
+    const headers = this.buildHeaders(
+      apiKey,
+      merchantId,
+      idempotencyKey,
+      secret,
+    );
+
+    const endpoint = `${baseUrl}/payments/deposits`;
+
+    try {
+      const req = await fetch(endpoint, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(reqBody),
       });
 
-      console.log('Response status:', response.status);
-
-      // Handle non-OK responses
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Payment provider error:', errorText.substring(0, 500));
-
-        let errorMessage = `Payment failed with status ${response.status}`;
-
-        // Check if response is HTML
-        const isHtml =
-          errorText.trim().startsWith('<!DOCTYPE') ||
-          errorText.trim().startsWith('<html');
-
-        if (isHtml) {
-          const titleMatch = errorText.match(/<title>(.*?)<\/title>/i);
-          errorMessage = titleMatch
-            ? `Payment provider error: ${titleMatch[1]}`
-            : `Payment provider returned HTML error page (status: ${response.status})`;
-        } else {
-          try {
-            const errorJson = JSON.parse(errorText);
-            errorMessage = errorJson.message || errorJson.error || errorMessage;
-          } catch (e) {
-            errorMessage =
-              errorText.length > 200
-                ? errorText.substring(0, 200) + '...'
-                : errorText;
-          }
-        }
-
-        // Special handling for 404
-        if (response.status === 404) {
-          throw new RpcException({
-            message: `Payment endpoint not found (404). Please check the URL: ${endpoint}`,
-            statusCode: HttpStatus.NOT_FOUND,
-            details: {
-              endpoint: endpoint,
-              configuredBaseUrl: baseUrl,
-            },
-          });
-        }
-
-        throw new RpcException({
-          message: `Payment failed: ${errorMessage}`,
-          statusCode: response.status || HttpStatus.BAD_REQUEST,
-        });
-      }
-
-      // Parse JSON response
-      let res;
-      try {
-        res = await response.json();
-        console.log('Payment response:', JSON.stringify(res, null, 2));
-      } catch (jsonError) {
-        const responseText = await response.text();
-        console.error('Invalid JSON response:', responseText.substring(0, 500));
-
-        throw new RpcException({
-          message: 'Invalid response from payment provider',
-          statusCode: HttpStatus.BAD_GATEWAY,
-          details: {
-            responsePreview: responseText.substring(0, 200),
-          },
-        });
-      }
-
-      // Return the response as per documentation
-      // Response will contain: paymentId, status, paymentPageUrl, etc.
+      const res = await req.json();
+      console.log(res);
       return res;
     } catch (error) {
-      console.error('Deposit error:', error);
-
-      if (error instanceof RpcException) {
-        throw error;
-      }
-
-      throw new RpcException({
-        message: `Payment processing failed 'Internal server error'}`,
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      });
+      console.log(error);
+      throw new RpcException('something whent wrong');
     }
+
+    // const saveTransaction = await this.transactionService.createTransaction({
+    //   amount: data.amount,
+    //   type: TransactionType.DEPOSIT,
+    //   status: res.status || TransactionStatusEnum.PENDING,
+    //   balanceAfter: user.wallet.balance,
+    //   balanceBefore: user.wallet.balance + data.amount,
+    //   paymentId: res.paymentId || '12312321',
+    //   transactionId: res.paymentId || '3243',
+    //   userId: user.id,
+    //   reason: 'DEPOSIT money with card ',
+    // });
   }
 
   //WITHDRAWAL SERVICE
