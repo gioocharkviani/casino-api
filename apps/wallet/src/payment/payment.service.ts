@@ -56,7 +56,7 @@ export class PaymentService {
         statusCode: HttpStatus.UNAUTHORIZED,
       });
     }
-
+    const formattedMonth = String(data.cardExpMonth).padStart(2, '0');
     const reqBody = {
       amount: data.amount,
       currency: this.configService.get('DEFAULT_CURRENCY'),
@@ -70,7 +70,7 @@ export class PaymentService {
       cardDetails: {
         cardNumber: data.cardNumber,
         cardholderName: data.cardholderName,
-        cardExpMonth: data.cardExpMonth,
+        cardExpMonth: formattedMonthgit,
         cardExpYear: data.cardExpYear,
         cvv: data.cvv,
       },
