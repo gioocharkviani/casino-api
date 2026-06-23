@@ -81,22 +81,24 @@ export class PaymentService {
     const req = await fetch(`${baseUrl}/payment/deposit`, {
       method: 'POST',
       headers: headers,
+      body: JSON.stringify(reqBody),
     });
     const res = await req.json();
 
-    const saveTransaction = await this.transactionService.createTransaction({
-      amount: data.amount,
-      type: TransactionType.DEPOSIT,
-      status: res.status || TransactionStatusEnum.PENDING,
-      balanceAfter: user.wallet.balance,
-      balanceBefore: user.wallet.balance + data.amount,
-      paymentId: res.paymentId || '12312321',
-      transactionId: res.paymentId || '3243',
-      userId: user.id,
-      reason: 'DEPOSIT money with card ',
-    });
+    // const saveTransaction = await this.transactionService.createTransaction({
+    //   amount: data.amount,
+    //   type: TransactionType.DEPOSIT,
+    //   status: res.status || TransactionStatusEnum.PENDING,
+    //   balanceAfter: user.wallet.balance,
+    //   balanceBefore: user.wallet.balance + data.amount,
+    //   paymentId: res.paymentId || '12312321',
+    //   transactionId: res.paymentId || '3243',
+    //   userId: user.id,
+    //   reason: 'DEPOSIT money with card ',
+    // });
+    console.log(res);
 
-    return saveTransaction;
+    return res;
   }
 
   //WITHDRAWAL SERVICE
