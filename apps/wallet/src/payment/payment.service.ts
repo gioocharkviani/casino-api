@@ -29,6 +29,7 @@ export class PaymentService {
     const baseUrl = await this.configService.get('PAYMENT_EXTRA_BASE_URL');
     const merchantId = await this.configService.get('PAYMENT_EXTRA_ID');
     const apiKey = await this.configService.get('PAYMENT_EXTRA_API_KEY');
+    const secret = await this.configService.get('PAYMENT_EXTRA_API_SECRET');
 
     const idempotencyKey = randomUUID();
 
@@ -38,12 +39,12 @@ export class PaymentService {
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       });
     }
-    return { baseUrl, merchantId, apiKey, idempotencyKey };
+    return { baseUrl, merchantId, apiKey, idempotencyKey, secret };
   }
 
   //DEPOIST SERVICE
   async deposit(data: depositDto) {
-    const { baseUrl, merchantId, apiKey, idempotencyKey } =
+    const { baseUrl, merchantId, apiKey, idempotencyKey, secret } =
       await this.getPayinExtraConfig();
     const user = await lastValueFrom(
       this.userClient.send('GET_USER', data.token),
@@ -78,10 +79,18 @@ export class PaymentService {
       },
     };
 
-    const headers = this.buildHeaders(apiKey, merchantId, idempotencyKey);
+    const headers = this.buildHeaders(
+      apiKey,
+      merchantId,
+      idempotencyKey,
+      secret,
+    );
+
+    const endpoint = `${baseUrl}/payments/deposit`;
+    console.log(endpoint);
 
     try {
-      const req = await fetch(`${baseUrl}/payment/deposit`, {
+      const req = await fetch(endpoint, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(reqBody),
@@ -132,14 +141,23 @@ export class PaymentService {
   private buildHeaders(
     apiKey: string,
     merchantId: string,
+    apiSecret: string,
     idempotencyKey: string,
   ) {
-    return {
+    const headers: any = {
       'X-API-Key': apiKey,
       'X-Merchant-Id': merchantId,
       'X-Idempotency-Key': idempotencyKey,
       'Content-Type': 'application/json',
+      Accept: 'application/json',
     };
+
+    // Add API Secret if provided
+    if (apiSecret) {
+      headers['X-API-Secret'] = apiSecret;
+    }
+
+    return headers;
   }
 
   ///////////////////////////////////////////////////////////////
