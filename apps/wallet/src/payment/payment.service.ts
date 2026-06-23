@@ -41,6 +41,7 @@ export class PaymentService {
 
   //DEPOIST SERVICE
   async deposit(data: depositDto) {
+    console.log(data);
     const { baseUrl, merchantId, apiKey } = await this.getPayinExtraConfig();
     const user = await lastValueFrom(
       this.userClient.send('GET_USER', data.token),
@@ -53,6 +54,7 @@ export class PaymentService {
       });
     }
     const idempotencyKey = randomUUID();
+    console.log(user);
 
     const reqBody = {
       amount: data.amount,
@@ -83,7 +85,11 @@ export class PaymentService {
       headers: headers,
       body: JSON.stringify(reqBody),
     });
+
+    console.log(req);
+
     const res = await req.json();
+    console.log(res);
 
     // const saveTransaction = await this.transactionService.createTransaction({
     //   amount: data.amount,
@@ -96,7 +102,6 @@ export class PaymentService {
     //   userId: user.id,
     //   reason: 'DEPOSIT money with card ',
     // });
-    console.log(res);
 
     return res;
   }
