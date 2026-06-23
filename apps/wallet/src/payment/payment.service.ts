@@ -79,15 +79,9 @@ export class PaymentService {
       },
     };
 
-    const headers = this.buildHeaders(
-      apiKey,
-      merchantId,
-      idempotencyKey,
-      secret,
-    );
+    const headers = this.buildHeaders(apiKey, merchantId, idempotencyKey);
 
     const endpoint = `${baseUrl}/payments/deposits`;
-    console.log(endpoint);
 
     try {
       const req = await fetch(endpoint, {
@@ -95,8 +89,6 @@ export class PaymentService {
         headers: headers,
         body: JSON.stringify(reqBody),
       });
-      console.log('Response status:', req.status);
-      console.log('Response headers:', req.headers);
 
       const res = await req.json();
       console.log(res);
@@ -141,8 +133,8 @@ export class PaymentService {
   private buildHeaders(
     apiKey: string,
     merchantId: string,
-    apiSecret: string,
-    idempotencyKey: string,
+    apiSecret?: string,
+    idempotencyKey?: string,
   ) {
     const headers: any = {
       'X-API-Key': apiKey,
@@ -152,7 +144,6 @@ export class PaymentService {
       Accept: 'application/json',
     };
 
-    // Add API Secret if provided
     if (apiSecret) {
       headers['X-API-Secret'] = apiSecret;
     }
