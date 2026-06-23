@@ -57,7 +57,7 @@ export class PaymentService {
       });
     }
     const formattedMonth = String(data.cardExpMonth).padStart(2, '0');
-    const formattedHolderName = data.cardholderName?.replace(/\s/g, '') ?? '';
+    const formattedCardNumber = data.cardNumber?.replace(/\s/g, '') ?? '';
     const reqBody = {
       amount: data.amount,
       currency: this.configService.get('DEFAULT_CURRENCY'),
@@ -69,8 +69,8 @@ export class PaymentService {
         reference: `user-${user.id}`,
       },
       cardDetails: {
-        cardNumber: data.cardNumber,
-        cardholderName: formattedHolderName,
+        cardNumber: formattedCardNumber,
+        cardholderName: data.cardholderName,
         cardExpMonth: formattedMonth,
         cardExpYear: data.cardExpYear,
         cvv: data.cvv,
