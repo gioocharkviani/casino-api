@@ -43,9 +43,11 @@ export class PaymentService {
   }
 
   //DEPOIST SERVICE
+  //DEPOSIT SERVICE
   async deposit(data: depositDto) {
     const { baseUrl, merchantId, apiKey, idempotencyKey, secret } =
       await this.getPayinExtraConfig();
+
     const user = await lastValueFrom(
       this.userClient.send('GET_USER', data.token),
     );
@@ -56,32 +58,47 @@ export class PaymentService {
         statusCode: HttpStatus.UNAUTHORIZED,
       });
     }
+
+    // ✅ Format card details properly
     const formattedMonth = String(data.cardExpMonth).padStart(2, '0');
     const formattedCardNumber = data.cardNumber?.replace(/\s/g, '') ?? '';
+
+    // ✅ Build request body
     const reqBody = {
       amount: data.amount,
-      currency: this.configService.get('DEFAULT_CURRENCY'),
+      currency: this.configService.get('DEFAULT_CURRENCY') || 'TRY',
       paymentMethod: 'credit_card_international',
-      merchantReference: `order-${user.id}-${idempotencyKey}`,
+      merchantReference: `order-${user.id}-${Date.now()}`,
       customer: {
-        name: user.firstName,
+        name: user.firstName || user.email || 'Customer', // ✅ Ensure name exists
         email: user.email,
         reference: `user-${user.id}`,
       },
       cardDetails: {
         cardNumber: formattedCardNumber,
         cardholderName: data.cardholderName,
-        cardExpMonth: formattedMonth,
-        cardExpYear: data.cardExpYear,
+        cardExpMonth: parseInt(formattedMonth), // ✅ Must be number, not string
+        cardExpYear: data.cardExpYear, // ✅ Must be number
         cvv: data.cvv,
       },
       metadata: {
         orderType: 'subscription',
       },
     };
-    const headers = this.buildHeaders(apiKey, merchantId, apiKey);
+
+    // ✅ Build headers with ALL required values
+    const headers = this.buildHeaders(
+      apiKey,
+      merchantId,
+      secret,
+      idempotencyKey, // ✅ Pass idempotency key
+    );
+
     const endpoint = `${baseUrl}/payments/deposits`;
-    console.log(headers);
+
+    console.log('📤 Request Body:', JSON.stringify(reqBody, null, 2));
+    console.log('📤 Headers:', headers);
+
     try {
       const req = await fetch(endpoint, {
         method: 'POST',
@@ -89,30 +106,60 @@ export class PaymentService {
           ...headers,
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          'User-Agent': 'Casino-API/1.0',
         },
         body: JSON.stringify(reqBody),
       });
-      console.log(req);
 
+      // ✅ Read response body FIRST
       const res = await req.json();
-      return res;
-    } catch (error) {
-      console.log(error);
-      throw new RpcException('something whent wrong');
-    }
 
-    // const saveTransaction = await this.transactionService.createTransaction({
-    //   amount: data.amount,
-    //   type: TransactionType.DEPOSIT,
-    //   status: res.status || TransactionStatusEnum.PENDING,
-    //   balanceAfter: user.wallet.balance,
-    //   balanceBefore: user.wallet.balance + data.amount,
-    //   paymentId: res.paymentId || '12312321',
-    //   transactionId: res.paymentId || '3243',
-    //   userId: user.id,
-    //   reason: 'DEPOSIT money with card ',
-    // });
+      console.log('📥 Response Status:', req.status);
+      console.log('📥 Response Body:', JSON.stringify(res, null, 2));
+
+      // ✅ Handle error responses properly
+      if (!req.ok) {
+        console.error('❌ API Error:', res);
+        throw new RpcException({
+          message:
+            res.error?.message || res.message || 'Payment provider error',
+          statusCode: req.status,
+          details: res.error?.details || res.details,
+        });
+      }
+
+      // // ✅ Create transaction record
+      // const saveTransaction = await this.transactionService.createTransaction({
+      //   amount: data.amount,
+      //   type: TransactionType.DEPOSIT,
+      //   status: res.status || TransactionStatusEnum.PENDING,
+      //   balanceAfter: user.wallet?.balance || 0,
+      //   balanceBefore: (user.wallet?.balance || 0) + data.amount,
+      //   paymentId: res.paymentId,
+      //   transactionId: res.paymentId,
+      //   userId: user.id,
+      //   reason: 'DEPOSIT money with card',
+      // });
+
+      // ✅ Return success response
+      return {
+        success: true,
+        paymentId: res.paymentId,
+        paymentPageUrl: res.paymentPageUrl,
+        status: res.status,
+      };
+    } catch (error) {
+      console.error('❌ Deposit Error:', error);
+
+      // ✅ Better error handling
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      throw new RpcException({
+        message: 'Something went wrong during deposit',
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      });
+    }
   }
 
   //WITHDRAWAL SERVICE
