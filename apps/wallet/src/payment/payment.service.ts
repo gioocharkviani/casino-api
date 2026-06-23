@@ -94,6 +94,7 @@ export class PaymentService {
         headers: headers,
         body: JSON.stringify(reqBody),
       });
+      console.log(req);
 
       const res = await req.json();
       console.log(res);
