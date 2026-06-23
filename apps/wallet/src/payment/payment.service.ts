@@ -79,19 +79,19 @@ export class PaymentService {
       },
     };
 
-    const headers = this.buildHeaders(
-      apiKey,
-      merchantId,
-      idempotencyKey,
-      secret,
-    );
-
     const endpoint = `${baseUrl}/payments/deposits`;
 
     try {
       const req = await fetch(endpoint, {
         method: 'POST',
-        headers: headers,
+        headers: {
+          'X-API-Key': apiKey,
+          'X-Merchant-Id': merchantId,
+          'X-Idempotency-Key': idempotencyKey,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'User-Agent': 'Casino-API/1.0',
+        },
         body: JSON.stringify(reqBody),
       });
       console.log(req);
