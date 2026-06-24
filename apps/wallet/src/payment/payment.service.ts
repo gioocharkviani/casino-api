@@ -61,7 +61,7 @@ export class PaymentService {
     const reqBody = {
       amount: data.amount,
       currency: this.configService.get('DEFAULT_CURRENCY'),
-      paymentMethod: 'bank_transfe',
+      paymentMethod: 'bank_transfer',
       merchantReference: `order-${user.id}-${idempotencyKey}`,
       customer: {
         name: user.firstName,
