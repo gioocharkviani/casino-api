@@ -69,13 +69,13 @@ export class PaymentService {
         reference: `user-${user.id}`,
         identificationNumber: '34001008559',
       },
-      cardDetails: {
-        cardNumber: formattedCardNumber,
-        cardholderName: data.cardholderName,
-        cardExpMonth: formattedMonth,
-        cardExpYear: data.cardExpYear,
-        cvv: data.cvv,
-      },
+      // cardDetails: {
+      //   cardNumber: formattedCardNumber,
+      //   cardholderName: data.cardholderName,
+      //   cardExpMonth: formattedMonth,
+      //   cardExpYear: data.cardExpYear,
+      //   cvv: data.cvv,
+      // },
       metadata: {
         orderType: 'subscription',
       },
