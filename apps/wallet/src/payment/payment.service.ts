@@ -61,20 +61,20 @@ export class PaymentService {
     const reqBody = {
       amount: data.amount,
       currency: this.configService.get('DEFAULT_CURRENCY'),
-      paymentMethod: 'bank_transfer',
+      paymentMethod: 'credit_card_international',
       merchantReference: `order-${user.id}-${idempotencyKey}`,
       customer: {
         name: user.firstName,
         email: user.email,
         reference: `user-${user.id}`,
       },
-      // cardDetails: {
-      //   cardNumber: formattedCardNumber,
-      //   cardholderName: data.cardholderName,
-      //   cardExpMonth: formattedMonth,
-      //   cardExpYear: data.cardExpYear,
-      //   cvv: data.cvv,
-      // },
+      cardDetails: {
+        cardNumber: formattedCardNumber,
+        cardholderName: data.cardholderName,
+        cardExpMonth: formattedMonth,
+        cardExpYear: data.cardExpYear,
+        cvv: data.cvv,
+      },
       metadata: {
         orderType: 'subscription',
       },
