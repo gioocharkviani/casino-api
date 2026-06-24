@@ -29,6 +29,15 @@
         "tsConfigPath": "libs/common/tsconfig.lib.json"
       }
     },
+    "cron-worker": {
+      "type": "application",
+      "root": "apps/cron-worker",
+      "entryFile": "main",
+      "sourceRoot": "apps/cron-worker/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/cron-worker/tsconfig.app.json"
+      }
+    },
     "database": {
       "type": "application",
       "root": "apps/database",

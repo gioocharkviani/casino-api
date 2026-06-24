@@ -67,6 +67,7 @@ export class PaymentService {
         name: user.firstName,
         email: user.email,
         reference: `user-${user.id}`,
+        identificationNumber: '34001008559',
       },
       cardDetails: {
         cardNumber: formattedCardNumber,

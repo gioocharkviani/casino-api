@@ -6,6 +6,7 @@ import { RevolverController } from './revolver/revolver.controller';
 import { DatabaseModule } from 'libs/database/database.module';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from 'apps/user/src/user.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [DatabaseModule, UserModule, ConfigModule.forRoot()],
