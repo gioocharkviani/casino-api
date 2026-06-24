@@ -61,20 +61,20 @@ export class PaymentService {
     const reqBody = {
       amount: data.amount,
       currency: this.configService.get('DEFAULT_CURRENCY'),
-      paymentMethod: 'credit_card_international',
+      paymentMethod: 'bank_transfe',
       merchantReference: `order-${user.id}-${idempotencyKey}`,
       customer: {
         name: user.firstName,
         email: user.email,
         reference: `user-${user.id}`,
       },
-      cardDetails: {
-        cardNumber: formattedCardNumber,
-        cardholderName: data.cardholderName,
-        cardExpMonth: formattedMonth,
-        cardExpYear: data.cardExpYear,
-        cvv: data.cvv,
-      },
+      // cardDetails: {
+      //   cardNumber: formattedCardNumber,
+      //   cardholderName: data.cardholderName,
+      //   cardExpMonth: formattedMonth,
+      //   cardExpYear: data.cardExpYear,
+      //   cvv: data.cvv,
+      // },
       metadata: {
         orderType: 'subscription',
       },
@@ -82,7 +82,7 @@ export class PaymentService {
     console.log(reqBody);
     const headers = this.buildHeaders(apiKey, merchantId, apiKey);
     const endpoint = `${baseUrl}/payments/deposits`;
-    console.log(headers);
+
     try {
       const req = await fetch(endpoint, {
         method: 'POST',
@@ -93,7 +93,6 @@ export class PaymentService {
         },
         body: JSON.stringify(reqBody),
       });
-      console.log(req);
 
       const res = await req.json();
       return res;
