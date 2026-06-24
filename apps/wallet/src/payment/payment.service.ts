@@ -79,6 +79,7 @@ export class PaymentService {
         orderType: 'subscription',
       },
     };
+    console.log(reqBody);
     const headers = this.buildHeaders(apiKey, merchantId, apiKey);
     const endpoint = `${baseUrl}/payments/deposits`;
     console.log(headers);
