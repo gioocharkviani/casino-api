@@ -3,6 +3,7 @@ import { WalletController } from './wallet.controller';
 import { WalletService } from './wallet.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule } from '@nestjs/config';
+import { PromotionsGatewayModule } from '../promotions/promotions.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ConfigModule } from '@nestjs/config';
         options: { host: 'localhost', port: 3031 },
       },
     ]),
+    PromotionsGatewayModule,
   ],
   controllers: [WalletController],
   providers: [WalletService],

@@ -61,6 +61,15 @@ export class UserEntity {
   @Column({ nullable: true, default: false, type: 'boolean' })
   verified?: boolean;
 
+  @Column({ type: 'varchar', length: 50, unique: true, nullable: true })
+  personalId?: string;
+
+  @Column({ default: false, type: 'boolean' })
+  isBlocked!: boolean;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  blockReason?: string;
+
   @CreateDateColumn()
   createdAt!: Date;
 

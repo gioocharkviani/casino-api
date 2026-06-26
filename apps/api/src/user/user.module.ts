@@ -4,6 +4,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule } from '@nestjs/config';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
+import { PromotionsGatewayModule } from '../promotions/promotions.module';
 
 @Global()
 @Module({
@@ -19,6 +20,7 @@ import { UserController } from './user.controller';
         },
       },
     ]),
+    PromotionsGatewayModule,
   ],
   controllers: [UserController],
   providers: [UserService],

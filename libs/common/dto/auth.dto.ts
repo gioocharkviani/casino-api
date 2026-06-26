@@ -65,6 +65,12 @@ export class SignUpDto {
   )
   @Type(() => String)
   birthDay!: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(5)
+  @MaxLength(50)
+  personalId?: string;
 }
 
 export class SignInDto {

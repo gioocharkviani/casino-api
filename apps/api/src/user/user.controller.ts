@@ -20,18 +20,26 @@ import type { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from 'libs/guards/auth.guard';
 import { UserService } from './user.service';
+import { PromotionsGatewayService } from '../promotions/promotions.service';
 
 @Controller('user')
 export class UserController {
   constructor(
     private readonly UserService: UserService,
     private readonly configService: ConfigService,
+    private readonly promoService: PromotionsGatewayService,
   ) {}
+
   //USER REGISTER API
   @Post('sign-up')
-  signUp(@Body() data: SignUpDto) {
-    return this.UserService.signUp(data);
+  async signUp(@Body() data: SignUpDto) {
+    const result = await this.UserService.signUp(data);
+    if (result?.id) {
+      this.promoService.emitTrigger(result.id, 'registration');
+    }
+    return result;
   }
+
   //USER SIGNIN API
   @Post('sign-in')
   async signIn(@Body() data: SignInDto, @Ip() ip: string) {
@@ -85,6 +93,7 @@ export class UserController {
     };
     return this.UserService.verifyUser(data);
   }
+
   //USER CHANGE INFO
   @Post('change')
   @UseGuards(AuthGuard)

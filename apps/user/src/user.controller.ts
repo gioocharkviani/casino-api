@@ -33,7 +33,6 @@ export class UserController {
   getUserInfo(token?: string) {
     return this.UserService.getUserInfo(token);
   }
-  //GET USER INFO
   @MessagePattern('TOKEN_VALIDATION')
   tokenValidation(token?: string) {
     return this.UserService.validateUserSession(token);
@@ -52,5 +51,43 @@ export class UserController {
   @MessagePattern('CHANGE_USER_INFO')
   changeUserInfo(@Payload() data: changeUserInfoDto) {
     return this.UserService.changeUserInfo(data);
+  }
+
+  // ADMIN: list all users
+  @MessagePattern('ADMIN_GET_USERS')
+  adminGetUsers() {
+    return this.UserService.adminGetAllUsers();
+  }
+
+  // ADMIN: get single user by id
+  @MessagePattern('ADMIN_GET_USER_BY_ID')
+  adminGetUserById(@Payload() userId: string) {
+    return this.UserService.adminGetUserById(userId);
+  }
+
+  // ADMIN: block user
+  @MessagePattern('ADMIN_BLOCK_USER')
+  adminBlockUser(@Payload() data: { userId: string; reason?: string }) {
+    return this.UserService.adminBlockUser(data);
+  }
+
+  // ADMIN: unblock user
+  @MessagePattern('ADMIN_UNBLOCK_USER')
+  adminUnblockUser(@Payload() userId: string) {
+    return this.UserService.adminUnblockUser(userId);
+  }
+
+  // ADMIN: force activate/verify user
+  @MessagePattern('ADMIN_ACTIVATE_USER')
+  adminActivateUser(@Payload() userId: string) {
+    return this.UserService.adminActivateUser(userId);
+  }
+
+  // ADMIN: set / update user personal ID
+  @MessagePattern('ADMIN_SET_PERSONAL_ID')
+  adminSetPersonalId(
+    @Payload() data: { userId: string; personalId: string },
+  ) {
+    return this.UserService.adminSetPersonalId(data);
   }
 }

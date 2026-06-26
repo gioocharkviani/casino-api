@@ -57,12 +57,13 @@ export class UserService {
         { email: data.email },
         { userName: data.userName },
         { phone: data.phone },
+        ...(data.personalId ? [{ personalId: data.personalId }] : []),
       ],
     });
     if (existingUser) {
       throw new RpcException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'email, userName or phone already exist',
+        message: 'email, userName, phone, or personalId already exist',
       });
     }
 
@@ -81,6 +82,7 @@ export class UserService {
       phone: data.phone,
       firstName: data.firstName,
       verified: false,
+      ...(data.personalId ? { personalId: data.personalId } : {}),
     });
 
     const country = await this.findExistingCountry(data.country);
@@ -122,6 +124,14 @@ export class UserService {
       throw new RpcException({
         message: 'Invalid user creadentials',
         statusCode: HttpStatus.UNAUTHORIZED,
+      });
+    }
+    if (findUser.isBlocked) {
+      throw new RpcException({
+        message: findUser.blockReason
+          ? `Account blocked: ${findUser.blockReason}`
+          : 'Account is blocked. Contact support.',
+        statusCode: HttpStatus.FORBIDDEN,
       });
     }
     const compareUserPassword = await bcrypt.compare(
@@ -492,4 +502,120 @@ export class UserService {
   }
   //CHANGE USER XP
   /////////////////////////////////////////////////////////////////////////
+
+  //ADMIN: BLOCK USER
+  async adminBlockUser(data: { userId: string; reason?: string }) {
+    const user = await this.userRepository.findOne({
+      where: { id: data.userId },
+    });
+    if (!user) return { code: 404, data: null, message: 'User not found' };
+
+    user.isBlocked = true;
+    user.blockReason = data.reason ?? 'Blocked by admin';
+    await this.userRepository.save(user);
+
+    // invalidate all active sessions
+    await this.userSessionRepository
+      .createQueryBuilder()
+      .update()
+      .set({ token: null })
+      .where('userId = :userId', { userId: data.userId })
+      .execute();
+
+    return { code: 200, data: null, message: 'User blocked' };
+  }
+
+  //ADMIN: UNBLOCK USER
+  async adminUnblockUser(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) return { code: 404, data: null, message: 'User not found' };
+
+    user.isBlocked = false;
+    user.blockReason = undefined;
+    await this.userRepository.save(user);
+
+    return { code: 200, data: null, message: 'User unblocked' };
+  }
+
+  //ADMIN: FORCE ACTIVATE (verify) USER
+  async adminActivateUser(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) return { code: 404, data: null, message: 'User not found' };
+
+    user.verified = true;
+    await this.userRepository.save(user);
+
+    return { code: 200, data: null, message: 'User activated' };
+  }
+
+  //ADMIN: SET USER PERSONAL ID
+  async adminSetPersonalId(data: { userId: string; personalId: string }) {
+    const user = await this.userRepository.findOne({
+      where: { id: data.userId },
+    });
+    if (!user) return { code: 404, data: null, message: 'User not found' };
+
+    const conflict = await this.userRepository.findOne({
+      where: { personalId: data.personalId },
+    });
+    if (conflict && conflict.id !== data.userId) {
+      return {
+        code: 409,
+        data: null,
+        message: 'Personal ID already assigned to another user',
+      };
+    }
+
+    user.personalId = data.personalId;
+    await this.userRepository.save(user);
+
+    return { code: 200, data: { personalId: data.personalId }, message: 'Personal ID updated' };
+  }
+
+  //ADMIN: GET ALL USERS
+  async adminGetAllUsers() {
+    const users = await this.userRepository.find({
+      select: {
+        id: true,
+        userName: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        verified: true,
+        xp: true,
+        createdAt: true,
+        wallet: { balance: true, currency: true },
+      },
+      relations: { wallet: true, country: true },
+      order: { createdAt: 'DESC' },
+    });
+    return { code: 200, data: users, message: 'Success' };
+  }
+
+  //ADMIN: GET USER BY ID
+  async adminGetUserById(userId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: {
+        id: true,
+        userName: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        verified: true,
+        xp: true,
+        birthday: true,
+        createdAt: true,
+        updatedAt: true,
+        wallet: { balance: true, currency: true },
+      },
+      relations: { wallet: true, country: true },
+    });
+    if (!user) {
+      return { code: 404, data: null, message: 'User not found' };
+    }
+    return { code: 200, data: user, message: 'Success' };
+  }
 }

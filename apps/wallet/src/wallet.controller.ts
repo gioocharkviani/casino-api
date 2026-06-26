@@ -1,5 +1,5 @@
 import { Controller, Inject } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { WalletService } from './wallet.service';
 import {
   CreditRequestDto,
@@ -64,5 +64,31 @@ export class WalletController {
   @MessagePattern('WALLET_WITHDRAWAL')
   withdrawal(data: withdrawalDto) {
     return this.paymentService.withdrawal(data);
+  }
+
+  // ADMIN: get transactions by userId
+  @MessagePattern('ADMIN_USER_TRANSACTIONS')
+  adminUserTransactions(
+    @Payload() data: { userId: string; limit?: number },
+  ) {
+    return this.transactionService.getTransactionsByUserId(
+      data.userId,
+      data.limit,
+    );
+  }
+
+  // ADMIN: manual balance adjustment
+  @MessagePattern('ADMIN_ADJUST_BALANCE')
+  adminAdjustBalance(
+    @Payload()
+    data: {
+      userId: string;
+      amount: number;
+      type: 'credit' | 'debit';
+      reason: string;
+      adminId: string;
+    },
+  ) {
+    return this.walletService.adminAdjustBalance(data);
   }
 }

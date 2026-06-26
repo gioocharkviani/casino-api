@@ -19,6 +19,12 @@ import {
 import { CountryEntity } from './entities/country.entity';
 import { TransactionEntity } from './entities/transaction.entity';
 import { UserWageringStats } from './entities/user-wagering.entity';
+import {
+  PromotionEntity,
+  UserPromotionEntity,
+  PromotionAuditEntity,
+} from './entities/promotions.entity';
+import { AdminEntity, AdminSessionEntity } from './entities/admin.entity';
 
 @Global()
 @Module({
@@ -47,6 +53,11 @@ import { UserWageringStats } from './entities/user-wagering.entity';
         bonusWallet,
         UserLevelsEntity,
         FavoriteGame,
+        PromotionEntity,
+        UserPromotionEntity,
+        PromotionAuditEntity,
+        AdminEntity,
+        AdminSessionEntity,
       ],
 
       synchronize: false,
@@ -73,6 +84,11 @@ import { UserWageringStats } from './entities/user-wagering.entity';
       bonusWallet,
       UserLevelsEntity,
       FavoriteGame,
+      PromotionEntity,
+      UserPromotionEntity,
+      PromotionAuditEntity,
+      AdminEntity,
+      AdminSessionEntity,
     ]),
   ],
   exports: [TypeOrmModule],

@@ -76,6 +76,30 @@ export class transactionService {
     return await this.transactionRepository.save(transaction);
   }
 
+  // ADMIN: get transactions by userId directly (no token needed)
+  async getTransactionsByUserId(userId: string, limit = 100) {
+    const [transactions, count] =
+      await this.transactionRepository.findAndCount({
+        where: { userId },
+        relations: { game: true },
+        select: {
+          id: true,
+          amount: true,
+          type: true,
+          status: true,
+          reason: true,
+          balanceBefore: true,
+          balanceAfter: true,
+          transactionId: true,
+          createdAt: true,
+          game: { gameName: true },
+        },
+        order: { createdAt: 'DESC' },
+        take: limit,
+      });
+    return { code: 200, data: transactions, total: count };
+  }
+
   //GET ALL USER TRANSATCTION
   async getUserTransactions(token: string) {
     try {

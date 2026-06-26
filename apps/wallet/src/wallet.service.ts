@@ -350,6 +350,63 @@ export class WalletService {
     }
   }
 
+  // ADMIN: manual balance adjustment
+  async adminAdjustBalance(data: {
+    userId: string;
+    amount: number;
+    type: 'credit' | 'debit';
+    reason: string;
+    adminId: string;
+  }) {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: data.userId },
+        relations: { wallet: true },
+      });
+      if (!user?.wallet) {
+        return { code: 1501, data: null, message: 'User or wallet not found' };
+      }
+
+      if (data.amount <= 0) {
+        return { code: 199, data: null, message: 'Amount must be positive' };
+      }
+
+      const oldBalance = user.wallet.balance;
+      let newBalance: number;
+
+      if (data.type === 'credit') {
+        newBalance = oldBalance + data.amount;
+      } else {
+        if (oldBalance < data.amount) {
+          return { code: 1503, data: null, message: 'Insufficient funds' };
+        }
+        newBalance = oldBalance - data.amount;
+      }
+
+      user.wallet.balance = newBalance;
+      await this.walletRepository.save(user.wallet);
+
+      const txId = `admin-adj-${data.adminId}-${Date.now()}`;
+      await this.transactionService.createTransaction({
+        type: TransactionType.ADJUSTMENT,
+        userId: data.userId,
+        transactionId: txId,
+        amount: data.amount,
+        balanceBefore: oldBalance,
+        balanceAfter: newBalance,
+        reason: `[ADMIN:${data.adminId}] ${data.reason}`,
+      });
+
+      return {
+        code: 200,
+        data: { balance: newBalance },
+        message: `Balance ${data.type}ed by admin`,
+      };
+    } catch (err: any) {
+      return { code: 1500, data: null, message: 'Internal Error' };
+    }
+  }
+
   // CREDIT AND DEBIT
   async creditAndDebit(data: DebitAndCreditDto) {
     console.log('credit and debit data', data);

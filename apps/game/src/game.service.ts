@@ -13,6 +13,7 @@ import { getRequestDto } from 'libs/common/dto/getRequest.dto';
 import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
 import { UserEntity } from 'libs/database/entities/user.entity';
 import { favGameDto } from 'libs/common/dto/favGame.dto';
+import { gameCategoriesEnum } from 'libs/common/enums/gameCategories.enum';
 
 @Injectable()
 export class GameService {
@@ -265,6 +266,127 @@ export class GameService {
     return data;
   }
   //LUNCH GAME
+
+  // ADMIN: get all games (including inactive)
+  async adminGetAllGames(data: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    provider?: string;
+    isActive?: boolean;
+    category?: gameCategoriesEnum;
+  }) {
+    const page = data?.page ?? 1;
+    const limit = data?.limit ?? 50;
+    const skip = (page - 1) * limit;
+
+    const qb = this.gameRepository
+      .createQueryBuilder('game')
+      .leftJoinAndSelect('game.gameProvider', 'gameProvider');
+
+    if (data.search) {
+      qb.andWhere('game.gameName LIKE :search', {
+        search: `%${data.search}%`,
+      });
+    }
+    if (data.provider) {
+      qb.andWhere('gameProvider.name = :provider', { provider: data.provider });
+    }
+    if (data.isActive !== undefined) {
+      qb.andWhere('game.isActive = :isActive', { isActive: data.isActive });
+    }
+    if (data.category) {
+      qb.innerJoin(
+        'game_categories',
+        'gc',
+        'gc.gameId = game.id AND gc.categories = :cat',
+        { cat: data.category },
+      );
+    }
+
+    qb.skip(skip).take(limit).orderBy('game.id', 'ASC');
+    const [games, total] = await qb.getManyAndCount();
+
+    return {
+      code: 200,
+      data: games,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      message: 'Success',
+    };
+  }
+
+  // ADMIN: show a game (set isActive = true)
+  async adminShowGame(gameId: number) {
+    const game = await this.gameRepository.findOne({ where: { id: gameId } });
+    if (!game) return { code: 404, data: null, message: 'Game not found' };
+    game.isActive = true;
+    await this.gameRepository.save(game);
+    return { code: 200, data: { id: gameId, isActive: true }, message: 'Game is now visible' };
+  }
+
+  // ADMIN: hide a game (set isActive = false)
+  async adminHideGame(gameId: number) {
+    const game = await this.gameRepository.findOne({ where: { id: gameId } });
+    if (!game) return { code: 404, data: null, message: 'Game not found' };
+    game.isActive = false;
+    await this.gameRepository.save(game);
+    return { code: 200, data: { id: gameId, isActive: false }, message: 'Game is now hidden' };
+  }
+
+  // ADMIN: add game to a category (TOP / NEW)
+  async adminAddToCategory(data: {
+    gameId: number;
+    category: gameCategoriesEnum;
+  }) {
+    const game = await this.gameRepository.findOne({
+      where: { id: data.gameId },
+    });
+    if (!game) return { code: 404, data: null, message: 'Game not found' };
+
+    const existing = await this.gameCategoriesRepo.findOne({
+      where: { gameId: data.gameId, categories: data.category },
+    });
+    if (existing) {
+      return { code: 200, data: null, message: 'Game already in this category' };
+    }
+
+    await this.gameCategoriesRepo.save({
+      gameId: data.gameId,
+      categories: data.category,
+    });
+    return { code: 201, data: null, message: `Game added to ${data.category}` };
+  }
+
+  // ADMIN: remove game from a category
+  async adminRemoveFromCategory(data: {
+    gameId: number;
+    category: gameCategoriesEnum;
+  }) {
+    const existing = await this.gameCategoriesRepo.findOne({
+      where: { gameId: data.gameId, categories: data.category },
+    });
+    if (!existing) {
+      return { code: 404, data: null, message: 'Game not in this category' };
+    }
+    await this.gameCategoriesRepo.remove(existing);
+    return {
+      code: 200,
+      data: null,
+      message: `Game removed from ${data.category}`,
+    };
+  }
+
+  // ADMIN: get category assignments for a game
+  async adminGetGameCategories(gameId: number) {
+    const assignments = await this.gameCategoriesRepo.find({
+      where: { gameId },
+    });
+    return {
+      code: 200,
+      data: assignments.map((a) => a.categories),
+      message: 'Success',
+    };
+  }
 
   //VALIDATE GAME SESSION
   async validateGameSession(token: string) {

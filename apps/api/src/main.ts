@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { swaggerDocument } from './swagger.document';
 
 import cookieParser from 'cookie-parser';
 
@@ -30,19 +31,7 @@ async function bootstrap() {
     }),
   );
 
-  const config = new DocumentBuilder()
-    .setTitle('Casino-api')
-    .setDescription('Casino API Documentation')
-    .setVersion('1.0')
-    .addTag('Casino')
-    .addTag('Auth')
-    .addBearerAuth()
-
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-
-  SwaggerModule.setup('swagger', app, document, {
+  SwaggerModule.setup('swagger', app, swaggerDocument as any, {
     swaggerOptions: {
       persistAuthorization: true,
     },
