@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { GameController } from './game.controller';
 import { GameService } from './game.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { UserModule } from '../user/user.module';
 
@@ -9,11 +9,15 @@ import { UserModule } from '../user/user.module';
   imports: [
     UserModule,
     ConfigModule.forRoot(),
-    ClientsModule.register([
+    ClientsModule.registerAsync([
       {
-        name: `GAME_M_SERVICE`,
-        transport: Transport.TCP,
-        options: { host: 'localhost', port: 3039 },
+        name: 'GAME_M_SERVICE',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (cfg: ConfigService) => ({
+          transport: Transport.TCP,
+          options: { host: cfg.get('GAME_MS_HOST', 'localhost'), port: 3039 },
+        }),
       },
     ]),
   ],

@@ -57,6 +57,23 @@ export class NotificationService {
   }
   //END VERIFICATION USER
 
+  async sendPasswordResetEmail(data: { email: string; firstName: string; resetLink: string }) {
+    const template: any = await this.emailService.renderTemplate('password-reset-template', {
+      resetLink:      data.resetLink,
+      casinoTitle:    'WolfWin.Bet',
+      userFirstName:  data.firstName,
+    });
+    try {
+      await this.emailService.sendEmail({
+        recipients: [data.email],
+        subject:    'Password Reset Request',
+        html:       template,
+      });
+    } catch (error) {
+      console.error('Password reset email failed:', error);
+    }
+  }
+
   //OPT GENERATOR
   private generateOTP(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();

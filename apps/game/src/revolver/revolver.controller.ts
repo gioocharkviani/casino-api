@@ -1,6 +1,6 @@
 import { Controller } from '@nestjs/common';
 import { RevolverService } from './revolver.service';
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 
 @Controller()
@@ -17,5 +17,26 @@ export class RevolverController {
     const apiKey = this.configService.get('REVOLVER_HASH');
     const requestUrl = `${providerUrl}/getGamesList?operator=${operator}&hash=${apiKey}`;
     return this.revolverService.refreshProvider(requestUrl);
+  }
+
+  @MessagePattern('REVOLVER_GET_DEMO_URL')
+  getDemoUrl(@Payload() data: { gameId: string; lang?: string }) {
+    return { url: this.revolverService.getDemoUrl(data.gameId, data.lang) };
+  }
+
+  @MessagePattern('REVOLVER_GRANT_FREE_SPINS')
+  grantFreeSpins(
+    @Payload()
+    params: {
+      playerId: string;
+      game: string;
+      numberOfFreeSpins: number;
+      betAmountPerFreeSpin: number;
+      currency: string;
+      expiresAt: string;
+      transactionId: string;
+    },
+  ) {
+    return this.revolverService.grantFreeSpins(params);
   }
 }

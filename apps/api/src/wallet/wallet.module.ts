@@ -2,17 +2,21 @@ import { Module } from '@nestjs/common';
 import { WalletController } from './wallet.controller';
 import { WalletService } from './wallet.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PromotionsGatewayModule } from '../promotions/promotions.module';
 
 @Module({
   imports: [
     ConfigModule,
-    ClientsModule.register([
+    ClientsModule.registerAsync([
       {
-        name: `WALLET_M_SERVICE`,
-        transport: Transport.TCP,
-        options: { host: 'localhost', port: 3031 },
+        name: 'WALLET_M_SERVICE',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (cfg: ConfigService) => ({
+          transport: Transport.TCP,
+          options: { host: cfg.get('WALLET_MS_HOST', 'localhost'), port: 3031 },
+        }),
       },
     ]),
     PromotionsGatewayModule,

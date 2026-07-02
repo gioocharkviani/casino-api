@@ -2,6 +2,7 @@ import { PartialType } from '@nestjs/mapped-types';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsISO8601,
@@ -137,6 +138,30 @@ export class CreatePromotionDto {
   validityHours?: number;
 
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  freeSpinsGameIds?: string[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  freeSpinsBetAmount?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  userChoosesGame?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  eligibleCategories?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  allowedGameUUIDs?: string[];
+
+  @IsOptional()
   @IsISO8601()
   startDate?: string;
 
@@ -150,8 +175,9 @@ export class CreatePromotionDto {
 }
 
 export class UpdatePromotionDto extends PartialType(CreatePromotionDto) {
+  @IsOptional()
   @IsUUID()
-  id!: string;
+  id?: string;
 
   @IsOptional()
   @IsEnum(PromotionStatus)
@@ -190,6 +216,18 @@ export class RedeemPromoCodeDto {
   @IsString()
   @IsNotEmpty()
   code!: string;
+}
+
+export class ChooseGameDto {
+  @IsUUID()
+  userId!: string;
+
+  @IsUUID()
+  userPromotionId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  gameUUID!: string;
 }
 
 export class BetSettledEventDto {

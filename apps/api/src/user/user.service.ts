@@ -64,4 +64,14 @@ export class UserService {
     );
     return result;
   }
+
+  // FORGOT PASSWORD
+  async forgotPassword(email: string) {
+    return lastValueFrom(this.client.send('USER_FORGOT_PASSWORD', email));
+  }
+
+  // RESET PASSWORD
+  async resetPassword(token: string, newPassword: string) {
+    return lastValueFrom(this.client.send('USER_RESET_PASSWORD', { token, newPassword }));
+  }
 }

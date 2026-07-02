@@ -21,7 +21,6 @@ import {
   UpdatePromotionDto,
   AssignPromotionDto,
 } from 'libs/common/dto/promotion.dto';
-import { gameCategoriesEnum } from 'libs/common/enums/gameCategories.enum';
 
 @Injectable()
 export class AdminService {
@@ -182,8 +181,20 @@ export class AdminService {
     );
   }
 
-  async listPromotions() {
-    return lastValueFrom(this.promoClient.send('PROMO_LIST', {}));
+  async listPromotions(filters?: { page?: number; limit?: number; type?: string; status?: string }) {
+    return lastValueFrom(this.promoClient.send('PROMO_LIST', filters ?? {}));
+  }
+
+  async activateBonusForUser(userId: string, userPromotionId: string) {
+    return lastValueFrom(this.promoClient.send('PROMO_ACTIVATE', { userId, userPromotionId }));
+  }
+
+  async chooseGameForUser(userId: string, userPromotionId: string, gameUUID: string) {
+    return lastValueFrom(this.promoClient.send('PROMO_CHOOSE_GAME', { userId, userPromotionId, gameUUID }));
+  }
+
+  async getEligibleGamesForUser(userId: string, userPromotionId: string) {
+    return lastValueFrom(this.promoClient.send('PROMO_ELIGIBLE_GAMES', { userId, userPromotionId }));
   }
 
   async getPromotion(id: string) {
@@ -220,6 +231,12 @@ export class AdminService {
     );
   }
 
+  async getWageringOverview(filters?: { page?: number; limit?: number; status?: string; userId?: string }) {
+    return lastValueFrom(
+      this.promoClient.send('ADMIN_GET_WAGERING', filters ?? {}),
+    );
+  }
+
   async getAuditLog(promotionId?: string, userId?: string) {
     return lastValueFrom(
       this.promoClient.send('PROMO_AUDIT_LOG', {
@@ -230,12 +247,17 @@ export class AdminService {
   }
 
   // ── USERS (proxy to User MS) ──────────────────────
-  async getUsers() {
+  async getUsers(filters?: { page?: number; limit?: number; search?: string; isBlocked?: boolean; verified?: boolean }) {
     try {
-      const result = await lastValueFrom(
-        this.userClient.send('ADMIN_GET_USERS', {}),
-      );
-      return result;
+      return await lastValueFrom(this.userClient.send('ADMIN_GET_USERS', filters ?? {}));
+    } catch {
+      return { statusCode: 500, message: 'User service unavailable' };
+    }
+  }
+
+  async updateUser(userId: string, data: { firstName?: string; lastName?: string; email?: string; phone?: string; userName?: string; birthday?: string }) {
+    try {
+      return await lastValueFrom(this.userClient.send('ADMIN_UPDATE_USER', { userId, ...data }));
     } catch {
       return { statusCode: 500, message: 'User service unavailable' };
     }
@@ -302,6 +324,22 @@ export class AdminService {
     }
   }
 
+  async getUserWagering(userId: string) {
+    try {
+      return await lastValueFrom(this.userClient.send('ADMIN_GET_USER_WAGERING', userId));
+    } catch {
+      return { statusCode: 500, message: 'User service unavailable' };
+    }
+  }
+
+  async getAllWagering(filters?: { page?: number; limit?: number; search?: string }) {
+    try {
+      return await lastValueFrom(this.userClient.send('ADMIN_GET_ALL_WAGERING', filters ?? {}));
+    } catch {
+      return { statusCode: 500, message: 'User service unavailable' };
+    }
+  }
+
   async adjustUserBalance(
     userId: string,
     amount: number,
@@ -331,7 +369,7 @@ export class AdminService {
     search?: string;
     provider?: string;
     isActive?: boolean;
-    category?: gameCategoriesEnum;
+    category?: string;
   }) {
     try {
       return await lastValueFrom(
@@ -362,7 +400,7 @@ export class AdminService {
     }
   }
 
-  async addGameToCategory(gameId: number, category: gameCategoriesEnum) {
+  async addGameToCategory(gameId: number, category: string) {
     try {
       return await lastValueFrom(
         this.gameClient.send('ADMIN_ADD_GAME_CATEGORY', { gameId, category }),
@@ -372,7 +410,7 @@ export class AdminService {
     }
   }
 
-  async removeGameFromCategory(gameId: number, category: gameCategoriesEnum) {
+  async removeGameFromCategory(gameId: number, category: string) {
     try {
       return await lastValueFrom(
         this.gameClient.send('ADMIN_REMOVE_GAME_CATEGORY', { gameId, category }),
@@ -389,6 +427,101 @@ export class AdminService {
       );
     } catch {
       return { statusCode: 500, message: 'Game service unavailable' };
+    }
+  }
+
+  async getGameProviders() {
+    try {
+      return await lastValueFrom(this.gameClient.send('ADMIN_GET_PROVIDERS', {}));
+    } catch {
+      return { statusCode: 500, message: 'Game service unavailable' };
+    }
+  }
+
+  async getCategoryOverview() {
+    try {
+      return await lastValueFrom(
+        this.gameClient.send('ADMIN_GET_CATEGORY_OVERVIEW', {}),
+      );
+    } catch {
+      return { statusCode: 500, message: 'Game service unavailable' };
+    }
+  }
+
+  async getGameDemoUrl(gameId: string, lang?: string) {
+    try {
+      return await lastValueFrom(
+        this.gameClient.send('REVOLVER_GET_DEMO_URL', { gameId, lang }),
+      );
+    } catch {
+      return { statusCode: 500, message: 'Game service unavailable' };
+    }
+  }
+
+  async getAllTransactions(filters: {
+    page?: number;
+    limit?: number;
+    type?: string;
+    status?: string;
+    userId?: string;
+  }) {
+    try {
+      return await lastValueFrom(
+        this.walletClient.send('ADMIN_ALL_TRANSACTIONS', filters),
+      );
+    } catch {
+      return { statusCode: 500, message: 'Wallet service unavailable' };
+    }
+  }
+
+  async listCategoryDefs() {
+    try {
+      return await lastValueFrom(this.gameClient.send('ADMIN_LIST_CATEGORY_DEFS', {}));
+    } catch {
+      return { statusCode: 500, message: 'Game service unavailable' };
+    }
+  }
+
+  async createCategoryDef(data: { key: string; label: string; color?: string; sortOrder?: number }) {
+    try {
+      return await lastValueFrom(this.gameClient.send('ADMIN_CREATE_CATEGORY_DEF', data));
+    } catch {
+      return { statusCode: 500, message: 'Game service unavailable' };
+    }
+  }
+
+  async deleteCategoryDef(key: string) {
+    try {
+      return await lastValueFrom(this.gameClient.send('ADMIN_DELETE_CATEGORY_DEF', key));
+    } catch {
+      return { statusCode: 500, message: 'Game service unavailable' };
+    }
+  }
+
+  async getPlatformStats() {
+    try {
+      const [allUsersRes, activeRes, blockedRes, unverifiedRes, gamesRes] = await Promise.all([
+        lastValueFrom(this.userClient.send('ADMIN_GET_USERS', { limit: 1 })).catch(() => ({ total: 0 })),
+        lastValueFrom(this.userClient.send('ADMIN_GET_USERS', { limit: 1, verified: true, isBlocked: false })).catch(() => ({ total: 0 })),
+        lastValueFrom(this.userClient.send('ADMIN_GET_USERS', { limit: 1, isBlocked: true })).catch(() => ({ total: 0 })),
+        lastValueFrom(this.userClient.send('ADMIN_GET_USERS', { limit: 1, verified: false, isBlocked: false })).catch(() => ({ total: 0 })),
+        lastValueFrom(this.gameClient.send('ADMIN_GET_ALL_GAMES', { limit: 1 })).catch(() => ({ total: 0 })),
+      ]);
+
+      return {
+        statusCode: 200,
+        data: {
+          users: {
+            total:      allUsersRes?.total      ?? 0,
+            active:     activeRes?.total        ?? 0,
+            blocked:    blockedRes?.total       ?? 0,
+            unverified: unverifiedRes?.total    ?? 0,
+          },
+          games: { total: gamesRes?.total ?? 0 },
+        },
+      };
+    } catch {
+      return { statusCode: 500, message: 'Stats unavailable' };
     }
   }
 }

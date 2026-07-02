@@ -112,6 +112,27 @@ export class PromotionEntity {
   @Column({ type: 'int', default: 72 })
   validityHours!: number;
 
+  // For FREE_SPINS promotions: Revolver game UUIDs admin pre-selected
+  @Column({ type: 'json', nullable: true })
+  freeSpinsGameIds?: string[];
+
+  // Bet amount per free spin in minor units (e.g. 100 = 1.00)
+  @Column({ type: 'int', nullable: true })
+  freeSpinsBetAmount?: number;
+
+  // If true: user picks which eligible game to play (Revolver API fires at activation time)
+  @Column({ type: 'boolean', default: false })
+  userChoosesGame!: boolean;
+
+  // When userChoosesGame=true, restrict which category games are eligible (e.g. ['slots'])
+  @Column({ type: 'json', nullable: true })
+  eligibleCategories?: string[];
+
+  // Game restriction: if set, bonus wagering only counts on these specific game UUIDs
+  // Casino frontend must also enforce this by only showing these games during active bonus
+  @Column({ type: 'json', nullable: true })
+  allowedGameUUIDs?: string[];
+
   @Column({ type: 'timestamp', nullable: true })
   startDate?: Date;
 

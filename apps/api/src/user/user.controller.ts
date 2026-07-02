@@ -43,16 +43,20 @@ export class UserController {
   //USER SIGNIN API
   @Post('sign-in')
   async signIn(@Body() data: SignInDto, @Ip() ip: string) {
-    const requestIpAddress = ip;
-    const result = await this.UserService.signIn({
-      ...data,
-      ip: requestIpAddress,
-    });
-
-    return {
-      meesage: 'Login successful',
-      token: result.token,
-    };
+    try {
+      const result = await this.UserService.signIn({ ...data, ip });
+      return {
+        statusCode: 200,
+        message: 'Login successful',
+        token: result.token,
+      };
+    } catch (err: any) {
+      const payload = err?.error ?? err;
+      return {
+        statusCode: payload?.statusCode ?? 401,
+        message: payload?.message ?? 'Invalid credentials',
+      };
+    }
   }
 
   //SIGN-OUT
@@ -92,6 +96,20 @@ export class UserController {
       otp: body.otp,
     };
     return this.UserService.verifyUser(data);
+  }
+
+  // FORGOT PASSWORD
+  @Post('forgot-password')
+  @HttpCode(200)
+  forgotPassword(@Body() body: { email: string }) {
+    return this.UserService.forgotPassword(body.email);
+  }
+
+  // RESET PASSWORD
+  @Post('reset-password')
+  @HttpCode(200)
+  resetPassword(@Body() body: { token: string; newPassword: string }) {
+    return this.UserService.resetPassword(body.token, body.newPassword);
   }
 
   //USER CHANGE INFO

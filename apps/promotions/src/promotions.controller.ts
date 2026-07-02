@@ -10,6 +10,7 @@ import {
   RedeemPromoCodeDto,
   BetSettledEventDto,
   PromoTriggerEventDto,
+  ChooseGameDto,
 } from 'libs/common/dto/promotion.dto';
 
 @Controller()
@@ -36,8 +37,8 @@ export class PromotionsController {
   }
 
   @MessagePattern('PROMO_LIST')
-  list() {
-    return this.promotionsService.findAll();
+  list(@Payload() filters?: { page?: number; limit?: number; type?: string; status?: string }) {
+    return this.promotionsService.findAll(filters);
   }
 
   @MessagePattern('PROMO_DELETE')
@@ -66,6 +67,13 @@ export class PromotionsController {
     return this.promotionsService.adminGetUserBonuses(userId);
   }
 
+  @MessagePattern('ADMIN_GET_WAGERING')
+  getWageringOverview(
+    @Payload() filters?: { page?: number; limit?: number; status?: string; userId?: string },
+  ) {
+    return this.promotionsService.adminGetWageringOverview(filters);
+  }
+
   @MessagePattern('PROMO_AUDIT_LOG')
   getAuditLog(
     @Payload() data: { promotionId?: string; userId?: string },
@@ -89,6 +97,18 @@ export class PromotionsController {
   @MessagePattern('PROMO_MY_BONUSES')
   myBonuses(@Payload() userId: string) {
     return this.promotionsService.getUserBonuses(userId);
+  }
+
+  // ── USER: choose game and activate free spins ─────
+  @MessagePattern('PROMO_CHOOSE_GAME')
+  chooseGame(@Payload() data: ChooseGameDto) {
+    return this.promotionsService.chooseGameAndActivate(data);
+  }
+
+  // ── USER: get eligible games for a pending bonus ──
+  @MessagePattern('PROMO_ELIGIBLE_GAMES')
+  getEligibleGames(@Payload() data: { userPromotionId: string; userId: string }) {
+    return this.promotionsService.getEligibleGames(data.userPromotionId, data.userId);
   }
 
   // ── EVENTS: bet settled → advance wagering ────────

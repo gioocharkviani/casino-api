@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   Post,
   Req,
@@ -17,7 +18,11 @@ import {
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
 import { RevolverSignatureGuard } from 'libs/guards/revolver-signature.guard';
-import { depositDto, withdrawalDto } from 'libs/common/dto/payment.dto';
+import {
+  depositDto,
+  withdrawalDto,
+  PayInExtraWebhookDto,
+} from 'libs/common/dto/payment.dto';
 import { AuthGuard } from 'libs/guards/auth.guard';
 import type { Request } from 'express';
 import { PromotionsGatewayService } from '../promotions/promotions.service';
@@ -85,15 +90,7 @@ export class WalletController {
     const token = header?.startsWith('Bearer ') ? header.split(' ')[1] : '';
     const data = { ...body, token };
 
-    const result = await this.walletService.deposit(data);
-
-    // fire-and-forget: auto-grant any deposit-triggered promotions
-    if (result?.code === 200) {
-      const userId = (req as any).userId as string;
-      this.promoService.emitTrigger(userId, 'deposit', body.amount);
-    }
-
-    return result;
+    return await this.walletService.deposit(data);
   }
 
   @Post('withdrawal')
@@ -111,5 +108,24 @@ export class WalletController {
     const header = req.headers?.authorization;
     const token = header?.startsWith('Bearer ') ? header.split(' ')[1] : '';
     return await this.walletService.userTansactions(token);
+  }
+
+  // PAYINEXTRA WEBHOOK CALLBACK (called by PayInExtra when payment status changes)
+  @Post('webhook/payinextra')
+  @HttpCode(200)
+  async paymentWebhook(
+    @Body() body: PayInExtraWebhookDto,
+    @Headers('x-secret-key') secretKey: string,
+  ) {
+    const result = await this.walletService.handlePaymentWebhook({
+      ...body,
+      webhookSecret: secretKey,
+    });
+    // fire promo trigger only after deposit is confirmed by payment provider
+    if (result?.triggerData) {
+      const { userId, amount, eventType } = result.triggerData;
+      this.promoService.emitTrigger(userId, eventType, amount);
+    }
+    return result;
   }
 }

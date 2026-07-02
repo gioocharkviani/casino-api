@@ -5,7 +5,6 @@ import { getRequestDto } from 'libs/common/dto/getRequest.dto';
 import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
 import { UserEntity } from 'libs/database/entities/user.entity';
 import { favGameDto } from 'libs/common/dto/favGame.dto';
-import { gameCategoriesEnum } from 'libs/common/enums/gameCategories.enum';
 
 @Controller()
 export class GameController {
@@ -55,7 +54,7 @@ export class GameController {
       search?: string;
       provider?: string;
       isActive?: boolean;
-      category?: gameCategoriesEnum;
+      category?: string;
     },
   ) {
     return this.gameService.adminGetAllGames(data);
@@ -73,14 +72,14 @@ export class GameController {
 
   @MessagePattern('ADMIN_ADD_GAME_CATEGORY')
   adminAddToCategory(
-    @Payload() data: { gameId: number; category: gameCategoriesEnum },
+    @Payload() data: { gameId: number; category: string },
   ) {
     return this.gameService.adminAddToCategory(data);
   }
 
   @MessagePattern('ADMIN_REMOVE_GAME_CATEGORY')
   adminRemoveFromCategory(
-    @Payload() data: { gameId: number; category: gameCategoriesEnum },
+    @Payload() data: { gameId: number; category: string },
   ) {
     return this.gameService.adminRemoveFromCategory(data);
   }
@@ -88,5 +87,32 @@ export class GameController {
   @MessagePattern('ADMIN_GET_GAME_CATEGORIES')
   adminGetGameCategories(@Payload() gameId: number) {
     return this.gameService.adminGetGameCategories(gameId);
+  }
+
+  @MessagePattern('ADMIN_GET_PROVIDERS')
+  adminGetAllProviders() {
+    return this.gameService.getAllProvider();
+  }
+
+  @MessagePattern('ADMIN_GET_CATEGORY_OVERVIEW')
+  adminGetCategoryOverview() {
+    return this.gameService.adminGetCategoryOverview();
+  }
+
+  @MessagePattern('ADMIN_LIST_CATEGORY_DEFS')
+  adminListCategoryDefs() {
+    return this.gameService.adminListCategoryDefs();
+  }
+
+  @MessagePattern('ADMIN_CREATE_CATEGORY_DEF')
+  adminCreateCategoryDef(
+    @Payload() data: { key: string; label: string; color?: string; sortOrder?: number },
+  ) {
+    return this.gameService.adminCreateCategoryDef(data);
+  }
+
+  @MessagePattern('ADMIN_DELETE_CATEGORY_DEF')
+  adminDeleteCategoryDef(@Payload() key: string) {
+    return this.gameService.adminDeleteCategoryDef(key);
   }
 }

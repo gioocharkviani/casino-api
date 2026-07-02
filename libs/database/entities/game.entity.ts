@@ -1,4 +1,3 @@
-import { gameCategoriesEnum } from '../../common/enums/gameCategories.enum';
 import {
   Entity,
   Column,
@@ -92,14 +91,35 @@ export class Game {
   updatedAt?: Date;
 }
 
+@Entity('category_definitions')
+export class CategoryDefinition {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ unique: true, length: 50 })
+  key!: string;
+
+  @Column({ length: 100 })
+  label!: string;
+
+  @Column({ length: 50, default: 'bg-gray-600' })
+  color!: string;
+
+  @Column({ default: 0 })
+  sortOrder!: number;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt!: Date;
+}
+
 //game categories
 @Entity('game_categories')
 export class GameCategories {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ nullable: false, type: 'enum', enum: gameCategoriesEnum })
-  categories!: gameCategoriesEnum;
+  @Column({ nullable: false, type: 'varchar', length: 50 })
+  categories!: string;
 
   @ManyToOne(() => Game, (game) => game.id)
   @JoinColumn({ name: 'gameId' })

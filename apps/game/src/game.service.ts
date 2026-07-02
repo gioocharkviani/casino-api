@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
+  CategoryDefinition,
   FavoriteGame,
   Game,
   GameCategories,
@@ -13,7 +14,6 @@ import { getRequestDto } from 'libs/common/dto/getRequest.dto';
 import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
 import { UserEntity } from 'libs/database/entities/user.entity';
 import { favGameDto } from 'libs/common/dto/favGame.dto';
-import { gameCategoriesEnum } from 'libs/common/enums/gameCategories.enum';
 
 @Injectable()
 export class GameService {
@@ -30,6 +30,8 @@ export class GameService {
     private readonly gameSession: Repository<GameSession>,
     @InjectRepository(GameSession)
     private readonly gameSessionRepository: Repository<GameSession>,
+    @InjectRepository(CategoryDefinition)
+    private readonly categoryDefRepo: Repository<CategoryDefinition>,
     private readonly revolverProvider: RevolverService,
   ) {}
 
@@ -274,7 +276,7 @@ export class GameService {
     search?: string;
     provider?: string;
     isActive?: boolean;
-    category?: gameCategoriesEnum;
+    category?: string;
   }) {
     const page = data?.page ?? 1;
     const limit = data?.limit ?? 50;
@@ -282,7 +284,8 @@ export class GameService {
 
     const qb = this.gameRepository
       .createQueryBuilder('game')
-      .leftJoinAndSelect('game.gameProvider', 'gameProvider');
+      .leftJoinAndSelect('game.gameProvider', 'gameProvider')
+      .leftJoinAndSelect('game.metaData', 'metaData');
 
     if (data.search) {
       qb.andWhere('game.gameName LIKE :search', {
@@ -306,11 +309,14 @@ export class GameService {
 
     qb.skip(skip).take(limit).orderBy('game.id', 'ASC');
     const [games, total] = await qb.getManyAndCount();
+    const totalPages = Math.ceil(total / limit);
 
     return {
       code: 200,
       data: games,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      total,
+      page,
+      totalPages,
       message: 'Success',
     };
   }
@@ -333,10 +339,10 @@ export class GameService {
     return { code: 200, data: { id: gameId, isActive: false }, message: 'Game is now hidden' };
   }
 
-  // ADMIN: add game to a category (TOP / NEW)
+  // ADMIN: add game to a category
   async adminAddToCategory(data: {
     gameId: number;
-    category: gameCategoriesEnum;
+    category: string;
   }) {
     const game = await this.gameRepository.findOne({
       where: { id: data.gameId },
@@ -360,7 +366,7 @@ export class GameService {
   // ADMIN: remove game from a category
   async adminRemoveFromCategory(data: {
     gameId: number;
-    category: gameCategoriesEnum;
+    category: string;
   }) {
     const existing = await this.gameCategoriesRepo.findOne({
       where: { gameId: data.gameId, categories: data.category },
@@ -386,6 +392,67 @@ export class GameService {
       data: assignments.map((a) => a.categories),
       message: 'Success',
     };
+  }
+
+  // ADMIN: list category definitions
+  async adminListCategoryDefs() {
+    const defs = await this.categoryDefRepo.find({
+      order: { sortOrder: 'ASC', createdAt: 'ASC' },
+    });
+    return { code: 200, data: defs };
+  }
+
+  // ADMIN: create a new category definition
+  async adminCreateCategoryDef(data: {
+    key: string;
+    label: string;
+    color?: string;
+    sortOrder?: number;
+  }) {
+    const key = data.key.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    if (!key) return { code: 400, message: 'Invalid key' };
+
+    const exists = await this.categoryDefRepo.findOne({ where: { key } });
+    if (exists) return { code: 409, message: 'Category key already exists' };
+
+    const def = await this.categoryDefRepo.save(
+      this.categoryDefRepo.create({
+        key,
+        label: data.label,
+        color: data.color ?? 'bg-gray-600',
+        sortOrder: data.sortOrder ?? 99,
+      }),
+    );
+    return { code: 201, data: def };
+  }
+
+  // ADMIN: delete a category definition (only if no games use it)
+  async adminDeleteCategoryDef(key: string) {
+    const def = await this.categoryDefRepo.findOne({ where: { key } });
+    if (!def) return { code: 404, message: 'Category not found' };
+
+    const count = await this.gameCategoriesRepo.count({ where: { categories: key } });
+    if (count > 0) {
+      return {
+        code: 409,
+        message: `Cannot delete: ${count} game(s) still assigned to this category. Remove them first.`,
+      };
+    }
+
+    await this.categoryDefRepo.remove(def);
+    return { code: 200, message: 'Category deleted' };
+  }
+
+  // ADMIN: count games per category
+  async adminGetCategoryOverview() {
+    const all = await this.gameCategoriesRepo.find({
+      select: { categories: true, gameId: true },
+    });
+    const overview: Record<string, number> = {};
+    for (const row of all) {
+      overview[row.categories] = (overview[row.categories] ?? 0) + 1;
+    }
+    return { code: 200, data: overview };
   }
 
   //VALIDATE GAME SESSION

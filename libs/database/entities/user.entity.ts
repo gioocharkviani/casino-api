@@ -70,6 +70,12 @@ export class UserEntity {
   @Column({ type: 'varchar', length: 500, nullable: true })
   blockReason?: string;
 
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  resetToken?: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  resetTokenExpiresAt?: Date | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

@@ -1,15 +1,21 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PromotionsGatewayController } from './promotions.controller';
 import { PromotionsGatewayService } from './promotions.service';
 
 @Module({
   imports: [
-    ClientsModule.register([
+    ConfigModule,
+    ClientsModule.registerAsync([
       {
         name: 'PROMO_MS_SERVICE',
-        transport: Transport.TCP,
-        options: { host: 'localhost', port: 3038 },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (cfg: ConfigService) => ({
+          transport: Transport.TCP,
+          options: { host: cfg.get('PROMOTIONS_MS_HOST', 'localhost'), port: 3038 },
+        }),
       },
     ]),
   ],

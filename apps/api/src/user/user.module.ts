@@ -1,7 +1,6 @@
 import { Global, Module } from '@nestjs/common';
-
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { PromotionsGatewayModule } from '../promotions/promotions.module';
@@ -10,14 +9,15 @@ import { PromotionsGatewayModule } from '../promotions/promotions.module';
 @Module({
   imports: [
     ConfigModule,
-    ClientsModule.register([
+    ClientsModule.registerAsync([
       {
         name: 'USER_MS_SERVICE',
-        transport: Transport.TCP,
-        options: {
-          host: 'localhost',
-          port: 3035,
-        },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (cfg: ConfigService) => ({
+          transport: Transport.TCP,
+          options: { host: cfg.get('USER_MS_HOST', 'localhost'), port: 3035 },
+        }),
       },
     ]),
     PromotionsGatewayModule,

@@ -13,7 +13,6 @@ import { PromotionsController } from './promotions.controller';
 import { PromotionsService } from './promotions.service';
 import { WageringProgressService } from './wagering-progress.service';
 import { BonusExpiryScheduler } from './bonus-expiry.scheduler';
-
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -33,6 +32,17 @@ import { BonusExpiryScheduler } from './bonus-expiry.scheduler';
           options: {
             host: cfg.get('WALLET_MS_HOST') ?? 'localhost',
             port: Number(cfg.get('WALLET_MS_PORT') ?? 3031),
+          },
+        }),
+      },
+      {
+        name: 'GAME_MS_SERVICE',
+        inject: [ConfigService],
+        useFactory: (cfg: ConfigService) => ({
+          transport: Transport.TCP,
+          options: {
+            host: cfg.get('GAME_MS_HOST') ?? 'localhost',
+            port: Number(cfg.get('GAME_MS_PORT') ?? 3039),
           },
         }),
       },

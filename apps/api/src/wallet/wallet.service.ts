@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ClientProxy } from '@nestjs/microservices';
-import { depositDto } from 'libs/common/dto/payment.dto';
+import { depositDto, PayInExtraWebhookDto } from 'libs/common/dto/payment.dto';
 import {
   CreditRequestDto,
   DebitAndCreditDto,
@@ -89,4 +89,12 @@ export class WalletService {
     return result;
   }
   //USER TRANSACTIONS
+
+  // PAYMENT WEBHOOK
+  async handlePaymentWebhook(payload: PayInExtraWebhookDto & { webhookSecret: string }) {
+    const result = await lastValueFrom(
+      this.client.send('PAYMENT_WEBHOOK', payload),
+    );
+    return result;
+  }
 }

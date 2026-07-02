@@ -1,5 +1,4 @@
 import { NestFactory } from '@nestjs/core';
-CronWorkerModule;
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { CronWorkerModule } from './cron-worker.module';
 
@@ -9,7 +8,7 @@ async function bootstrap() {
     {
       transport: Transport.TCP,
       options: {
-        host: 'localhost',
+        host: process.env.MS_LISTEN_HOST || '0.0.0.0',
         port: 3030,
       },
     },

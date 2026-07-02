@@ -5,6 +5,7 @@ import { DataSource, Repository } from 'typeorm';
 import { lastValueFrom, timeout } from 'rxjs';
 import {
   PromotionEntity,
+  PromotionType,
   UserPromotionEntity,
   PromotionAuditEntity,
   PromotionStatus,
@@ -19,6 +20,7 @@ import {
   ActivateBonusDto,
   RedeemPromoCodeDto,
   PromoTriggerEventDto,
+  ChooseGameDto,
 } from 'libs/common/dto/promotion.dto';
 
 @Injectable()
@@ -34,6 +36,8 @@ export class PromotionsService {
     private readonly auditRepo: Repository<PromotionAuditEntity>,
     @Inject('WALLET_MS_SERVICE')
     private readonly walletClient: ClientProxy,
+    @Inject('GAME_MS_SERVICE')
+    private readonly gameClient: ClientProxy,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -102,9 +106,17 @@ export class PromotionsService {
       : { code: 1601, data: null, message: 'Promotion not found' };
   }
 
-  async findAll() {
-    const data = await this.promoRepo.find({ order: { createdAt: 'DESC' } });
-    return { code: 200, data, message: 'Success' };
+  async findAll(filters?: { page?: number; limit?: number; type?: string; status?: string }) {
+    const page  = filters?.page  ?? 1;
+    const limit = Math.min(filters?.limit ?? 50, 200);
+    const skip  = (page - 1) * limit;
+
+    const qb = this.promoRepo.createQueryBuilder('p').orderBy('p.createdAt', 'DESC').skip(skip).take(limit);
+    if (filters?.type)   qb.andWhere('p.type = :type',     { type:   filters.type });
+    if (filters?.status) qb.andWhere('p.status = :status', { status: filters.status });
+
+    const [data, total] = await qb.getManyAndCount();
+    return { code: 200, data, total, page, totalPages: Math.ceil(total / limit), message: 'Success' };
   }
 
   async delete(id: string, performedBy?: string) {
@@ -170,6 +182,34 @@ export class PromotionsService {
         performedBy: dto.performedBy,
         metadata: { overrideAmount: dto.overrideAmount },
       });
+
+      // Grant free spins via Revolver GAP API
+      // Only fire immediately if admin pre-chose the games (userChoosesGame === false)
+      if (
+        promo.type === PromotionType.FREE_SPINS &&
+        !promo.userChoosesGame &&
+        promo.freeSpinsGameIds?.length
+      ) {
+        const spins = (promo.rewardValue as any)?.freeSpins ?? 10;
+        const betAmount = promo.freeSpinsBetAmount ?? 100;
+        const expiresAt = new Date(
+          Date.now() + (promo.validityHours ?? 72) * 3_600_000,
+        );
+        for (const gameUUID of promo.freeSpinsGameIds) {
+          await lastValueFrom(
+            this.gameClient.send('REVOLVER_GRANT_FREE_SPINS', {
+              playerId: dto.userId,
+              game: gameUUID,
+              numberOfFreeSpins: spins,
+              betAmountPerFreeSpin: betAmount,
+              currency: 'USD',
+              expiresAt: expiresAt.toISOString(),
+              transactionId: `fs-${saved.id}-${gameUUID.slice(0, 8)}`,
+            }),
+          );
+        }
+      }
+      // If userChoosesGame=true: Revolver API fires later when user picks a game
 
       return { code: 200, data: saved, message: 'Promotion assigned to user' };
     } catch (err: any) {
@@ -315,6 +355,107 @@ export class PromotionsService {
   }
 
   // ─────────────────────────────────────────────
+  // CHOOSE GAME (user selects their game for free spins)
+  // ─────────────────────────────────────────────
+  async chooseGameAndActivate(dto: ChooseGameDto) {
+    try {
+      const assignment = await this.userPromoRepo.findOne({
+        where: { id: dto.userPromotionId, userId: dto.userId },
+        relations: { promotion: true },
+      });
+      if (!assignment) {
+        return { code: 1604, data: null, message: 'Bonus not found' };
+      }
+      if (assignment.status !== UserPromotionStatus.ASSIGNED) {
+        return { code: 1605, data: null, message: `Bonus is already ${assignment.status}` };
+      }
+
+      const promo = assignment.promotion;
+      if (promo.type !== PromotionType.FREE_SPINS) {
+        return { code: 1609, data: null, message: 'Only free spins bonuses support game selection' };
+      }
+      if (!promo.userChoosesGame) {
+        return { code: 1610, data: null, message: 'This bonus does not allow game selection' };
+      }
+
+      // Validate that the game is in an eligible category (if restrictions set)
+      // Note: for full validation, game service would be queried; here we trust the client
+      // sent a valid game UUID that was shown from the eligible list
+
+      const spins = (promo.rewardValue as any)?.freeSpins ?? 10;
+      const betAmount = promo.freeSpinsBetAmount ?? 100;
+      const expiresAt = new Date(Date.now() + (promo.validityHours ?? 72) * 3_600_000);
+
+      const result = await lastValueFrom(
+        this.gameClient.send('REVOLVER_GRANT_FREE_SPINS', {
+          playerId: dto.userId,
+          game: dto.gameUUID,
+          numberOfFreeSpins: spins,
+          betAmountPerFreeSpin: betAmount,
+          currency: 'USD',
+          expiresAt: expiresAt.toISOString(),
+          transactionId: `fs-${assignment.id}-${dto.gameUUID.slice(0, 8)}`,
+        }),
+      );
+
+      if (!result.success) {
+        return { code: 1611, data: null, message: `Revolver API error: ${result.error}` };
+      }
+
+      assignment.status = UserPromotionStatus.ACTIVE;
+      assignment.activatedAt = new Date();
+      assignment.expiresAt = expiresAt;
+      const saved = await this.userPromoRepo.save(assignment);
+
+      await this.writeAudit(PromotionAuditAction.ACTIVATED, {
+        promotionId: promo.id,
+        userId: dto.userId,
+        performedBy: 'user:choose_game',
+        metadata: { gameUUID: dto.gameUUID, spins, betAmount },
+      });
+
+      return {
+        code: 200,
+        data: {
+          userPromotionId: saved.id,
+          status: saved.status,
+          gameUUID: dto.gameUUID,
+          freeSpins: spins,
+          expiresAt: saved.expiresAt,
+        },
+        message: 'Free spins granted successfully',
+      };
+    } catch (err: any) {
+      this.logger.error(`chooseGameAndActivate failed: ${err.message}`);
+      return { code: 1500, data: null, message: 'Internal Error' };
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // GET ELIGIBLE GAMES for a user's pending free-spin bonus
+  // ─────────────────────────────────────────────
+  async getEligibleGames(userPromotionId: string, userId: string) {
+    const assignment = await this.userPromoRepo.findOne({
+      where: { id: userPromotionId, userId },
+      relations: { promotion: true },
+    });
+    if (!assignment) {
+      return { code: 1604, data: null, message: 'Bonus not found' };
+    }
+    const promo = assignment.promotion;
+    return {
+      code: 200,
+      data: {
+        userChoosesGame: promo.userChoosesGame,
+        eligibleCategories: promo.eligibleCategories ?? [],
+        freeSpinsGameIds: promo.freeSpinsGameIds ?? [],
+        freeSpins: (promo.rewardValue as any)?.freeSpins ?? 10,
+        betAmountPerFreeSpin: promo.freeSpinsBetAmount ?? 100,
+      },
+    };
+  }
+
+  // ─────────────────────────────────────────────
   // AUTO-GRANT TRIGGER (event-driven)
   // ─────────────────────────────────────────────
   async handleTriggerEvent(dto: PromoTriggerEventDto) {
@@ -364,9 +505,41 @@ export class PromotionsService {
   async adminGetUserBonuses(userId: string) {
     const data = await this.userPromoRepo.find({
       where: { userId },
+      relations: { promotion: true },
       order: { createdAt: 'DESC' },
     });
     return { code: 200, data, message: 'Success' };
+  }
+
+  async adminGetWageringOverview(filters?: { page?: number; limit?: number; status?: string; userId?: string }) {
+    const page  = filters?.page  ?? 1;
+    const limit = Math.min(filters?.limit ?? 50, 200);
+    const skip  = (page - 1) * limit;
+
+    const qb = this.userPromoRepo
+      .createQueryBuilder('up')
+      .leftJoin('up.promotion', 'promo')
+      .select([
+        'up.id', 'up.userId', 'up.status',
+        'up.bonusBalance', 'up.wageringRequired', 'up.wageringCompleted',
+        'up.activatedAt', 'up.expiresAt', 'up.createdAt',
+        'promo.id', 'promo.name', 'promo.type', 'promo.wageringMultiplier',
+        'promo.allowedGameUUIDs',
+      ])
+      .orderBy('up.createdAt', 'DESC')
+      .skip(skip).take(limit);
+
+    if (filters?.status) {
+      qb.andWhere('up.status = :status', { status: filters.status });
+    } else {
+      qb.andWhere('up.status IN (:...statuses)', { statuses: ['active', 'assigned'] });
+    }
+    if (filters?.userId) {
+      qb.andWhere('up.userId = :userId', { userId: filters.userId });
+    }
+
+    const [data, total] = await qb.getManyAndCount();
+    return { code: 200, data, total, page, totalPages: Math.ceil(total / limit), message: 'Success' };
   }
 
   async cancelUserBonus(userPromotionId: string, performedBy: string) {

@@ -572,25 +572,146 @@ export class UserService {
     return { code: 200, data: { personalId: data.personalId }, message: 'Personal ID updated' };
   }
 
-  //ADMIN: GET ALL USERS
-  async adminGetAllUsers() {
-    const users = await this.userRepository.find({
-      select: {
-        id: true,
-        userName: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        verified: true,
-        xp: true,
-        createdAt: true,
-        wallet: { balance: true, currency: true },
-      },
-      relations: { wallet: true, country: true },
-      order: { createdAt: 'DESC' },
+  //ADMIN: GET ALL USERS (paginated + filterable)
+  async adminGetAllUsers(filters?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    isBlocked?: boolean;
+    verified?: boolean;
+  }) {
+    const page  = filters?.page  ?? 1;
+    const limit = Math.min(filters?.limit ?? 50, 200);
+    const skip  = (page - 1) * limit;
+
+    const qb = this.userRepository
+      .createQueryBuilder('u')
+      .leftJoin('u.wallet', 'wallet')
+      .leftJoin('u.country', 'country')
+      .select([
+        'u.id', 'u.userName', 'u.email', 'u.firstName', 'u.lastName',
+        'u.phone', 'u.verified', 'u.isBlocked', 'u.blockReason',
+        'u.personalId', 'u.xp', 'u.createdAt',
+        'wallet.balance', 'wallet.currency',
+        'country.name', 'country.countryCode',
+      ])
+      .orderBy('u.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    if (filters?.search) {
+      const q = `%${filters.search}%`;
+      qb.andWhere(
+        '(u.email LIKE :q OR u.userName LIKE :q OR u.firstName LIKE :q OR u.lastName LIKE :q)',
+        { q },
+      );
+    }
+    if (filters?.isBlocked !== undefined) {
+      qb.andWhere('u.isBlocked = :isBlocked', { isBlocked: filters.isBlocked });
+    }
+    if (filters?.verified !== undefined) {
+      qb.andWhere('u.verified = :verified', { verified: filters.verified });
+    }
+
+    const [data, total] = await qb.getManyAndCount();
+    return { code: 200, data, total, page, totalPages: Math.ceil(total / limit), message: 'Success' };
+  }
+
+  //ADMIN: UPDATE USER PROFILE
+  async adminUpdateUser(data: {
+    userId: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    userName?: string;
+    birthday?: string;
+  }) {
+    const user = await this.userRepository.findOne({ where: { id: data.userId } });
+    if (!user) return { code: 404, data: null, message: 'User not found' };
+
+    if (data.firstName !== undefined) user.firstName = data.firstName;
+    if (data.lastName  !== undefined) user.lastName  = data.lastName;
+    if (data.email     !== undefined) user.email     = data.email;
+    if (data.phone     !== undefined) user.phone     = data.phone;
+    if (data.userName  !== undefined) user.userName  = data.userName;
+    if (data.birthday  !== undefined) user.birthday  = new Date(data.birthday);
+
+    const saved = await this.userRepository.save(user);
+    const { password, ...safe } = saved as any;
+    return { code: 200, data: safe, message: 'User updated' };
+  }
+
+  // FORGOT PASSWORD — generate token, send reset email
+  async forgotPassword(email: string) {
+    const user = await this.userRepository.findOne({ where: { email } });
+    // Always return success to prevent user enumeration
+    if (!user) return { code: 200, message: 'If that email exists, a reset link has been sent.' };
+
+    const token    = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 3_600_000); // 1 hour
+    user.resetToken          = token;
+    user.resetTokenExpiresAt = expiresAt;
+    await this.userRepository.save(user);
+
+    const frontendUrl = this.configService.get('FRONTEND_URL') ?? 'http://localhost:3001';
+    const resetLink   = `${frontendUrl}/reset-password?token=${token}`;
+
+    await this.notificationService.sendPasswordResetEmail({
+      email,
+      firstName: user.firstName,
+      resetLink,
     });
-    return { code: 200, data: users, message: 'Success' };
+
+    return { code: 200, message: 'If that email exists, a reset link has been sent.' };
+  }
+
+  // RESET PASSWORD — validate token, set new password
+  async resetPassword(token: string, newPassword: string) {
+    const user = await this.userRepository.findOne({ where: { resetToken: token } });
+    if (!user || !user.resetTokenExpiresAt || user.resetTokenExpiresAt < new Date()) {
+      return { code: 400, message: 'Invalid or expired reset token.' };
+    }
+
+    const salt    = parseInt(this.configService.get('BCRYPT_SALT') ?? '10', 10);
+    user.password          = await bcrypt.hash(newPassword, salt);
+    user.resetToken        = null;
+    user.resetTokenExpiresAt = null;
+    await this.userRepository.save(user);
+
+    return { code: 200, message: 'Password has been reset successfully.' };
+  }
+
+  // ADMIN: GET USER WAGERING STATS
+  async adminGetUserWagering(userId: string) {
+    const stats = await this.userWagerRepo.findOne({ where: { userId } });
+    if (!stats) return { code: 404, data: null, message: 'No wagering record found' };
+    return { code: 200, data: stats };
+  }
+
+  // ADMIN: GET ALL USERS WAGERING (paginated)
+  async adminGetAllWagering(filters?: { page?: number; limit?: number; search?: string }) {
+    const page  = filters?.page  ?? 1;
+    const limit = Math.min(filters?.limit ?? 50, 200);
+    const skip  = (page - 1) * limit;
+
+    const qb = this.userWagerRepo
+      .createQueryBuilder('w')
+      .leftJoin('w.user', 'u')
+      .addSelect(['u.id', 'u.userName', 'u.email', 'u.firstName', 'u.lastName'])
+      .orderBy('w.totalWagered', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    if (filters?.search) {
+      qb.andWhere(
+        '(u.userName LIKE :s OR u.email LIKE :s)',
+        { s: `%${filters.search}%` },
+      );
+    }
+
+    const [data, total] = await qb.getManyAndCount();
+    return { code: 200, data, total, page, totalPages: Math.ceil(total / limit) };
   }
 
   //ADMIN: GET USER BY ID
@@ -605,6 +726,9 @@ export class UserService {
         lastName: true,
         phone: true,
         verified: true,
+        isBlocked: true,
+        blockReason: true,
+        personalId: true,
         xp: true,
         birthday: true,
         createdAt: true,

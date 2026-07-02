@@ -53,10 +53,28 @@ export class UserController {
     return this.UserService.changeUserInfo(data);
   }
 
-  // ADMIN: list all users
+  // FORGOT PASSWORD
+  @MessagePattern('USER_FORGOT_PASSWORD')
+  forgotPassword(@Payload() email: string) {
+    return this.UserService.forgotPassword(email);
+  }
+
+  // RESET PASSWORD
+  @MessagePattern('USER_RESET_PASSWORD')
+  resetPassword(@Payload() data: { token: string; newPassword: string }) {
+    return this.UserService.resetPassword(data.token, data.newPassword);
+  }
+
+  // ADMIN: list all users (paginated)
   @MessagePattern('ADMIN_GET_USERS')
-  adminGetUsers() {
-    return this.UserService.adminGetAllUsers();
+  adminGetUsers(@Payload() filters?: { page?: number; limit?: number; search?: string; isBlocked?: boolean; verified?: boolean }) {
+    return this.UserService.adminGetAllUsers(filters);
+  }
+
+  // ADMIN: update user profile
+  @MessagePattern('ADMIN_UPDATE_USER')
+  adminUpdateUser(@Payload() data: { userId: string; firstName?: string; lastName?: string; email?: string; phone?: string; userName?: string; birthday?: string }) {
+    return this.UserService.adminUpdateUser(data);
   }
 
   // ADMIN: get single user by id
@@ -89,5 +107,15 @@ export class UserController {
     @Payload() data: { userId: string; personalId: string },
   ) {
     return this.UserService.adminSetPersonalId(data);
+  }
+
+  @MessagePattern('ADMIN_GET_USER_WAGERING')
+  adminGetUserWagering(@Payload() userId: string) {
+    return this.UserService.adminGetUserWagering(userId);
+  }
+
+  @MessagePattern('ADMIN_GET_ALL_WAGERING')
+  adminGetAllWagering(@Payload() filters: { page?: number; limit?: number; search?: string }) {
+    return this.UserService.adminGetAllWagering(filters);
   }
 }

@@ -76,6 +76,33 @@ export class transactionService {
     return await this.transactionRepository.save(transaction);
   }
 
+  // ADMIN: get all transactions with pagination + filters
+  async adminGetAllTransactions(filters: {
+    page?: number;
+    limit?: number;
+    type?: string;
+    status?: string;
+    userId?: string;
+  }) {
+    const page = filters.page ?? 1;
+    const limit = Math.min(filters.limit ?? 50, 200);
+    const skip = (page - 1) * limit;
+
+    const qb = this.transactionRepository
+      .createQueryBuilder('tx')
+      .leftJoinAndSelect('tx.game', 'game')
+      .orderBy('tx.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    if (filters.userId) qb.andWhere('tx.userId = :userId', { userId: filters.userId });
+    if (filters.type)   qb.andWhere('tx.type = :type', { type: filters.type });
+    if (filters.status) qb.andWhere('tx.status = :status', { status: filters.status });
+
+    const [data, total] = await qb.getManyAndCount();
+    return { code: 200, data, total, page, totalPages: Math.ceil(total / limit) };
+  }
+
   // ADMIN: get transactions by userId directly (no token needed)
   async getTransactionsByUserId(userId: string, limit = 100) {
     const [transactions, count] =

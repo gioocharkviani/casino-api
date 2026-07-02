@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AdminEntity, AdminSessionEntity } from 'libs/database/entities/admin.entity';
@@ -11,26 +11,42 @@ import { AdminGuard } from 'libs/guards/admin.guard';
   imports: [
     ConfigModule,
     TypeOrmModule.forFeature([AdminEntity, AdminSessionEntity]),
-    ClientsModule.register([
+    ClientsModule.registerAsync([
       {
         name: 'PROMO_MS_SERVICE',
-        transport: Transport.TCP,
-        options: { host: 'localhost', port: 3038 },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (cfg: ConfigService) => ({
+          transport: Transport.TCP,
+          options: { host: cfg.get('PROMOTIONS_MS_HOST', 'localhost'), port: 3038 },
+        }),
       },
       {
         name: 'USER_MS_SERVICE',
-        transport: Transport.TCP,
-        options: { host: 'localhost', port: 3035 },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (cfg: ConfigService) => ({
+          transport: Transport.TCP,
+          options: { host: cfg.get('USER_MS_HOST', 'localhost'), port: 3035 },
+        }),
       },
       {
         name: 'GAME_MS_SERVICE',
-        transport: Transport.TCP,
-        options: { host: 'localhost', port: 3039 },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (cfg: ConfigService) => ({
+          transport: Transport.TCP,
+          options: { host: cfg.get('GAME_MS_HOST', 'localhost'), port: 3039 },
+        }),
       },
       {
         name: 'WALLET_MS_SERVICE',
-        transport: Transport.TCP,
-        options: { host: 'localhost', port: 3031 },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (cfg: ConfigService) => ({
+          transport: Transport.TCP,
+          options: { host: cfg.get('WALLET_MS_HOST', 'localhost'), port: 3031 },
+        }),
       },
     ]),
   ],

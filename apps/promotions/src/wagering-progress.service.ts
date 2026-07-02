@@ -31,6 +31,12 @@ export class WageringProgressService {
     });
 
     for (const up of active) {
+      // if allowedGameUUIDs is set, only bets on those games count
+      const allowed = up.promotion.allowedGameUUIDs;
+      if (allowed?.length && evt.gameId && !allowed.includes(evt.gameId)) {
+        continue;
+      }
+
       // per-game contribution weight (default 100 = full credit)
       const weights =
         (up.promotion.gameWeights as Record<string, number>) ?? {};

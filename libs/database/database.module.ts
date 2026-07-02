@@ -2,6 +2,7 @@ import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import {
+  CategoryDefinition,
   FavoriteGame,
   Game,
   GameCategories,
@@ -58,9 +59,10 @@ import { AdminEntity, AdminSessionEntity } from './entities/admin.entity';
         PromotionAuditEntity,
         AdminEntity,
         AdminSessionEntity,
+        CategoryDefinition,
       ],
 
-      synchronize: false,
+      synchronize: true,
 
       timezone: '+04:00',
       charset: 'utf8mb4',
@@ -89,6 +91,7 @@ import { AdminEntity, AdminSessionEntity } from './entities/admin.entity';
       PromotionAuditEntity,
       AdminEntity,
       AdminSessionEntity,
+      CategoryDefinition,
     ]),
   ],
   exports: [TypeOrmModule],

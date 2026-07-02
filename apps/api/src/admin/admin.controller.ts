@@ -27,7 +27,6 @@ import {
   CreatePromotionDto,
   UpdatePromotionDto,
 } from 'libs/common/dto/promotion.dto';
-import { gameCategoriesEnum } from 'libs/common/enums/gameCategories.enum';
 
 @Controller('admin')
 export class AdminController {
@@ -77,6 +76,37 @@ export class AdminController {
     return this.adminService.deactivateAdmin(id);
   }
 
+  // Admin do user bonus actions on behalf of a user
+  @Post('users/:userId/bonuses/:bonusId/activate')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
+  activateBonusForUser(
+    @Param('userId') userId: string,
+    @Param('bonusId') bonusId: string,
+  ) {
+    return this.adminService.activateBonusForUser(userId, bonusId);
+  }
+
+  @Post('users/:userId/bonuses/:bonusId/choose-game')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
+  chooseGameForUser(
+    @Param('userId') userId: string,
+    @Param('bonusId') bonusId: string,
+    @Body() body: { gameUUID: string },
+  ) {
+    return this.adminService.chooseGameForUser(userId, bonusId, body.gameUUID);
+  }
+
+  @Get('users/:userId/bonuses/:bonusId/eligible-games')
+  @UseGuards(AdminGuard)
+  getEligibleGamesForUser(
+    @Param('userId') userId: string,
+    @Param('bonusId') bonusId: string,
+  ) {
+    return this.adminService.getEligibleGamesForUser(userId, bonusId);
+  }
+
   // ── PROMOTIONS CRUD ───────────────────────────────
   @Post('promotions')
   @UseGuards(AdminGuard)
@@ -87,8 +117,18 @@ export class AdminController {
 
   @Get('promotions')
   @UseGuards(AdminGuard)
-  listPromotions() {
-    return this.adminService.listPromotions();
+  listPromotions(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('type') type?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.adminService.listPromotions({
+      page:   page   ? parseInt(page, 10)  : undefined,
+      limit:  limit  ? parseInt(limit, 10) : undefined,
+      type:   type   || undefined,
+      status: status || undefined,
+    });
   }
 
   @Get('promotions/:id')
@@ -142,6 +182,23 @@ export class AdminController {
     return this.adminService.getUserBonuses(userId);
   }
 
+  // ── WAGERING ──────────────────────────────────────
+  @Get('wagering')
+  @UseGuards(AdminGuard)
+  getWagering(
+    @Query('page')   page?:   string,
+    @Query('limit')  limit?:  string,
+    @Query('status') status?: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.adminService.getWageringOverview({
+      page:   page  ? parseInt(page, 10)  : undefined,
+      limit:  limit ? parseInt(limit, 10) : undefined,
+      status: status || undefined,
+      userId: userId || undefined,
+    });
+  }
+
   // ── AUDIT LOG ─────────────────────────────────────
   @Get('audit')
   @UseGuards(AdminGuard)
@@ -156,8 +213,20 @@ export class AdminController {
   // ── USER MANAGEMENT ───────────────────────────────
   @Get('users')
   @UseGuards(AdminGuard)
-  getUsers() {
-    return this.adminService.getUsers();
+  getUsers(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('isBlocked') isBlocked?: string,
+    @Query('verified') verified?: string,
+  ) {
+    return this.adminService.getUsers({
+      page:      page      ? parseInt(page, 10)  : undefined,
+      limit:     limit     ? parseInt(limit, 10) : undefined,
+      search:    search    || undefined,
+      isBlocked: isBlocked !== undefined ? isBlocked === 'true'  : undefined,
+      verified:  verified  !== undefined ? verified  === 'true'  : undefined,
+    });
   }
 
   @Get('users/:userId')
@@ -188,6 +257,16 @@ export class AdminController {
   @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
   activateUser(@Param('userId') userId: string) {
     return this.adminService.activateUser(userId);
+  }
+
+  @Put('users/:userId/profile')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
+  updateUser(
+    @Param('userId') userId: string,
+    @Body() body: { firstName?: string; lastName?: string; email?: string; phone?: string; userName?: string; birthday?: string },
+  ) {
+    return this.adminService.updateUser(userId, body);
   }
 
   @Put('users/:userId/personal-id')
@@ -239,7 +318,7 @@ export class AdminController {
     @Query('search') search?: string,
     @Query('provider') provider?: string,
     @Query('isActive') isActive?: string,
-    @Query('category') category?: gameCategoriesEnum,
+    @Query('category') category?: string,
   ) {
     return this.adminService.adminGetAllGames({
       page: page ? parseInt(page, 10) : undefined,
@@ -270,7 +349,7 @@ export class AdminController {
   @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
   addGameToCategory(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { category: gameCategoriesEnum },
+    @Body() body: { category: string },
   ) {
     return this.adminService.addGameToCategory(id, body.category);
   }
@@ -280,7 +359,7 @@ export class AdminController {
   @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
   removeGameFromCategory(
     @Param('id', ParseIntPipe) id: number,
-    @Param('category') category: gameCategoriesEnum,
+    @Param('category') category: string,
   ) {
     return this.adminService.removeGameFromCategory(id, category);
   }
@@ -289,5 +368,72 @@ export class AdminController {
   @UseGuards(AdminGuard)
   getGameCategories(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.getGameCategories(id);
+  }
+
+  @Get('games/demo-url')
+  @UseGuards(AdminGuard)
+  getGameDemoUrl(@Query('gameId') gameId: string, @Query('lang') lang?: string) {
+    return this.adminService.getGameDemoUrl(gameId, lang);
+  }
+
+  @Get('games/providers')
+  @UseGuards(AdminGuard)
+  getGameProviders() {
+    return this.adminService.getGameProviders();
+  }
+
+  @Get('games/category-overview')
+  @UseGuards(AdminGuard)
+  getCategoryOverview() {
+    return this.adminService.getCategoryOverview();
+  }
+
+  // ── CATEGORY DEFINITIONS ─────────────────────────
+  @Get('category-defs')
+  @UseGuards(AdminGuard)
+  listCategoryDefs() {
+    return this.adminService.listCategoryDefs();
+  }
+
+  @Post('category-defs')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
+  createCategoryDef(
+    @Body() body: { key: string; label: string; color?: string; sortOrder?: number },
+  ) {
+    return this.adminService.createCategoryDef(body);
+  }
+
+  @Delete('category-defs/:key')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
+  deleteCategoryDef(@Param('key') key: string) {
+    return this.adminService.deleteCategoryDef(key);
+  }
+
+  // ── PLATFORM STATS ────────────────────────────────
+  @Get('stats')
+  @UseGuards(AdminGuard)
+  getPlatformStats() {
+    return this.adminService.getPlatformStats();
+  }
+
+  // ── ALL TRANSACTIONS (paginated) ──────────────────
+  @Get('transactions')
+  @UseGuards(AdminGuard)
+  getAllTransactions(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('type') type?: string,
+    @Query('status') status?: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.adminService.getAllTransactions({
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      type: type || undefined,
+      status: status || undefined,
+      userId: userId || undefined,
+    });
   }
 }

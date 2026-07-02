@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   Game,
@@ -13,12 +13,14 @@ import { GameInterface } from '../interface/game.interface';
 import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
+import * as crypto from 'crypto';
 import { UserEntity } from 'libs/database/entities/user.entity';
-import { GameService } from '../game.service';
 import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class RevolverService {
+  private readonly logger = new Logger(RevolverService.name);
+
   constructor(
     //repositoryes
     @InjectRepository(Game)
@@ -206,4 +208,70 @@ export class RevolverService {
   }
 
   ///////////////===================================/////////////////
+
+  // ── DEMO LAUNCH URL ───────────────────────────────
+  getDemoUrl(gameId: string, lang = 'en'): string {
+    const baseUrl = this.configServce.get<string>('REVOLVER_URL', '');
+    const operator = this.configServce.get<string>('REVOLVER_OPERATOR', '');
+    return `${baseUrl}/launch/generic?operator=${operator}&exit_url=&game=${encodeURIComponent(gameId)}&token=XYZ&lang=${lang}&variant=desktop&freeplay=true`;
+  }
+
+  // ── FREE SPINS API ────────────────────────────────
+  async grantFreeSpins(params: {
+    playerId: string;
+    game: string;
+    numberOfFreeSpins: number;
+    betAmountPerFreeSpin: number;
+    currency: string;
+    expiresAt: string;
+    transactionId: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    const operator = (this.configServce.get<string>('REVOLVER_OPERATOR', '')).trim();
+    const baseUrl = (this.configServce.get<string>(
+      'REVOLVER_BACKOFFICE_URL',
+      'https://gap-backofficeapi-stage.platforms.revolvergaming.com/api/exposed/generic/promotions',
+    )).trim();
+
+    const secretKey = (this.configServce.get<string>('REVOLVER_HASH', '')).trim();
+    const hash = crypto.createHash('md5').update(operator + secretKey).digest('hex');
+
+    const body = {
+      operator,
+      transactionId: params.transactionId,
+      playerId: params.playerId,
+      brand: operator,
+      game: params.game,
+      numberOfFreeSpins: params.numberOfFreeSpins,
+      betAmountPerFreeSpin: params.betAmountPerFreeSpin,
+      expires: params.expiresAt,
+      currency: params.currency,
+      additionalData: {},
+      hash,
+    };
+
+    try {
+      const res = await fetch(`${baseUrl}/freespins/flexi/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        this.logger.warn(
+          `Revolver free spins grant failed [${res.status}] player=${params.playerId} game=${params.game}: ${JSON.stringify(json)}`,
+        );
+        return { success: false, error: json?.message ?? `HTTP ${res.status}` };
+      }
+
+      this.logger.log(
+        `Free spins granted: ${params.numberOfFreeSpins} spins on ${params.game} for player ${params.playerId}`,
+      );
+      return { success: true };
+    } catch (err: any) {
+      this.logger.error(`Revolver free spins network error: ${err.message}`);
+      return { success: false, error: err.message };
+    }
+  }
 }

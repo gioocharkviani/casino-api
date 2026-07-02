@@ -9,7 +9,11 @@ import {
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
 import { PaymentService } from './payment/payment.service';
-import { depositDto, withdrawalDto } from 'libs/common/dto/payment.dto';
+import {
+  depositDto,
+  withdrawalDto,
+  PayInExtraWebhookDto,
+} from 'libs/common/dto/payment.dto';
 import { transactionService } from './transactions/transaction.service';
 
 @Controller()
@@ -66,6 +70,11 @@ export class WalletController {
     return this.paymentService.withdrawal(data);
   }
 
+  @MessagePattern('PAYMENT_WEBHOOK')
+  handlePaymentWebhook(@Payload() data: PayInExtraWebhookDto & { webhookSecret: string }) {
+    return this.paymentService.handleWebhook(data);
+  }
+
   // ADMIN: get transactions by userId
   @MessagePattern('ADMIN_USER_TRANSACTIONS')
   adminUserTransactions(
@@ -75,6 +84,15 @@ export class WalletController {
       data.userId,
       data.limit,
     );
+  }
+
+  // ADMIN: all transactions with pagination and filters
+  @MessagePattern('ADMIN_ALL_TRANSACTIONS')
+  adminAllTransactions(
+    @Payload()
+    data: { page?: number; limit?: number; type?: string; status?: string; userId?: string },
+  ) {
+    return this.transactionService.adminGetAllTransactions(data);
   }
 
   // ADMIN: manual balance adjustment

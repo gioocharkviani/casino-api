@@ -8,7 +8,7 @@ async function bootstrap() {
     {
       transport: Transport.TCP,
       options: {
-        host: 'localhost',
+        host: process.env.MS_LISTEN_HOST || '0.0.0.0',
         port: 3038,
       },
     },
