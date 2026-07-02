@@ -110,8 +110,8 @@ export class userVerificationEntity {
   id!: number;
   @Column()
   userId?: string;
-  @Column()
-  otp?: string;
+  @Column({ nullable: true })
+  otp?: string | null;
   @CreateDateColumn()
   createdAt?: Date;
   @Column()

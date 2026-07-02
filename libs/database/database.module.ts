@@ -62,7 +62,7 @@ import { AdminEntity, AdminSessionEntity } from './entities/admin.entity';
         CategoryDefinition,
       ],
 
-      synchronize: true,
+      synchronize: process.env.DB_SYNCHRONIZE === 'true',
 
       timezone: '+04:00',
       charset: 'utf8mb4',
