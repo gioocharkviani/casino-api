@@ -33,7 +33,7 @@ export class WageringProgressService {
     for (const up of active) {
       // if allowedGameUUIDs is set, only bets on those games count
       const allowed = up.promotion.allowedGameUUIDs;
-      if (allowed?.length && evt.gameId && !allowed.includes(evt.gameId)) {
+      if (allowed?.length && evt.gameKey && !allowed.includes(evt.gameKey)) {
         continue;
       }
 

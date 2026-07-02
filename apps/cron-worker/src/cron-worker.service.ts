@@ -68,7 +68,7 @@ export class CronWorkerService {
     const result = await this.verifyRepo
       .createQueryBuilder()
       .update()
-      .set({ otp: null })
+      .set({ otp: () => 'NULL' })
       .where('expiresAt < :now', { now })
       .andWhere('otp IS NOT NULL')
       .execute();
