@@ -108,13 +108,13 @@ export class UserSessionEntity {
 export class userVerificationEntity {
   @PrimaryGeneratedColumn()
   id!: number;
-  @Column()
+  @Column({ type: 'varchar', nullable: true })
   userId?: string;
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   otp?: string | null;
   @CreateDateColumn()
   createdAt?: Date;
-  @Column()
+  @Column({ type: 'datetime' })
   expiresAt!: Date;
 }
 
