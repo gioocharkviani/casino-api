@@ -3,10 +3,19 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { swaggerDocument } from './swagger.document';
+import { setGlobalDispatcher, Agent } from 'undici';
 
 import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
+  setGlobalDispatcher(
+    new Agent({
+      connect: {
+        family: 4,
+      },
+    }),
+  );
+
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
