@@ -1,8 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { CronWorkerModule } from './cron-worker.module';
+import { setGlobalDispatcher, Agent } from 'undici';
 
 async function bootstrap() {
+  setGlobalDispatcher(new Agent({ connect: { family: 4 } }));
+
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     CronWorkerModule,
     {
