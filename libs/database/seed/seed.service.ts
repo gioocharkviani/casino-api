@@ -17,8 +17,6 @@ export class SeedService {
     console.log('🌱 Database seeding completed!');
   }
 
-  //COUNTRY SEEDER
-  // COUNTRY SEEDER
   private async countrySeeder() {
     await this.countryRepository.deleteAll();
 

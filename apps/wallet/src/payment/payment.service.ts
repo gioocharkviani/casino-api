@@ -124,7 +124,12 @@ export class PaymentService {
       };
     }
 
-    const headers = this.buildHeaders(apiKey, merchantId, idempotencyKey, secret);
+    const headers = this.buildHeaders(
+      apiKey,
+      merchantId,
+      idempotencyKey,
+      secret,
+    );
     const endpoint = `${baseUrl}/payments/deposits`;
 
     // Save a PENDING transaction before calling the provider
@@ -146,8 +151,9 @@ export class PaymentService {
         headers,
         body: JSON.stringify(reqBody),
       });
-
+      console.log('req', req);
       const res = await req.json();
+      console.log('res', res);
 
       if (!req.ok) {
         await this.transactionRepo.update(savedTx.id, {
@@ -260,7 +266,12 @@ export class PaymentService {
       reason: `Withdrawal to IBAN: ${data.iban}`,
     });
 
-    const headers = this.buildHeaders(apiKey, merchantId, idempotencyKey, secret);
+    const headers = this.buildHeaders(
+      apiKey,
+      merchantId,
+      idempotencyKey,
+      secret,
+    );
     const endpoint = `${baseUrl}/payments/withdrawals`;
 
     try {
@@ -310,9 +321,7 @@ export class PaymentService {
   }
 
   // ── WEBHOOK HANDLER ───────────────────────────────────────────────────────
-  async handleWebhook(
-    data: PayInExtraWebhookDto & { webhookSecret: string },
-  ) {
+  async handleWebhook(data: PayInExtraWebhookDto & { webhookSecret: string }) {
     const configuredSecret = this.configService.get<string>(
       'PAYMENT_EXTRA_WEBHOOK_SECRET',
     );
@@ -354,7 +363,11 @@ export class PaymentService {
         return {
           code: 200,
           message: 'Webhook processed',
-          triggerData: { userId: tx.userId, amount: txAmount, eventType: 'deposit' },
+          triggerData: {
+            userId: tx.userId,
+            amount: txAmount,
+            eventType: 'deposit',
+          },
         };
       } else if (tx.type === TransactionType.WITHDRAWAL) {
         await this.transactionRepo.update(tx.id, {
