@@ -71,10 +71,10 @@ export class UserEntity {
   blockReason?: string;
 
   @Column({ type: 'varchar', length: 128, nullable: true })
-  resetToken?: string;
+  resetToken?: string | null;
 
   @Column({ type: 'datetime', nullable: true })
-  resetTokenExpiresAt?: Date;
+  resetTokenExpiresAt?: Date | null;
 
   @CreateDateColumn()
   createdAt!: Date;
@@ -89,7 +89,7 @@ export class UserSessionEntity {
   id?: number;
 
   @Column({ type: 'varchar', unique: true, nullable: true, default: null })
-  token?: string;
+  token!: string | null;
 
   @Column({ nullable: true, default: null })
   ip?: string;
@@ -108,13 +108,13 @@ export class UserSessionEntity {
 export class userVerificationEntity {
   @PrimaryGeneratedColumn()
   id!: number;
-  @Column({ type: 'varchar', nullable: true })
+  @Column()
   userId?: string;
-  @Column({ type: 'varchar', nullable: true })
-  otp?: string;
+  @Column({ nullable: true })
+  otp?: string | null;
   @CreateDateColumn()
   createdAt?: Date;
-  @Column({ type: 'datetime' })
+  @Column()
   expiresAt!: Date;
 }
 
