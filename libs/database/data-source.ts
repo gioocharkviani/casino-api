@@ -37,7 +37,6 @@ export default new DataSource({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
 
-  // 👇 მკაფიო თანმიმდევრობა - ჯერ Parent, შემდეგ Child
   entities: [
     Game,
     MetaData,

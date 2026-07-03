@@ -110,7 +110,7 @@ export class userVerificationEntity {
   id!: number;
   @Column()
   userId?: string;
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   otp?: string | null;
   @CreateDateColumn()
   createdAt?: Date;
