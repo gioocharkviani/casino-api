@@ -12,6 +12,15 @@ async function bootstrap() {
     }),
   );
 
+  // DEBUG: შემოწმება, ნამდვილად IPv4-ით გადის თუ არა fetch
+  try {
+    const res = await fetch('https://api64.ipify.org?format=json');
+    const data = await res.json();
+    console.log('🔍 DEBUG Outbound IP:', data.ip);
+  } catch (err) {
+    console.error('🔍 DEBUG IP check failed:', err);
+  }
+
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     WalletModule,
     {
