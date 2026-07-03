@@ -111,7 +111,7 @@ export class userVerificationEntity {
   @Column({ type: 'varchar', nullable: true })
   userId?: string;
   @Column({ type: 'varchar', nullable: true })
-  otp?: string | null;
+  otp?: string;
   @CreateDateColumn()
   createdAt?: Date;
   @Column({ type: 'datetime' })
