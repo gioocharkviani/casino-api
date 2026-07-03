@@ -1,31 +1,6 @@
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 import * as path from 'path';
-import {
-  CategoryDefinition,
-  FavoriteGame,
-  Game,
-  GameCategories,
-  GameProvider,
-  GameSession,
-  MetaData,
-} from './entities/game.entity';
-import { bonusWallet, walletEntity } from './entities/wallet.entity';
-import {
-  UserEntity,
-  UserLevelsEntity,
-  UserSessionEntity,
-  userVerificationEntity,
-} from './entities/user.entity';
-import { CountryEntity } from './entities/country.entity';
-import { TransactionEntity } from './entities/transaction.entity';
-import { UserWageringStats } from './entities/user-wagering.entity';
-import {
-  PromotionEntity,
-  UserPromotionEntity,
-  PromotionAuditEntity,
-} from './entities/promotions.entity';
-import { AdminEntity, AdminSessionEntity } from './entities/admin.entity';
 
 config();
 
@@ -37,29 +12,7 @@ export default new DataSource({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
 
-  entities: [
-    Game,
-    MetaData,
-    GameProvider,
-    walletEntity,
-    UserEntity,
-    CountryEntity,
-    TransactionEntity,
-    GameSession,
-    UserSessionEntity,
-    userVerificationEntity,
-    GameCategories,
-    UserWageringStats,
-    bonusWallet,
-    UserLevelsEntity,
-    FavoriteGame,
-    PromotionEntity,
-    UserPromotionEntity,
-    PromotionAuditEntity,
-    AdminEntity,
-    AdminSessionEntity,
-    CategoryDefinition,
-  ],
+  entities: [path.join(__dirname, 'entities', '**', '*.entity.{ts,js}')],
 
   migrations: [path.join(__dirname, 'migrations', '*.{ts,js}')],
 
