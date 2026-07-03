@@ -51,7 +51,7 @@ export class AdminSessionEntity {
   id?: number;
 
   @Column({ type: 'varchar', unique: true, nullable: true, default: null })
-  token!: string | null;
+  token?: string;
 
   @Column({ nullable: true, default: null })
   ip?: string;

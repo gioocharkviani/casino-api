@@ -49,10 +49,10 @@ export class Game {
   gameName?: string;
 
   @Column({ type: 'text', nullable: true })
-  description?: string | null;
+  description?: string;
 
   @Column({ type: 'text', nullable: true })
-  rules?: string | null;
+  rules?: string;
 
   @Column({ default: 1 })
   status?: number;
@@ -160,7 +160,7 @@ export class GameSession {
   id?: number;
 
   @Column({ unique: true, nullable: true, type: 'varchar' })
-  token?: string | null;
+  token?: string;
 
   @Column()
   playerId!: string;
