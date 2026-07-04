@@ -15,7 +15,7 @@ import { PromotionsGatewayModule } from '../promotions/promotions.module';
         inject: [ConfigService],
         useFactory: (cfg: ConfigService) => ({
           transport: Transport.TCP,
-          options: { host: cfg.get('WALLET_MS_HOST', 'localhost'), port: 3031 },
+          options: { host: cfg.get('WALLET_MS_HOST', 'localhost'), port: 3031, retryAttempts: 10, retryDelay: 3000 },
         }),
       },
     ]),

@@ -18,7 +18,7 @@ import { AdminGuard } from 'libs/guards/admin.guard';
         inject: [ConfigService],
         useFactory: (cfg: ConfigService) => ({
           transport: Transport.TCP,
-          options: { host: cfg.get('PROMOTIONS_MS_HOST', 'localhost'), port: 3038 },
+          options: { host: cfg.get('PROMOTIONS_MS_HOST', 'localhost'), port: 3038, retryAttempts: 10, retryDelay: 3000 },
         }),
       },
       {
@@ -27,7 +27,7 @@ import { AdminGuard } from 'libs/guards/admin.guard';
         inject: [ConfigService],
         useFactory: (cfg: ConfigService) => ({
           transport: Transport.TCP,
-          options: { host: cfg.get('USER_MS_HOST', 'localhost'), port: 3035 },
+          options: { host: cfg.get('USER_MS_HOST', 'localhost'), port: 3035, retryAttempts: 10, retryDelay: 3000 },
         }),
       },
       {
@@ -36,7 +36,7 @@ import { AdminGuard } from 'libs/guards/admin.guard';
         inject: [ConfigService],
         useFactory: (cfg: ConfigService) => ({
           transport: Transport.TCP,
-          options: { host: cfg.get('GAME_MS_HOST', 'localhost'), port: 3039 },
+          options: { host: cfg.get('GAME_MS_HOST', 'localhost'), port: 3039, retryAttempts: 10, retryDelay: 3000 },
         }),
       },
       {
@@ -45,7 +45,7 @@ import { AdminGuard } from 'libs/guards/admin.guard';
         inject: [ConfigService],
         useFactory: (cfg: ConfigService) => ({
           transport: Transport.TCP,
-          options: { host: cfg.get('WALLET_MS_HOST', 'localhost'), port: 3031 },
+          options: { host: cfg.get('WALLET_MS_HOST', 'localhost'), port: 3031, retryAttempts: 10, retryDelay: 3000 },
         }),
       },
     ]),

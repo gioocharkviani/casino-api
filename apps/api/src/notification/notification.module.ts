@@ -3,7 +3,6 @@ import { notificationController } from './notification.controller';
 import { notificationService } from './notification.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { EmailService } from 'apps/notification/src/email/email.service';
 
 @Module({
   imports: [
@@ -15,13 +14,13 @@ import { EmailService } from 'apps/notification/src/email/email.service';
         inject: [ConfigService],
         useFactory: (cfg: ConfigService) => ({
           transport: Transport.TCP,
-          options: { host: cfg.get('NOTIFICATION_MS_HOST', 'localhost'), port: 3037 },
+          options: { host: cfg.get('NOTIFICATION_MS_HOST', 'localhost'), port: 3037, retryAttempts: 10, retryDelay: 3000 },
         }),
       },
     ]),
   ],
   controllers: [notificationController],
-  providers: [notificationService, EmailService],
-  exports: [notificationService, EmailService],
+  providers: [notificationService],
+  exports: [notificationService],
 })
 export class NotificationModule {}

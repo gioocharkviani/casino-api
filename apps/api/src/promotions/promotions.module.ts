@@ -14,7 +14,7 @@ import { PromotionsGatewayService } from './promotions.service';
         inject: [ConfigService],
         useFactory: (cfg: ConfigService) => ({
           transport: Transport.TCP,
-          options: { host: cfg.get('PROMOTIONS_MS_HOST', 'localhost'), port: 3038 },
+          options: { host: cfg.get('PROMOTIONS_MS_HOST', 'localhost'), port: 3038, retryAttempts: 10, retryDelay: 3000 },
         }),
       },
     ]),
