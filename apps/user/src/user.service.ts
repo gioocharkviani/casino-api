@@ -332,6 +332,13 @@ export class UserService {
     const updateData: any = { ...fullUser };
 
     if (data.email && data.email !== fullUser.email) {
+      const emailTaken = await this.userRepository.findOne({ where: { email: data.email } });
+      if (emailTaken) {
+        throw new RpcException({
+          message: 'EMAIL_ALREADY_IN_USE',
+          statusCode: HttpStatus.CONFLICT,
+        });
+      }
       updateData.email = data.email;
       updateData.verified = false;
     }
