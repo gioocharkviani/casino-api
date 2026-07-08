@@ -107,6 +107,7 @@ export class PaymentService {
       customer: {
         name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
         email: user.email,
+        phone: user.phone ?? '',
         reference: `user-${user.id}`,
         identificationNumber: user.personalId || '00000000000',
       },
