@@ -236,10 +236,6 @@ export class UserService {
         },
       });
 
-      if (!level) {
-        return userWithoutPassword;
-      }
-
       return { ...userWithoutPassword, level: level ?? null };
     } catch (error) {
       throw new RpcException({

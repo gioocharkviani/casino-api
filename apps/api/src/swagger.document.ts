@@ -214,6 +214,32 @@ export const swaggerDocument: Omit<OpenAPIObject, 'paths'> & {
         },
       },
 
+      // ── LEVELS ───────────────────────────────────────────────────────────────
+      CreateLevelRequest: {
+        type: 'object',
+        required: ['name', 'minPoints', 'maxPoints'],
+        properties: {
+          name:        { type: 'string',  example: 'Bronze' },
+          minPoints:   { type: 'integer', example: 0 },
+          maxPoints:   { type: 'integer', example: 100 },
+          order:       { type: 'integer', example: 1 },
+          description: { type: 'string',  example: 'Starter level' },
+          badgeUrl:    { type: 'string',  example: 'https://cdn.example.com/bronze.png' },
+        },
+      },
+      UpdateLevelRequest: {
+        type: 'object',
+        properties: {
+          name:        { type: 'string',  example: 'Silver' },
+          minPoints:   { type: 'integer', example: 101 },
+          maxPoints:   { type: 'integer', example: 500 },
+          order:       { type: 'integer', example: 2 },
+          description: { type: 'string',  example: 'Intermediate level' },
+          badgeUrl:    { type: 'string',  example: 'https://cdn.example.com/silver.png' },
+          isActive:    { type: 'boolean', example: true },
+        },
+      },
+
       // â”€â”€ ADMIN GAMES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       AddGameCategoryRequest: {
         type: 'object',
@@ -306,6 +332,61 @@ export const swaggerDocument: Omit<OpenAPIObject, 'paths'> & {
     // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // WALLET
     // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // ══════════════════════════════════════════════════════════════════════════
+    // LEVELS (user)
+    // ══════════════════════════════════════════════════════════════════════════
+    '/api/user/levels': {
+      get: {
+        tags: ['Levels'],
+        summary: 'Get all levels (public)',
+        responses: { 200: { description: 'Array of level objects' } },
+      },
+    },
+    '/api/user/my-level': {
+      get: {
+        tags: ['Levels'],
+        summary: "Get current user's level and XP",
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: '{ xp, level }' }, 401: { description: 'Unauthorized' } },
+      },
+    },
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ADMIN – LEVELS
+    // ══════════════════════════════════════════════════════════════════════════
+    '/api/admin/levels': {
+      get: {
+        tags: ['Admin / Levels'],
+        summary: 'List all levels  [any admin]',
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: 'Level list' } },
+      },
+      post: {
+        tags: ['Admin / Levels'],
+        summary: 'Create a new level  [admin, super_admin]',
+        security: [{ bearerAuth: [] }],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateLevelRequest' } } } },
+        responses: { 201: { description: 'Level created' } },
+      },
+    },
+    '/api/admin/levels/{id}': {
+      put: {
+        tags: ['Admin / Levels'],
+        summary: 'Update a level  [admin, super_admin]',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/UpdateLevelRequest' } } } },
+        responses: { 200: { description: 'Level updated' }, 404: { description: 'Not found' } },
+      },
+      delete: {
+        tags: ['Admin / Levels'],
+        summary: 'Delete a level  [admin, super_admin]',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { 200: { description: 'Deleted' }, 404: { description: 'Not found' } },
+      },
+    },
+
     '/api/wallet/deposit': {
       post: {
         tags: ['Wallet'],
