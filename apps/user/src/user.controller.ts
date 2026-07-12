@@ -118,4 +118,31 @@ export class UserController {
   adminGetAllWagering(@Payload() filters: { page?: number; limit?: number; search?: string }) {
     return this.UserService.adminGetAllWagering(filters);
   }
+
+  // LEVELS
+  @MessagePattern('GET_LEVELS')
+  getLevels() {
+    return this.UserService.getLevels();
+  }
+
+  @MessagePattern('GET_USER_LEVEL')
+  getUserLevel(@Payload() token: string) {
+    return this.UserService.getUserLevel(token);
+  }
+
+  @MessagePattern('ADMIN_CREATE_LEVEL')
+  adminCreateLevel(@Payload() data: { name: string; minPoints: number; maxPoints: number; order?: number; description?: string; badgeUrl?: string }) {
+    return this.UserService.adminCreateLevel(data);
+  }
+
+  @MessagePattern('ADMIN_UPDATE_LEVEL')
+  adminUpdateLevel(@Payload() data: { id: number; name?: string; minPoints?: number; maxPoints?: number; order?: number; description?: string; badgeUrl?: string; isActive?: boolean }) {
+    return this.UserService.adminUpdateLevel(data);
+  }
+
+  @MessagePattern('ADMIN_DELETE_LEVEL')
+  adminDeleteLevel(@Payload() id: number) {
+    return this.UserService.adminDeleteLevel(id);
+  }
+  // LEVELS
 }

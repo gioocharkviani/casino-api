@@ -125,4 +125,19 @@ export class UserController {
     };
     return this.UserService.changeUserInfo(data);
   }
+
+  // GET ALL LEVELS
+  @Get('levels')
+  getLevels() {
+    return this.UserService.getLevels();
+  }
+
+  // GET USER'S CURRENT LEVEL
+  @Get('my-level')
+  @UseGuards(AuthGuard)
+  getUserLevel(@Req() req: Request) {
+    const header = req.headers?.authorization;
+    const token = header?.startsWith('Bearer ') ? header.split(' ')[1] : '';
+    return this.UserService.getUserLevel(token);
+  }
 }

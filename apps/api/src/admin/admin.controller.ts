@@ -411,6 +411,39 @@ export class AdminController {
     return this.adminService.deleteCategoryDef(key);
   }
 
+  // ── USER LEVELS ───────────────────────────────────
+  @Get('levels')
+  @UseGuards(AdminGuard)
+  listLevels() {
+    return this.adminService.listLevels();
+  }
+
+  @Post('levels')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
+  createLevel(
+    @Body() body: { name: string; minPoints: number; maxPoints: number; order?: number; description?: string; badgeUrl?: string },
+  ) {
+    return this.adminService.createLevel(body);
+  }
+
+  @Put('levels/:id')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
+  updateLevel(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { name?: string; minPoints?: number; maxPoints?: number; order?: number; description?: string; badgeUrl?: string; isActive?: boolean },
+  ) {
+    return this.adminService.updateLevel(id, body);
+  }
+
+  @Delete('levels/:id')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
+  deleteLevel(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.deleteLevel(id);
+  }
+
   // ── PLATFORM STATS ────────────────────────────────
   @Get('stats')
   @UseGuards(AdminGuard)

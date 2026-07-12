@@ -340,6 +340,24 @@ export class AdminService {
     }
   }
 
+  // LEVELS
+  async listLevels() {
+    return lastValueFrom(this.userClient.send('GET_LEVELS', {}));
+  }
+
+  async createLevel(data: { name: string; minPoints: number; maxPoints: number; order?: number; description?: string; badgeUrl?: string }) {
+    return lastValueFrom(this.userClient.send('ADMIN_CREATE_LEVEL', data));
+  }
+
+  async updateLevel(id: number, data: { name?: string; minPoints?: number; maxPoints?: number; order?: number; description?: string; badgeUrl?: string; isActive?: boolean }) {
+    return lastValueFrom(this.userClient.send('ADMIN_UPDATE_LEVEL', { id, ...data }));
+  }
+
+  async deleteLevel(id: number) {
+    return lastValueFrom(this.userClient.send('ADMIN_DELETE_LEVEL', id));
+  }
+  // LEVELS
+
   async adjustUserBalance(
     userId: string,
     amount: number,

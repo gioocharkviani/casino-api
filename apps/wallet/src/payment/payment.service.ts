@@ -133,7 +133,7 @@ export class PaymentService {
     );
     const endpoint = `${baseUrl}/payments/deposits`;
 
-    // Save a PENDING transaction before calling the provider
+    // Save transaction before calling the provider
     const savedTx = await this.transactionService.createTransaction({
       amount: data.amount,
       type: TransactionType.DEPOSIT,
@@ -152,9 +152,8 @@ export class PaymentService {
         headers,
         body: JSON.stringify(reqBody),
       });
-      console.log('req', req);
+
       const res = await req.json();
-      console.log('res', res);
 
       if (!req.ok) {
         await this.transactionRepo.update(savedTx.id, {

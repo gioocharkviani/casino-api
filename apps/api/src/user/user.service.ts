@@ -74,4 +74,13 @@ export class UserService {
   async resetPassword(token: string, newPassword: string) {
     return lastValueFrom(this.client.send('USER_RESET_PASSWORD', { token, newPassword }));
   }
+
+  // LEVELS
+  async getLevels() {
+    return lastValueFrom(this.client.send('GET_LEVELS', {}));
+  }
+
+  async getUserLevel(token: string) {
+    return lastValueFrom(this.client.send('GET_USER_LEVEL', token));
+  }
 }
