@@ -222,18 +222,6 @@ export class UserService {
           minPoints: LessThanOrEqual(findUser.xp ?? 0),
           maxPoints: MoreThanOrEqual(findUser.xp ?? 0),
         },
-        select: {
-          minPoints: true,
-          maxPoints: true,
-          name: true,
-          badgeUrl: true,
-          createdAt: false,
-          description: false,
-          id: false,
-          isActive: false,
-          order: false,
-          updatedAt: false,
-        },
       });
 
       return { ...userWithoutPassword, level: level ?? null };
