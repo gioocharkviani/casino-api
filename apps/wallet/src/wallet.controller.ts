@@ -15,6 +15,7 @@ import {
   PayInExtraWebhookDto,
 } from 'libs/common/dto/payment.dto';
 import { transactionService } from './transactions/transaction.service';
+import { AnalyticsService } from './analytics/analytics.service';
 
 @Controller()
 export class WalletController {
@@ -22,6 +23,7 @@ export class WalletController {
     private readonly walletService: WalletService,
     private readonly paymentService: PaymentService,
     private readonly transactionService: transactionService,
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   @MessagePattern('WALLET_AUTH')
@@ -93,6 +95,18 @@ export class WalletController {
     data: { page?: number; limit?: number; type?: string; status?: string; userId?: string },
   ) {
     return this.transactionService.adminGetAllTransactions(data);
+  }
+
+  // ADMIN: platform analytics
+  @MessagePattern('ADMIN_ANALYTICS')
+  adminAnalytics() {
+    return this.analyticsService.getPlatformAnalytics();
+  }
+
+  // ADMIN: per-user analytics
+  @MessagePattern('ADMIN_USER_ANALYTICS')
+  adminUserAnalytics(@Payload() userId: string) {
+    return this.analyticsService.getUserAnalytics(userId);
   }
 
   // ADMIN: manual balance adjustment

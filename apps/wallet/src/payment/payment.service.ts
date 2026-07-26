@@ -96,34 +96,22 @@ export class PaymentService {
     }
 
     const merchantReference = `order-${user.id}-${idempotencyKey}`;
-    const formattedMonth = String(data.cardExpMonth ?? 1).padStart(2, '0');
-    const formattedCardNumber = data.cardNumber?.replace(/\s/g, '') ?? '';
 
+    const customerName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email;
     const reqBody: Record<string, any> = {
       amount: data.amount,
       currency: this.configService.get('DEFAULT_CURRENCY') || 'TRY',
-      paymentMethod: 'credit_card_international',
+      paymentMethod: 'bank_transfer',
       merchantReference,
       customer: {
-        name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
+        name: customerName,
         email: user.email,
         phone: user.phone ?? '',
         reference: `user-${user.id}`,
         identificationNumber: user.personalId || '00000000000',
       },
-      metadata: { orderType: 'deposit' },
+      metadata: { orderType: 'deposit', userId: user.id },
     };
-
-    if (formattedCardNumber) {
-      reqBody.cardDetails = {
-        cardNumber: formattedCardNumber,
-        cardholderName:
-          data.cardholderName ?? `${user.firstName} ${user.lastName}`,
-        cardExpMonth: formattedMonth,
-        cardExpYear: String(data.cardExpYear ?? ''),
-        cvv: data.cvv ?? '',
-      };
-    }
 
     const headers = this.buildHeaders(
       apiKey,
@@ -156,14 +144,17 @@ export class PaymentService {
       const res = await req.json();
 
       if (!req.ok) {
+        const errMsg = res?.message || res?.error || JSON.stringify(res);
+        console.error('[Payment] Deposit rejected by PayInExtra:', req.status, errMsg, JSON.stringify(res));
         await this.transactionRepo.update(savedTx.id, {
           status: TransactionStatusEnum.FAILD,
-          reason: res?.message || 'PayInExtra rejected the request',
+          reason: errMsg?.slice(0, 250) || 'PayInExtra rejected the request',
         });
         return {
           code: req.status,
           data: null,
-          message: res?.message || 'Deposit request failed',
+          message: errMsg || 'Deposit request failed',
+          providerResponse: res,
         };
       }
 
@@ -231,22 +222,18 @@ export class PaymentService {
 
     const merchantReference = `withdrawal-${user.id}-${idempotencyKey}`;
 
+    const fullName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim();
+    const holderName = data.accountHolderName ?? (fullName || user.email);
     const reqBody = {
       amount: data.amount,
       currency: this.configService.get('DEFAULT_CURRENCY') || 'TRY',
       merchantReference,
-      customer: {
-        name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
-        email: user.email,
-        reference: `user-${user.id}`,
-      },
+      payoutMethod: 'havale',
       destination: {
-        type: 'bank_transfer',
+        accountName: holderName,
         iban: data.iban,
-        accountHolderName:
-          data.accountHolderName ??
-          `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
       },
+      metadata: { userId: user.id },
     };
 
     // Deduct balance immediately and record PROCESSING transaction

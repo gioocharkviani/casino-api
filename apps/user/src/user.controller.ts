@@ -119,6 +119,12 @@ export class UserController {
     return this.UserService.adminGetAllWagering(filters);
   }
 
+  // ADMIN: user registration analytics
+  @MessagePattern('ADMIN_USER_REGISTRATIONS')
+  adminUserRegistrations() {
+    return this.UserService.adminGetUserAnalytics();
+  }
+
   // LEVELS
   @MessagePattern('GET_LEVELS')
   getLevels() {

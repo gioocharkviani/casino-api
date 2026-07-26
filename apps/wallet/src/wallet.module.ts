@@ -9,6 +9,7 @@ import { WageringService } from 'libs/common/services/wagering.service';
 import { UserModule } from 'apps/user/src/user.module';
 import { PaymentService } from './payment/payment.service';
 import { transactionService } from './transactions/transaction.service';
+import { AnalyticsService } from './analytics/analytics.service';
 
 @Module({
   imports: [
@@ -35,7 +36,7 @@ import { transactionService } from './transactions/transaction.service';
     ]),
   ],
   controllers: [WalletController],
-  providers: [PaymentService, WalletService, WageringService],
+  providers: [PaymentService, WalletService, WageringService, AnalyticsService],
   exports: [PaymentService],
 })
 export class WalletModule {}

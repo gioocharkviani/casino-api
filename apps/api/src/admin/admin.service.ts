@@ -516,6 +516,36 @@ export class AdminService {
     }
   }
 
+  async getAnalytics() {
+    try {
+      const [analyticsRes, userRes] = await Promise.all([
+        lastValueFrom(this.walletClient.send('ADMIN_ANALYTICS', {})).catch(() => null),
+        lastValueFrom(this.userClient.send('ADMIN_USER_REGISTRATIONS', {})).catch(() => null),
+      ]);
+
+      return {
+        statusCode: 200,
+        data: {
+          ...(analyticsRes?.data ?? {}),
+          userRegistrations: userRes?.data ?? null,
+        },
+      };
+    } catch {
+      return { statusCode: 500, message: 'Analytics unavailable' };
+    }
+  }
+
+  async getUserAnalytics(userId: string) {
+    try {
+      const res = await lastValueFrom(
+        this.walletClient.send('ADMIN_USER_ANALYTICS', userId),
+      ).catch(() => null);
+      return res ?? { statusCode: 500, message: 'Analytics unavailable' };
+    } catch {
+      return { statusCode: 500, message: 'Analytics unavailable' };
+    }
+  }
+
   async getPlatformStats() {
     try {
       const [allUsersRes, activeRes, blockedRes, unverifiedRes, gamesRes] = await Promise.all([

@@ -793,6 +793,50 @@ export class UserService {
     };
   }
 
+  // ADMIN: USER ANALYTICS
+  async adminGetUserAnalytics() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - 7);
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    const [dailyRegistrations, newThisWeek, newThisMonth] = await Promise.all([
+      this.userRepository
+        .createQueryBuilder('u')
+        .select("DATE_FORMAT(u.createdAt, '%Y-%m-%d')", 'date')
+        .addSelect('COUNT(*)', 'count')
+        .where('u.createdAt >= :from', { from: thirtyDaysAgo })
+        .groupBy("DATE_FORMAT(u.createdAt, '%Y-%m-%d')")
+        .orderBy("DATE_FORMAT(u.createdAt, '%Y-%m-%d')", 'ASC')
+        .getRawMany(),
+
+      this.userRepository
+        .createQueryBuilder('u')
+        .where('u.createdAt >= :from', { from: startOfWeek })
+        .getCount(),
+
+      this.userRepository
+        .createQueryBuilder('u')
+        .where('u.createdAt >= :from', { from: startOfMonth })
+        .getCount(),
+    ]);
+
+    return {
+      code: 200,
+      data: {
+        newThisWeek,
+        newThisMonth,
+        dailyRegistrations: dailyRegistrations.map((d) => ({
+          date: d.date,
+          count: Number(d.count),
+        })),
+      },
+    };
+  }
+
   //ADMIN: GET USER BY ID
   async adminGetUserById(userId: string) {
     const user = await this.userRepository.findOne({

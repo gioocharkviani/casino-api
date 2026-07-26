@@ -352,6 +352,67 @@ export const swaggerDocument: Omit<OpenAPIObject, 'paths'> & {
     },
 
     // ══════════════════════════════════════════════════════════════════════════
+    // ADMIN – ANALYTICS
+    // ══════════════════════════════════════════════════════════════════════════
+    '/api/admin/analytics': {
+      get: {
+        tags: ['Admin / Analytics'],
+        summary: 'Platform analytics (financial + user stats, last 30 days)  [any admin]',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Analytics data',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    statusCode: { type: 'integer', example: 200 },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        financial: {
+                          type: 'object',
+                          properties: {
+                            deposits:           { type: 'object', properties: { total: { type: 'number' }, count: { type: 'integer' } } },
+                            withdrawals:        { type: 'object', properties: { total: { type: 'number' }, count: { type: 'integer' } } },
+                            pendingWithdrawals: { type: 'object', properties: { total: { type: 'number' }, count: { type: 'integer' } } },
+                            netRevenue:         { type: 'number' },
+                            dailyFinancial:     { type: 'array', items: { type: 'object', properties: { date: { type: 'string' }, deposits: { type: 'number' }, withdrawals: { type: 'number' } } } },
+                            typeBreakdown:      { type: 'array', items: { type: 'object', properties: { type: { type: 'string' }, count: { type: 'integer' } } } },
+                          },
+                        },
+                        users: {
+                          type: 'object',
+                          properties: {
+                            newThisWeek:          { type: 'integer' },
+                            newThisMonth:         { type: 'integer' },
+                            dailyRegistrations:   { type: 'array', items: { type: 'object', properties: { date: { type: 'string' }, count: { type: 'integer' } } } },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    // ── User analytics ────────────────────────────────────────────────────────
+    '/api/admin/analytics/users/{userId}': {
+      get: {
+        tags: ['Admin / Analytics'],
+        summary: 'Per-user analytics (financial summary, games, daily activity)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'userId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { 200: { description: 'User analytics data' } },
+      },
+    },
+
+    // ══════════════════════════════════════════════════════════════════════════
     // ADMIN – LEVELS
     // ══════════════════════════════════════════════════════════════════════════
     '/api/admin/levels': {

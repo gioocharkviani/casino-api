@@ -444,6 +444,19 @@ export class AdminController {
     return this.adminService.deleteLevel(id);
   }
 
+  // ── ANALYTICS ─────────────────────────────────────
+  @Get('analytics')
+  @UseGuards(AdminGuard)
+  getAnalytics() {
+    return this.adminService.getAnalytics();
+  }
+
+  @Get('analytics/users/:userId')
+  @UseGuards(AdminGuard)
+  getUserAnalytics(@Param('userId') userId: string) {
+    return this.adminService.getUserAnalytics(userId);
+  }
+
   // ── PLATFORM STATS ────────────────────────────────
   @Get('stats')
   @UseGuards(AdminGuard)
