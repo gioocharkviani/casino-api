@@ -90,8 +90,11 @@ export class UserService {
     try {
       const savedUser = await this.userRepository.save(user);
       const wallet = new walletEntity();
+      const currency =
+        (await this.configService.get('DEFAULT_CURRENCY')) || 'USD';
+
       wallet.balance = 0;
-      wallet.currency = 'USD';
+      wallet.currency = currency;
       wallet.user = savedUser;
       await this.walletRepositroy.save(wallet);
 
@@ -504,20 +507,44 @@ export class UserService {
 
   async getUserLevel(token: string) {
     const user = await this.getUserInfo(token);
-    if (!user) throw new RpcException({ message: 'UNAUTHORIZED', statusCode: HttpStatus.UNAUTHORIZED });
+    if (!user)
+      throw new RpcException({
+        message: 'UNAUTHORIZED',
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
     const level = await this.levelRepo.findOne({
-      where: { minPoints: LessThanOrEqual(user.xp ?? 0), maxPoints: MoreThanOrEqual(user.xp ?? 0), isActive: true },
+      where: {
+        minPoints: LessThanOrEqual(user.xp ?? 0),
+        maxPoints: MoreThanOrEqual(user.xp ?? 0),
+        isActive: true,
+      },
     });
     return { code: 200, data: { xp: user.xp ?? 0, level: level ?? null } };
   }
 
-  async adminCreateLevel(data: { name: string; minPoints: number; maxPoints: number; order?: number; description?: string; badgeUrl?: string }) {
+  async adminCreateLevel(data: {
+    name: string;
+    minPoints: number;
+    maxPoints: number;
+    order?: number;
+    description?: string;
+    badgeUrl?: string;
+  }) {
     const level = this.levelRepo.create({ ...data, isActive: true });
     await this.levelRepo.save(level);
     return { code: 201, data: level };
   }
 
-  async adminUpdateLevel(data: { id: number; name?: string; minPoints?: number; maxPoints?: number; order?: number; description?: string; badgeUrl?: string; isActive?: boolean }) {
+  async adminUpdateLevel(data: {
+    id: number;
+    name?: string;
+    minPoints?: number;
+    maxPoints?: number;
+    order?: number;
+    description?: string;
+    badgeUrl?: string;
+    isActive?: boolean;
+  }) {
     const { id, ...rest } = data;
     const level = await this.levelRepo.findOne({ where: { id } });
     if (!level) return { code: 404, data: null, message: 'Level not found' };
