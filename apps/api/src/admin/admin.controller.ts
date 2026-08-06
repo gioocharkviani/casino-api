@@ -510,4 +510,18 @@ export class AdminController {
   ) {
     return this.adminService.getGameReport(dateFrom, dateTo);
   }
+
+  // ── LIVE SESSIONS ─────────────────────────────────
+  @Get('live/sessions')
+  @UseGuards(AdminGuard)
+  getLiveSessions() {
+    return this.adminService.getLiveSessions();
+  }
+
+  @Put('live/sessions/:id/close')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
+  forceCloseSession(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.forceCloseSession(id);
+  }
 }

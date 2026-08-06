@@ -115,4 +115,14 @@ export class GameController {
   adminDeleteCategoryDef(@Payload() key: string) {
     return this.gameService.adminDeleteCategoryDef(key);
   }
+
+  @MessagePattern('ADMIN_LIVE_SESSIONS')
+  adminGetLiveSessions() {
+    return this.gameService.adminGetLiveSessions();
+  }
+
+  @MessagePattern('ADMIN_FORCE_CLOSE_SESSION')
+  adminForceCloseSession(@Payload() sessionId: number) {
+    return this.gameService.adminForceCloseSession(sessionId);
+  }
 }

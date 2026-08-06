@@ -483,4 +483,53 @@ export class GameService {
     };
   }
   //VALIDATE GAME SESSION
+
+  // ── ADMIN: LIVE SESSIONS ──────────────────────────────────────────────────
+
+  async adminGetLiveSessions() {
+    try {
+      // Join sessions with games and users in one raw query (same DB)
+      const rows = await this.gameSession.createQueryBuilder('gs')
+        .select(['gs.id', 'gs.playerId', 'gs.gameId', 'gs.createdAt', 'gs.updatedAt'])
+        .addSelect(['g.gameName', 'g.thumbnail'])
+        .addSelect(['gp.name'])
+        .addSelect(['u.firstName', 'u.lastName', 'u.email', 'u.userName'])
+        .leftJoin('games', 'g', 'g.gameUUID = gs.gameId')
+        .leftJoin('game_providers', 'gp', 'gp.id = g.provider_id')
+        .leftJoin('users', 'u', 'u.id = gs.playerId')
+        .where('gs.isActive = :active', { active: true })
+        .orderBy('gs.createdAt', 'DESC')
+        .getRawMany();
+
+      const sessions = rows.map((r: any) => ({
+        id:          r.gs_id,
+        playerId:    r.gs_playerId,
+        gameId:      r.gs_gameId,
+        createdAt:   r.gs_createdAt,
+        updatedAt:   r.gs_updatedAt,
+        gameName:    r.g_gameName   ?? r.gs_gameId,
+        thumbnail:   r.g_thumbnail  ?? null,
+        provider:    r.gp_name      ?? null,
+        userName:    r.u_userName   ?? null,
+        firstName:   r.u_firstName  ?? null,
+        lastName:    r.u_lastName   ?? null,
+        email:       r.u_email      ?? null,
+      }));
+
+      return { code: 200, data: { sessions, total: sessions.length } };
+    } catch (err: any) {
+      return { code: 500, data: null, message: err?.message ?? 'Error fetching live sessions' };
+    }
+  }
+
+  async adminForceCloseSession(sessionId: number) {
+    try {
+      const session = await this.gameSession.findOne({ where: { id: sessionId } });
+      if (!session) return { code: 404, message: 'Session not found' };
+      await this.gameSession.update(sessionId, { isActive: false });
+      return { code: 200, message: 'Session closed' };
+    } catch (err: any) {
+      return { code: 500, message: err?.message ?? 'Error closing session' };
+    }
+  }
 }

@@ -516,6 +516,22 @@ export class AdminService {
     }
   }
 
+  async getLiveSessions() {
+    try {
+      return await lastValueFrom(this.gameClient.send('ADMIN_LIVE_SESSIONS', {}));
+    } catch {
+      return { code: 500, message: 'Game service unavailable' };
+    }
+  }
+
+  async forceCloseSession(sessionId: number) {
+    try {
+      return await lastValueFrom(this.gameClient.send('ADMIN_FORCE_CLOSE_SESSION', sessionId));
+    } catch {
+      return { code: 500, message: 'Game service unavailable' };
+    }
+  }
+
   async approveWithdrawal(txId: string) {
     try {
       return await lastValueFrom(this.walletClient.send('ADMIN_APPROVE_WITHDRAWAL', txId));
