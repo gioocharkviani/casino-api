@@ -91,7 +91,7 @@ export class UserService {
       const savedUser = await this.userRepository.save(user);
       const wallet = new walletEntity();
       const currency =
-        (await this.configService.get('DEFAULT_CURRENCY')) || 'USD';
+        (await this.configService.get('DEFAULT_CURRENCY')) || 'TRY';
 
       wallet.balance = 0;
       wallet.currency = currency;

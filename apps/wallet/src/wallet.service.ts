@@ -55,7 +55,7 @@ export class WalletService {
       code: 200,
       data: {
         playerId: userData?.id,
-        currency: this.configService.get('DEFAULT_CURRENCY') || 'USD',
+        currency: this.configService.get('DEFAULT_CURRENCY') || 'TRY',
         language: userData?.country.language || 'en',
         nickname: userData?.userName,
         balance: userData?.wallet?.balance,
