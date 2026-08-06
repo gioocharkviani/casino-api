@@ -516,6 +516,30 @@ export class AdminService {
     }
   }
 
+  async approveWithdrawal(txId: string) {
+    try {
+      return await lastValueFrom(this.walletClient.send('ADMIN_APPROVE_WITHDRAWAL', txId));
+    } catch {
+      return { code: 500, message: 'Wallet service unavailable' };
+    }
+  }
+
+  async rejectWithdrawal(txId: string, reason: string) {
+    try {
+      return await lastValueFrom(this.walletClient.send('ADMIN_REJECT_WITHDRAWAL', { txId, reason }));
+    } catch {
+      return { code: 500, message: 'Wallet service unavailable' };
+    }
+  }
+
+  async getGameReport(dateFrom?: string, dateTo?: string) {
+    try {
+      return await lastValueFrom(this.walletClient.send('ADMIN_GAME_REPORT', { dateFrom, dateTo }));
+    } catch {
+      return { code: 500, message: 'Wallet service unavailable' };
+    }
+  }
+
   async getAnalytics() {
     try {
       const [analyticsRes, userRes] = await Promise.all([

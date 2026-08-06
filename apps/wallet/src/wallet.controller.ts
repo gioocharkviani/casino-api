@@ -109,6 +109,24 @@ export class WalletController {
     return this.analyticsService.getUserAnalytics(userId);
   }
 
+  // ADMIN: game performance report
+  @MessagePattern('ADMIN_GAME_REPORT')
+  adminGameReport(@Payload() data: { dateFrom?: string; dateTo?: string }) {
+    return this.analyticsService.getGameReport(data?.dateFrom, data?.dateTo);
+  }
+
+  // ADMIN: approve pending withdrawal
+  @MessagePattern('ADMIN_APPROVE_WITHDRAWAL')
+  adminApproveWithdrawal(@Payload() txId: string) {
+    return this.paymentService.adminApproveWithdrawal(txId);
+  }
+
+  // ADMIN: reject pending withdrawal (refund balance)
+  @MessagePattern('ADMIN_REJECT_WITHDRAWAL')
+  adminRejectWithdrawal(@Payload() data: { txId: string; reason: string }) {
+    return this.paymentService.adminRejectWithdrawal(data.txId, data.reason);
+  }
+
   // ADMIN: manual balance adjustment
   @MessagePattern('ADMIN_ADJUST_BALANCE')
   adminAdjustBalance(

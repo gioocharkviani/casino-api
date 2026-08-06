@@ -482,4 +482,32 @@ export class AdminController {
       userId: userId || undefined,
     });
   }
+
+  // ── WITHDRAWAL APPROVAL ────────────────────────────
+  @Put('withdrawals/:id/approve')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
+  approveWithdrawal(@Param('id') id: string) {
+    return this.adminService.approveWithdrawal(id);
+  }
+
+  @Put('withdrawals/:id/reject')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
+  rejectWithdrawal(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+  ) {
+    return this.adminService.rejectWithdrawal(id, reason || 'No reason provided');
+  }
+
+  // ── GAME PERFORMANCE REPORT ────────────────────────
+  @Get('reports/games')
+  @UseGuards(AdminGuard)
+  getGameReport(
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.adminService.getGameReport(dateFrom, dateTo);
+  }
 }

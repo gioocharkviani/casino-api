@@ -186,8 +186,7 @@ export class PaymentService {
 
   // ── WITHDRAWAL ────────────────────────────────────────────────────────────
   async withdrawal(data: withdrawalDto) {
-    const { baseUrl, merchantId, apiKey, idempotencyKey, secret } =
-      await this.getPayinExtraConfig();
+    const { idempotencyKey } = await this.getPayinExtraConfig();
 
     const user = await lastValueFrom(
       this.userClient.send('GET_USER', data.token),
@@ -208,6 +207,10 @@ export class PaymentService {
       });
     }
 
+    if (data.amount <= 0) {
+      return { code: 199, data: null, message: 'Amount must be positive' };
+    }
+
     if (wallet.balance < data.amount) {
       return {
         code: 1503,
@@ -216,95 +219,129 @@ export class PaymentService {
       };
     }
 
-    if (data.amount <= 0) {
-      return { code: 199, data: null, message: 'Amount must be positive' };
-    }
-
     const merchantReference = `withdrawal-${user.id}-${idempotencyKey}`;
-
     const fullName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim();
     const holderName = data.accountHolderName ?? (fullName || user.email);
-    const reqBody = {
-      amount: data.amount,
-      currency: this.configService.get('DEFAULT_CURRENCY') || 'TRY',
-      merchantReference,
-      payoutMethod: 'havale',
-      destination: {
-        accountName: holderName,
-        iban: data.iban,
-      },
-      metadata: { userId: user.id },
-    };
 
-    // Deduct balance immediately and record PROCESSING transaction
+    // Deduct balance immediately (prevents double-withdrawal), then await admin approval
     const balanceBefore = wallet.balance;
     wallet.balance = balanceBefore - data.amount;
     await this.walletRepo.save(wallet);
 
-    const savedTx = await this.transactionService.createTransaction({
+    await this.transactionService.createTransaction({
       amount: data.amount,
       type: TransactionType.WITHDRAWAL,
-      status: TransactionStatusEnum.PROCESSING,
+      status: TransactionStatusEnum.PENDING,
       balanceBefore,
       balanceAfter: wallet.balance,
       paymentId: merchantReference,
       transactionId: merchantReference,
       userId: user.id,
-      reason: `Withdrawal to IBAN: ${data.iban}`,
+      reason: `PENDING_WITHDRAWAL|iban:${data.iban}|holder:${holderName}|ref:${merchantReference}`,
     });
 
-    const headers = this.buildHeaders(
-      apiKey,
-      merchantId,
-      idempotencyKey,
-      secret,
-    );
-    const endpoint = `${baseUrl}/payments/withdrawals`;
+    return {
+      code: 200,
+      data: { merchantReference },
+      message: 'Withdrawal request submitted — awaiting admin approval',
+    };
+  }
+
+  // ── ADMIN: APPROVE WITHDRAWAL ─────────────────────────────────────────────
+  async adminApproveWithdrawal(txId: string) {
+    const tx = await this.transactionRepo.findOne({ where: { id: txId } });
+    if (!tx || tx.type !== TransactionType.WITHDRAWAL || tx.status !== TransactionStatusEnum.PENDING) {
+      return { code: 400, data: null, message: 'Transaction not found or not a pending withdrawal' };
+    }
+
+    // Parse withdrawal data stored in reason field
+    const parts: Record<string, string> = {};
+    (tx.reason ?? '').split('|').forEach(part => {
+      const idx = part.indexOf(':');
+      if (idx > -1) parts[part.slice(0, idx)] = part.slice(idx + 1);
+    });
+
+    const iban = parts['iban'];
+    const holderName = parts['holder'] ?? '';
+
+    if (!iban) {
+      return { code: 400, data: null, message: 'IBAN not found in transaction data' };
+    }
+
+    let config: Awaited<ReturnType<typeof this.getPayinExtraConfig>>;
+    try {
+      config = await this.getPayinExtraConfig();
+    } catch {
+      return { code: 500, data: null, message: 'Payment provider is not configured' };
+    }
+
+    const { baseUrl, merchantId, apiKey, idempotencyKey, secret } = config;
+
+    const reqBody = {
+      amount: tx.amount,
+      currency: this.configService.get('DEFAULT_CURRENCY') || 'TRY',
+      merchantReference: tx.paymentId,
+      payoutMethod: 'havale',
+      destination: { accountName: holderName, iban },
+      metadata: { userId: tx.userId },
+    };
+
+    const hdrs = this.buildHeaders(apiKey, merchantId, idempotencyKey, secret);
 
     try {
-      const req = await fetch(endpoint, {
+      const req = await fetch(`${baseUrl}/payments/withdrawals`, {
         method: 'POST',
-        headers,
+        headers: hdrs,
         body: JSON.stringify(reqBody),
       });
-
       const res = await req.json();
 
       if (!req.ok) {
-        // Reverse the balance deduction on provider rejection
-        wallet.balance = balanceBefore;
-        await this.walletRepo.save(wallet);
-        await this.transactionRepo.update(savedTx.id, {
-          status: TransactionStatusEnum.FAILD,
-          reason: res?.message || 'PayInExtra rejected withdrawal',
-          balanceAfter: balanceBefore,
-        });
-        return {
-          code: req.status,
-          data: null,
-          message: res?.message || 'Withdrawal request failed',
-        };
+        // Refund balance — provider rejected
+        const wallet = await this.findWallet(tx.userId);
+        if (wallet && tx.amount) {
+          wallet.balance = Number(wallet.balance) + Number(tx.amount);
+          await this.walletRepo.save(wallet);
+          await this.transactionRepo.update(txId, {
+            status: TransactionStatusEnum.FAILD,
+            reason: `Admin approved but PayInExtra rejected: ${res?.message ?? 'unknown'}`,
+            balanceAfter: wallet.balance,
+          });
+        }
+        console.error('[Payment] Withdrawal approval rejected by PayInExtra:', req.status, res);
+        return { code: req.status, data: null, message: res?.message || 'PayInExtra rejected withdrawal' };
       }
 
-      return {
-        code: 200,
-        data: { paymentId: res.paymentId, merchantReference },
-        message: 'Withdrawal submitted — processing by bank',
-      };
-    } catch (error) {
-      // Reverse balance deduction on network failure
-      wallet.balance = balanceBefore;
-      await this.walletRepo.save(wallet);
-      await this.transactionRepo.update(savedTx.id, {
-        status: TransactionStatusEnum.FAILD,
-        reason: 'Network error contacting payment provider',
-        balanceAfter: balanceBefore,
+      await this.transactionRepo.update(txId, {
+        status: TransactionStatusEnum.PROCESSING,
+        reason: `Admin approved — submitted to bank | iban:${iban}`,
       });
-      throw new RpcException({
-        message: 'Payment provider unreachable',
-        statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+
+      return { code: 200, data: { paymentId: res.paymentId }, message: 'Withdrawal approved and submitted to bank' };
+    } catch (err: any) {
+      return { code: 500, data: null, message: `Network error: ${err?.message}` };
+    }
+  }
+
+  // ── ADMIN: REJECT WITHDRAWAL ──────────────────────────────────────────────
+  async adminRejectWithdrawal(txId: string, reason: string) {
+    const tx = await this.transactionRepo.findOne({ where: { id: txId } });
+    if (!tx || tx.type !== TransactionType.WITHDRAWAL || tx.status !== TransactionStatusEnum.PENDING) {
+      return { code: 400, data: null, message: 'Transaction not found or not a pending withdrawal' };
+    }
+
+    const wallet = await this.findWallet(tx.userId);
+    if (wallet && tx.amount) {
+      wallet.balance = Number(wallet.balance) + Number(tx.amount);
+      await this.walletRepo.save(wallet);
+      await this.transactionRepo.update(txId, {
+        status: TransactionStatusEnum.FAILD,
+        reason: `Rejected by admin: ${reason}`,
+        balanceAfter: wallet.balance,
       });
     }
+
+    return { code: 200, data: null, message: 'Withdrawal rejected and balance refunded' };
   }
 
   // ── WEBHOOK HANDLER ───────────────────────────────────────────────────────

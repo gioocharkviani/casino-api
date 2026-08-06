@@ -392,4 +392,81 @@ export class AnalyticsService {
       return { code: 500, data: null, message: err?.message ?? 'Analytics error' };
     }
   }
+
+  // ── GAME PERFORMANCE REPORT ───────────────────────────────────────────────
+
+  async getGameReport(dateFrom?: string, dateTo?: string) {
+    try {
+      const qb = this.txRepo.createQueryBuilder('tx');
+
+      if (dateFrom) qb.andWhere('tx.created_at >= :dateFrom', { dateFrom: new Date(dateFrom) });
+      if (dateTo)   qb.andWhere('tx.created_at <= :dateTo',   { dateTo: new Date(dateTo + 'T23:59:59') });
+
+      const gameStats = await qb.clone()
+        .select('tx.game_id', 'gameId')
+        .addSelect("SUM(CASE WHEN tx.type IN ('debit','debit&credit') THEN CAST(tx.amount AS SIGNED) ELSE 0 END)", 'wagered')
+        .addSelect("SUM(CASE WHEN tx.type = 'credit' THEN CAST(tx.amount AS SIGNED) ELSE 0 END)", 'won')
+        .addSelect('COUNT(DISTINCT tx.user_id)', 'uniquePlayers')
+        .addSelect('COUNT(*)', 'txCount')
+        .where('tx.game_id IS NOT NULL')
+        .groupBy('tx.game_id')
+        .orderBy('wagered', 'DESC')
+        .getRawMany();
+
+      const gameIds = gameStats.map((g: any) => g.gameId).filter(Boolean);
+      const games = gameIds.length
+        ? await this.gameRepo.createQueryBuilder('g')
+            .select(['g.gameUUID', 'g.gameName', 'g.thumbnail'])
+            .leftJoin('g.gameProvider', 'p')
+            .addSelect(['p.name'])
+            .where('g.gameUUID IN (:...ids)', { ids: gameIds })
+            .getMany()
+        : [];
+      const gameMap = new Map(games.map((g: any) => [g.gameUUID, g]));
+
+      const perGame = gameStats.map((g: any) => {
+        const info = gameMap.get(g.gameId) as any;
+        const wagered = Number(g.wagered);
+        const won = Number(g.won);
+        const ggr = wagered - won;
+        return {
+          gameId:        g.gameId as string,
+          gameName:      info?.gameName ?? g.gameId,
+          thumbnail:     info?.thumbnail ?? null,
+          provider:      info?.gameProvider?.name ?? null,
+          wagered,
+          won,
+          ggr,
+          rtp:           wagered > 0 ? Math.round((won / wagered) * 10000) / 100 : 0,
+          uniquePlayers: Number(g.uniquePlayers),
+          txCount:       Number(g.txCount),
+        };
+      });
+
+      // Aggregate per-provider
+      const providerMap = new Map<string, { wagered: number; won: number; games: number; players: Set<string> }>();
+      for (const g of perGame) {
+        const key = g.provider ?? 'Unknown';
+        const cur = providerMap.get(key) ?? { wagered: 0, won: 0, games: 0, players: new Set<string>() };
+        cur.wagered += g.wagered;
+        cur.won += g.won;
+        cur.games++;
+        providerMap.set(key, cur);
+      }
+
+      const perProvider = Array.from(providerMap.entries()).map(([provider, s]) => ({
+        provider,
+        wagered:  s.wagered,
+        won:      s.won,
+        ggr:      s.wagered - s.won,
+        rtp:      s.wagered > 0 ? Math.round((s.won / s.wagered) * 10000) / 100 : 0,
+        gameCount: s.games,
+      })).sort((a, b) => b.ggr - a.ggr);
+
+      return { code: 200, data: { perGame, perProvider } };
+    } catch (err: any) {
+      this.logger.error('getGameReport failed:', err?.message, err?.stack);
+      return { code: 500, data: null, message: err?.message ?? 'Game report error' };
+    }
+  }
 }
