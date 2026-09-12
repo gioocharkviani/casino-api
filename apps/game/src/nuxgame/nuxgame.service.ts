@@ -48,7 +48,8 @@ export class NuxgameService {
       const response = await fetch(`${reqUrl}`);
       const data = await response.json();
       // PLACEHOLDER: adjust path to wherever NuxGame nests the game array.
-      const gameData: GameInterface[] = data?.data?.availableGames ?? data?.games ?? [];
+      const gameData: GameInterface[] =
+        data?.data?.availableGames ?? data?.games ?? [];
       const result = await this.processAndSaveGames(gameData);
       return result;
     } catch (error) {
@@ -112,10 +113,17 @@ export class NuxgameService {
     expiresAt: string;
     transactionId: string;
   }): Promise<{ success: boolean; error?: string }> {
-    const operator = (this.configService.get<string>('NUXGAME_OPERATOR', '')).trim();
-    const baseUrl = (this.configService.get<string>('NUXGAME_BACKOFFICE_URL', '')).trim();
-    const secretKey = (this.configService.get<string>('NUXGAME_HASH', '')).trim();
-    const hash = crypto.createHash('md5').update(operator + secretKey).digest('hex');
+    const operator = this.configService
+      .get<string>('NUXGAME_OPERATOR', '')
+      .trim();
+    const baseUrl = this.configService
+      .get<string>('NUXGAME_BACKOFFICE_URL', '')
+      .trim();
+    const secretKey = this.configService.get<string>('NUXGAME_HASH', '').trim();
+    const hash = crypto
+      .createHash('md5')
+      .update(operator + secretKey)
+      .digest('hex');
 
     const body = {
       operator,
@@ -134,7 +142,10 @@ export class NuxgameService {
     try {
       const res = await fetch(`${baseUrl}/freespins/add`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
         body: JSON.stringify(body),
       });
 
