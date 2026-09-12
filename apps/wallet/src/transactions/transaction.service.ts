@@ -83,24 +83,99 @@ export class transactionService {
     type?: string;
     status?: string;
     userId?: string;
+    provider?: string;
+    gameId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    minAmount?: number;
+    maxAmount?: number;
+    sortBy?: 'createdAt' | 'amount';
+    sortDir?: 'ASC' | 'DESC';
   }) {
     const page = filters.page ?? 1;
     const limit = Math.min(filters.limit ?? 50, 200);
     const skip = (page - 1) * limit;
 
+    const sortBy = filters.sortBy === 'amount' ? 'tx.amount' : 'tx.createdAt';
+    const sortDir = filters.sortDir === 'ASC' ? 'ASC' : 'DESC';
+
     const qb = this.transactionRepository
       .createQueryBuilder('tx')
       .leftJoinAndSelect('tx.game', 'game')
-      .orderBy('tx.createdAt', 'DESC')
+      .leftJoin('game.gameProvider', 'gameProvider')
+      .orderBy(sortBy, sortDir)
       .skip(skip)
       .take(limit);
 
     if (filters.userId) qb.andWhere('tx.userId = :userId', { userId: filters.userId });
     if (filters.type)   qb.andWhere('tx.type = :type', { type: filters.type });
     if (filters.status) qb.andWhere('tx.status = :status', { status: filters.status });
+    if (filters.gameId) qb.andWhere('tx.gameId = :gameId', { gameId: filters.gameId });
+    if (filters.provider) qb.andWhere('gameProvider.name = :provider', { provider: filters.provider });
+    if (filters.dateFrom) qb.andWhere('tx.createdAt >= :dateFrom', { dateFrom: new Date(filters.dateFrom) });
+    if (filters.dateTo)   qb.andWhere('tx.createdAt <= :dateTo', { dateTo: new Date(filters.dateTo) });
+    if (filters.minAmount !== undefined) qb.andWhere('tx.amount >= :minAmount', { minAmount: filters.minAmount });
+    if (filters.maxAmount !== undefined) qb.andWhere('tx.amount <= :maxAmount', { maxAmount: filters.maxAmount });
 
     const [data, total] = await qb.getManyAndCount();
     return { code: 200, data, total, page, totalPages: Math.ceil(total / limit) };
+  }
+
+  // ADMIN: where a specific user spends the most (grouped by game / provider)
+  // "Spend" = DEBIT transactions (bets placed), which is what actually leaves
+  // the player's balance during play — deposits/withdrawals are funding
+  // events, not play spend, so they're excluded here.
+  async adminGetUserTopSpend(userId: string, dateFrom?: string, dateTo?: string) {
+    const baseQb = () => {
+      const qb = this.transactionRepository
+        .createQueryBuilder('tx')
+        .leftJoin('tx.game', 'game')
+        .leftJoin('game.gameProvider', 'gameProvider')
+        .where('tx.userId = :userId', { userId })
+        .andWhere('tx.type = :type', { type: 'debit' });
+      if (dateFrom) qb.andWhere('tx.createdAt >= :dateFrom', { dateFrom: new Date(dateFrom) });
+      if (dateTo)   qb.andWhere('tx.createdAt <= :dateTo', { dateTo: new Date(dateTo) });
+      return qb;
+    };
+
+    const byGame = await baseQb()
+      .select('tx.gameId', 'gameId')
+      .addSelect('game.gameName', 'gameName')
+      .addSelect('gameProvider.name', 'providerName')
+      .addSelect('SUM(tx.amount)', 'totalSpent')
+      .addSelect('COUNT(tx.id)', 'betCount')
+      .groupBy('tx.gameId')
+      .addGroupBy('game.gameName')
+      .addGroupBy('gameProvider.name')
+      .orderBy('SUM(tx.amount)', 'DESC')
+      .limit(20)
+      .getRawMany();
+
+    const byProvider = await baseQb()
+      .select('gameProvider.name', 'providerName')
+      .addSelect('SUM(tx.amount)', 'totalSpent')
+      .addSelect('COUNT(tx.id)', 'betCount')
+      .groupBy('gameProvider.name')
+      .orderBy('SUM(tx.amount)', 'DESC')
+      .getRawMany();
+
+    return {
+      code: 200,
+      data: {
+        byGame: byGame.map((r) => ({
+          gameId: r.gameId,
+          gameName: r.gameName,
+          providerName: r.providerName,
+          totalSpent: Number(r.totalSpent),
+          betCount: Number(r.betCount),
+        })),
+        byProvider: byProvider.map((r) => ({
+          providerName: r.providerName,
+          totalSpent: Number(r.totalSpent),
+          betCount: Number(r.betCount),
+        })),
+      },
+    };
   }
 
   // ADMIN: get transactions by userId directly (no token needed)

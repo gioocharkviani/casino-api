@@ -44,6 +44,30 @@ export class GameController {
     return this.gameService.validateGameSession(token);
   }
 
+  // Provider-agnostic dispatchers: resolve the game's provider prefix and
+  // route to the right adapter (revolver, nuxgame, ...). Callers (promotions,
+  // admin) should use these instead of a provider-specific message pattern.
+  @MessagePattern('GRANT_FREE_SPINS')
+  grantFreeSpins(
+    @Payload()
+    params: {
+      playerId: string;
+      game: string;
+      numberOfFreeSpins: number;
+      betAmountPerFreeSpin: number;
+      currency: string;
+      expiresAt: string;
+      transactionId: string;
+    },
+  ) {
+    return this.gameService.grantFreeSpins(params);
+  }
+
+  @MessagePattern('GET_DEMO_URL')
+  getDemoUrl(@Payload() data: { gameId: string; lang?: string }) {
+    return this.gameService.getDemoUrl(data.gameId, data.lang);
+  }
+
   // ADMIN
   @MessagePattern('ADMIN_GET_ALL_GAMES')
   adminGetAllGames(

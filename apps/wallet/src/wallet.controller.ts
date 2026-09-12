@@ -92,9 +92,35 @@ export class WalletController {
   @MessagePattern('ADMIN_ALL_TRANSACTIONS')
   adminAllTransactions(
     @Payload()
-    data: { page?: number; limit?: number; type?: string; status?: string; userId?: string },
+    data: {
+      page?: number;
+      limit?: number;
+      type?: string;
+      status?: string;
+      userId?: string;
+      provider?: string;
+      gameId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      minAmount?: number;
+      maxAmount?: number;
+      sortBy?: 'createdAt' | 'amount';
+      sortDir?: 'ASC' | 'DESC';
+    },
   ) {
     return this.transactionService.adminGetAllTransactions(data);
+  }
+
+  // ADMIN: where a user spends the most (grouped by game / provider)
+  @MessagePattern('ADMIN_USER_TOP_SPEND')
+  adminUserTopSpend(
+    @Payload() data: { userId: string; dateFrom?: string; dateTo?: string },
+  ) {
+    return this.transactionService.adminGetUserTopSpend(
+      data.userId,
+      data.dateFrom,
+      data.dateTo,
+    );
   }
 
   // ADMIN: platform analytics

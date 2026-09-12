@@ -473,6 +473,14 @@ export class AdminController {
     @Query('type') type?: string,
     @Query('status') status?: string,
     @Query('userId') userId?: string,
+    @Query('provider') provider?: string,
+    @Query('gameId') gameId?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('minAmount') minAmount?: string,
+    @Query('maxAmount') maxAmount?: string,
+    @Query('sortBy') sortBy?: 'createdAt' | 'amount',
+    @Query('sortDir') sortDir?: 'ASC' | 'DESC',
   ) {
     return this.adminService.getAllTransactions({
       page: page ? parseInt(page, 10) : undefined,
@@ -480,7 +488,26 @@ export class AdminController {
       type: type || undefined,
       status: status || undefined,
       userId: userId || undefined,
+      provider: provider || undefined,
+      gameId: gameId || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      minAmount: minAmount ? parseInt(minAmount, 10) : undefined,
+      maxAmount: maxAmount ? parseInt(maxAmount, 10) : undefined,
+      sortBy: sortBy || undefined,
+      sortDir: sortDir || undefined,
     });
+  }
+
+  // ── PER-USER: where they spend the most (by game / provider) ──
+  @Get('users/:userId/top-spend')
+  @UseGuards(AdminGuard)
+  getUserTopSpend(
+    @Param('userId') userId: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.adminService.getUserTopSpend(userId, dateFrom, dateTo);
   }
 
   // ── WITHDRAWAL APPROVAL ────────────────────────────

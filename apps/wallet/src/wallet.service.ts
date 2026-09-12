@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import {
   CreditRequestDto,
   DebitAndCreditDto,
@@ -14,10 +14,25 @@ import { TransactionType } from 'libs/common';
 import { UserEntity } from 'libs/database/entities/user.entity';
 import { walletEntity } from 'libs/database/entities/wallet.entity';
 import { GameSession } from 'libs/database/entities/game.entity';
-import { Repository } from 'typeorm';
+import {
+  UserPromotionEntity,
+  UserPromotionStatus,
+} from 'libs/database/entities/promotions.entity';
+import { DataSource, Repository } from 'typeorm';
 import { transactionService } from './transactions/transaction.service';
 import { WageringService } from 'libs/common/services/wagering.service';
 import { lastValueFrom } from 'rxjs';
+
+// Carries a business-error code/message out of a dataSource.transaction()
+// callback without it being swallowed as a generic 500 by the outer catch.
+class WalletOpError extends Error {
+  constructor(
+    public readonly code: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
 
 @Injectable()
 export class WalletService {
@@ -30,10 +45,33 @@ export class WalletService {
     private readonly walletRepository: Repository<walletEntity>,
     @InjectRepository(GameSession)
     private readonly gameSessionRepository: Repository<GameSession>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     private readonly transactionService: transactionService,
     private readonly configService: ConfigService,
     private readonly wageringService: WageringService,
   ) {}
+
+  // Locks and returns the caller's oldest ACTIVE wagered bonus, if any.
+  // Only one wagered bonus may be ACTIVE per user at a time (enforced in
+  // PromotionsService.activate), so "oldest" is really "the one".
+  //
+  // `wageringRequired > 0` excludes ACTIVE rows created by free-spins
+  // promos (PromotionsService.chooseGameAndActivate flips status to ACTIVE
+  // but never sets bonusBalance/wageringRequired — those wins are meant to
+  // land in the real wallet like any other spin, not get vacuumed into a
+  // bonusBalance that was never actually funded).
+  private async lockActiveBonus(mgr: DataSource['manager'], userId: string) {
+    return mgr
+      .getRepository(UserPromotionEntity)
+      .createQueryBuilder('up')
+      .setLock('pessimistic_write')
+      .where('up.userId = :userId', { userId })
+      .andWhere('up.status = :status', { status: UserPromotionStatus.ACTIVE })
+      .andWhere('up.wageringRequired > 0')
+      .orderBy('up.activatedAt', 'ASC')
+      .getOne();
+  }
 
   // WALLET AUTH
   async walletAuth(data: WalletAuthDto) {
@@ -99,42 +137,79 @@ export class WalletService {
         return { code: 1504, data: null, message: 'Missing transactionId' };
       }
 
-      const user = await this.userRepository.findOne({
-        where: { id: data.playerId },
-        relations: { wallet: true },
-      });
-
-      if (!user) return { code: 1501, data: null, message: 'User Not Found' };
-      if (!user.wallet)
-        return { code: 1502, data: null, message: 'Wallet Not Found' };
-
       const isDuplicate = await this.transactionService.checkExiting(
         data.transactionId,
       );
       if (isDuplicate) {
+        const user = await this.userRepository.findOne({
+          where: { id: data.playerId },
+          relations: { wallet: true },
+        });
         return {
           code: 200,
           data: {
             transactionId: data.transactionId,
             transactionStatus: 1,
-            balance: user.wallet.balance,
+            balance: user?.wallet?.balance ?? 0,
           },
           message: 'Duplicate transaction - already processed',
         };
       }
 
-      if (user.wallet.balance < data.amount) {
-        return { code: 1503, data: null, message: 'Insufficient Funds' };
-      }
+      // Real money at risk during an active bonus is drawn from the
+      // isolated bonusBalance first, then the real balance covers the
+      // remainder — this is what actually puts bonus funds "at risk" during
+      // wagering, instead of bonusBalance being a side counter that never
+      // moves. Both rows are locked for the duration so a concurrent
+      // debit/credit for the same user can't read stale balances.
+      const { oldBalance, newBalance, bonusPortion, realPortion } =
+        await this.dataSource.transaction(async (mgr) => {
+          const walletRepo = mgr.getRepository(walletEntity);
+
+          const user = await mgr.getRepository(UserEntity).findOne({
+            where: { id: data.playerId },
+            relations: { wallet: true },
+          });
+          if (!user) throw new WalletOpError(1501, 'User Not Found');
+          if (!user.wallet) throw new WalletOpError(1502, 'Wallet Not Found');
+
+          const wallet = await walletRepo
+            .createQueryBuilder('w')
+            .setLock('pessimistic_write')
+            .where('w.id = :id', { id: user.wallet.id })
+            .getOne();
+          if (!wallet) throw new WalletOpError(1502, 'Wallet Not Found');
+
+          const activeBonus = await this.lockActiveBonus(mgr, data.playerId);
+          const bonusAvailable = activeBonus ? Number(activeBonus.bonusBalance) : 0;
+
+          if (wallet.balance + bonusAvailable < data.amount) {
+            throw new WalletOpError(1503, 'Insufficient Funds');
+          }
+
+          const bonusPortion = Math.min(bonusAvailable, data.amount);
+          const realPortion = data.amount - bonusPortion;
+
+          const oldBalance = wallet.balance;
+          wallet.balance = oldBalance - realPortion;
+          await walletRepo.save(wallet);
+
+          if (activeBonus && bonusPortion > 0) {
+            activeBonus.bonusBalance = bonusAvailable - bonusPortion;
+            await mgr.getRepository(UserPromotionEntity).save(activeBonus);
+          }
+
+          return {
+            oldBalance,
+            newBalance: wallet.balance,
+            bonusPortion,
+            realPortion,
+          };
+        });
 
       const findGameSession = await this.gameSessionRepository.findOne({
         where: { playerId: data.playerId, isActive: true },
       });
-
-      const oldBalance = user.wallet.balance;
-      const newBalance = oldBalance - data.amount;
-      user.wallet.balance = newBalance;
-      await this.walletRepository.save(user.wallet);
 
       await this.transactionService.createTransaction({
         type: TransactionType.DEBIT,
@@ -146,7 +221,7 @@ export class WalletService {
         roundId: data.roundId,
         userId: data.playerId,
         transactionId: data.transactionId,
-        reason: '',
+        reason: bonusPortion > 0 ? `Bonus draw: ${bonusPortion}, Real draw: ${realPortion}` : '',
       });
 
       await this.wageringService.updateWageringStats(
@@ -166,6 +241,9 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
+      if (error instanceof WalletOpError) {
+        return { code: error.code, data: null, message: error.message };
+      }
       return { code: 1500, data: null, message: 'Internal Error' };
     }
   }
@@ -182,41 +260,68 @@ export class WalletService {
         return { code: 1504, data: null, message: 'Missing transactionId' };
       }
 
-      const user = await this.userRepository.findOne({
-        where: { id: data.playerId },
-        relations: { wallet: true },
-      });
-
-      if (!user) return { code: 1501, data: null, message: 'User Not Found' };
-      if (!user.wallet)
-        return { code: 1502, data: null, message: 'Wallet Not Found' };
-
       const isDuplicate = await this.transactionService.checkExiting(
         data.transactionId,
       );
       if (isDuplicate) {
+        const user = await this.userRepository.findOne({
+          where: { id: data.playerId },
+          relations: { wallet: true },
+        });
         return {
           code: 200,
           data: {
             transactionId: data.transactionId,
             transactionStatus: 1,
-            balance: user.wallet.balance,
+            balance: user?.wallet?.balance ?? 0,
           },
           message: 'Duplicate transaction - already processed',
         };
       }
 
+      // Wins while an active bonus is being wagered stay isolated in
+      // bonusBalance (still at risk, still counted toward wagering via the
+      // BET_SETTLED path) instead of landing in the real balance — real
+      // balance is only credited once wagering completes and the remaining
+      // bonusBalance is transferred over (see WageringProgressService.complete).
+      const { oldBalance, newBalance, wentToBonus } =
+        await this.dataSource.transaction(async (mgr) => {
+          const walletRepo = mgr.getRepository(walletEntity);
+
+          const user = await mgr.getRepository(UserEntity).findOne({
+            where: { id: data.playerId },
+            relations: { wallet: true },
+          });
+          if (!user) throw new WalletOpError(1501, 'User Not Found');
+          if (!user.wallet) throw new WalletOpError(1502, 'Wallet Not Found');
+
+          const wallet = await walletRepo
+            .createQueryBuilder('w')
+            .setLock('pessimistic_write')
+            .where('w.id = :id', { id: user.wallet.id })
+            .getOne();
+          if (!wallet) throw new WalletOpError(1502, 'Wallet Not Found');
+
+          const activeBonus = await this.lockActiveBonus(mgr, data.playerId);
+
+          if (activeBonus) {
+            activeBonus.bonusBalance = Number(activeBonus.bonusBalance) + data.amount;
+            await mgr.getRepository(UserPromotionEntity).save(activeBonus);
+            return { oldBalance: wallet.balance, newBalance: wallet.balance, wentToBonus: true };
+          }
+
+          const oldBalance = wallet.balance;
+          wallet.balance = oldBalance + data.amount;
+          await walletRepo.save(wallet);
+          return { oldBalance, newBalance: wallet.balance, wentToBonus: false };
+        });
+
       const findGameSession = await this.gameSessionRepository.findOne({
         where: { playerId: data.playerId, isActive: true },
       });
 
-      const oldBalance = user.wallet.balance;
-      const newBalance = oldBalance + data.amount;
-      user.wallet.balance = newBalance;
-      await this.walletRepository.save(user.wallet);
-
       await this.transactionService.createTransaction({
-        type: TransactionType.CREDIT,
+        type: wentToBonus ? TransactionType.BONUS : TransactionType.CREDIT,
         balanceAfter: newBalance,
         balanceBefore: oldBalance,
         amount: data.amount,
@@ -225,7 +330,7 @@ export class WalletService {
         roundId: data.roundId,
         userId: data.playerId,
         transactionId: data.transactionId,
-        reason: '',
+        reason: wentToBonus ? 'Win credited to active bonus balance' : '',
       });
 
       await this.wageringService.updateWageringStats(
@@ -245,11 +350,22 @@ export class WalletService {
         message: 'Success',
       };
     } catch (error) {
+      if (error instanceof WalletOpError) {
+        return { code: error.code, data: null, message: error.message };
+      }
       return { code: 1500, data: null, message: 'Internal Error' };
     }
   }
 
   // WALLET ROLLBACK
+  // KNOWN LIMITATION: unlike walletDebit/walletCredit, this does not split
+  // against an active bonusBalance — it always reverses against the real
+  // wallet balance only. A correct bonus-aware reversal needs the original
+  // debit/credit's bonus/real split persisted per-transaction (there's no
+  // column for that yet), so rolling back a bet that drew from bonusBalance
+  // will currently refund the real balance instead of restoring bonusBalance.
+  // Low-frequency path (used for cancelled/errored rounds), but flagged here
+  // since it's a real gap, not an oversight.
   async walletRollback(data: RollbackRequestDto) {
     console.log('rollback data', data);
     try {

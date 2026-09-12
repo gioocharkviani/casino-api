@@ -23,6 +23,17 @@ import {
   ChooseGameDto,
 } from 'libs/common/dto/promotion.dto';
 
+// Used to carry a business-error code/message out of a dataSource.transaction()
+// callback without it being swallowed as a generic 500 by the outer catch.
+class PromoError extends Error {
+  constructor(
+    public readonly code: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 @Injectable()
 export class PromotionsService {
   private readonly logger = new Logger(PromotionsService.name);
@@ -44,8 +55,41 @@ export class PromotionsService {
   // ─────────────────────────────────────────────
   // CREATE
   // ─────────────────────────────────────────────
+  // Rejects configs that would let a promotion bypass wagering or pay out
+  // negative/nonsensical amounts (e.g. a negative wageringMultiplier makes
+  // `wageringCompleted >= wageringRequired` true immediately, skipping
+  // wagering entirely).
+  private validateRewardConfig(dto: {
+    wageringMultiplier?: number;
+    maxUsagePerUser?: number;
+    maxWithdrawal?: number;
+    rewardValue?: Record<string, any>;
+  }): string | null {
+    if (dto.wageringMultiplier !== undefined && dto.wageringMultiplier < 0) {
+      return 'wageringMultiplier cannot be negative';
+    }
+    if (dto.maxUsagePerUser !== undefined && dto.maxUsagePerUser < 1) {
+      return 'maxUsagePerUser must be at least 1';
+    }
+    if (dto.maxWithdrawal !== undefined && dto.maxWithdrawal < 0) {
+      return 'maxWithdrawal cannot be negative';
+    }
+    const rv = dto.rewardValue;
+    if (rv) {
+      if (rv.fixedAmount !== undefined && rv.fixedAmount < 0) return 'rewardValue.fixedAmount cannot be negative';
+      if (rv.maxAmount !== undefined && rv.maxAmount < 0) return 'rewardValue.maxAmount cannot be negative';
+      if (rv.percentage !== undefined && rv.percentage < 0) return 'rewardValue.percentage cannot be negative';
+      if (rv.freeSpins !== undefined && rv.freeSpins < 0) return 'rewardValue.freeSpins cannot be negative';
+    }
+    return null;
+  }
+
   async create(dto: CreatePromotionDto) {
     try {
+      const invalid = this.validateRewardConfig(dto);
+      if (invalid) {
+        return { code: 1612, data: null, message: invalid };
+      }
       const promo = this.promoRepo.create({
         ...dto,
         status: PromotionStatus.DRAFT,
@@ -80,6 +124,15 @@ export class PromotionsService {
       }
 
       const { id, startDate, endDate, performedBy, ...rest } = dto;
+      const invalid = this.validateRewardConfig({
+        wageringMultiplier: rest.wageringMultiplier ?? promo.wageringMultiplier,
+        maxUsagePerUser: rest.maxUsagePerUser ?? promo.maxUsagePerUser,
+        maxWithdrawal: (rest as any).maxWithdrawal ?? promo.maxWithdrawal,
+        rewardValue: rest.rewardValue ?? promo.rewardValue,
+      });
+      if (invalid) {
+        return { code: 1612, data: null, message: invalid };
+      }
       Object.assign(promo, rest);
       if (startDate) promo.startDate = new Date(startDate);
       if (endDate) promo.endDate = new Date(endDate);
@@ -145,36 +198,46 @@ export class PromotionsService {
   // ─────────────────────────────────────────────
   async assignToUser(dto: AssignPromotionDto) {
     try {
-      const promo = await this.promoRepo.findOne({
-        where: { id: dto.promotionId },
-      });
-      if (!promo) {
-        return { code: 1601, data: null, message: 'Promotion not found' };
-      }
-      if (promo.status !== PromotionStatus.ACTIVE) {
-        return { code: 1602, data: null, message: 'Promotion is not active' };
-      }
+      // The count-check + insert below must be serialized per-promotion,
+      // otherwise two concurrent assigns for the same user can both read
+      // usageCount before either commits and both pass the maxUsagePerUser
+      // check (classic check-then-act race). Locking the promotion row for
+      // the duration of the transaction turns it into a mutex: MySQL queues
+      // any concurrent assign for the same promo behind this lock, so the
+      // second one always sees the first one's committed insert.
+      const { saved, promo } = await this.dataSource.transaction(async (mgr) => {
+        const promoRepo = mgr.getRepository(PromotionEntity);
+        const upRepo = mgr.getRepository(UserPromotionEntity);
 
-      const usageCount = await this.userPromoRepo.count({
-        where: { userId: dto.userId, promotionId: dto.promotionId },
-      });
-      if (usageCount >= promo.maxUsagePerUser) {
-        return {
-          code: 1603,
-          data: null,
-          message: 'Usage limit reached for this user',
-        };
-      }
+        const promo = await promoRepo
+          .createQueryBuilder('p')
+          .setLock('pessimistic_write')
+          .where('p.id = :id', { id: dto.promotionId })
+          .getOne();
+        if (!promo) {
+          throw new PromoError(1601, 'Promotion not found');
+        }
+        if (promo.status !== PromotionStatus.ACTIVE) {
+          throw new PromoError(1602, 'Promotion is not active');
+        }
 
-      const assignment = this.userPromoRepo.create({
-        userId: dto.userId,
-        promotionId: dto.promotionId,
-        status: UserPromotionStatus.ASSIGNED,
-        bonusBalance: 0,
-        wageringRequired: 0,
-        wageringCompleted: 0,
+        const usageCount = await upRepo.count({
+          where: { userId: dto.userId, promotionId: dto.promotionId },
+        });
+        if (usageCount >= promo.maxUsagePerUser) {
+          throw new PromoError(1603, 'Usage limit reached for this user');
+        }
+
+        const assignment = upRepo.create({
+          userId: dto.userId,
+          promotionId: dto.promotionId,
+          status: UserPromotionStatus.ASSIGNED,
+          bonusBalance: 0,
+          wageringRequired: 0,
+          wageringCompleted: 0,
+        });
+        return { saved: await upRepo.save(assignment), promo };
       });
-      const saved = await this.userPromoRepo.save(assignment);
 
       await this.writeAudit(PromotionAuditAction.ASSIGNED, {
         promotionId: promo.id,
@@ -197,7 +260,7 @@ export class PromotionsService {
         );
         for (const gameUUID of promo.freeSpinsGameIds) {
           await lastValueFrom(
-            this.gameClient.send('REVOLVER_GRANT_FREE_SPINS', {
+            this.gameClient.send('GRANT_FREE_SPINS', {
               playerId: dto.userId,
               game: gameUUID,
               numberOfFreeSpins: spins,
@@ -213,6 +276,9 @@ export class PromotionsService {
 
       return { code: 200, data: saved, message: 'Promotion assigned to user' };
     } catch (err: any) {
+      if (err instanceof PromoError) {
+        return { code: err.code, data: null, message: err.message };
+      }
       this.logger.error(`assign failed: ${err.message}`);
       return { code: 1500, data: null, message: 'Internal Error' };
     }
@@ -225,10 +291,19 @@ export class PromotionsService {
     return this.dataSource.transaction(async (mgr) => {
       const upRepo = mgr.getRepository(UserPromotionEntity);
 
-      const assignment = await upRepo.findOne({
-        where: { id: dto.userPromotionId, userId: dto.userId },
-        relations: { promotion: true },
-      });
+      // Pessimistic lock: without this, two concurrent activate() calls for
+      // the same bonus both read status === ASSIGNED before either commits,
+      // and both proceed to grant/credit — a double-activation race. Locking
+      // the row here means the second call blocks until the first commits,
+      // then re-reads the now-ACTIVE/COMPLETED status and is correctly
+      // rejected below.
+      const assignment = await upRepo
+        .createQueryBuilder('up')
+        .setLock('pessimistic_write')
+        .leftJoinAndSelect('up.promotion', 'promotion')
+        .where('up.id = :id', { id: dto.userPromotionId })
+        .andWhere('up.userId = :userId', { userId: dto.userId })
+        .getOne();
       if (!assignment) {
         return { code: 1604, data: null, message: 'Assigned bonus not found' };
       }
@@ -243,6 +318,28 @@ export class PromotionsService {
       const promo = assignment.promotion;
       if (promo.status !== PromotionStatus.ACTIVE) {
         return { code: 1602, data: null, message: 'Promotion no longer active' };
+      }
+
+      // Only one wagered bonus may be in play at a time — otherwise bets
+      // placed while two bonuses are ACTIVE would have to be split between
+      // two isolated bonusBalance pots with no defined precedence.
+      if (promo.wageringMultiplier > 0 || promo.rewardType !== RewardType.REAL_BALANCE) {
+        // wageringRequired > 0 excludes free-spins ACTIVE rows (which never
+        // carry an isolated bonusBalance) — those don't conflict with a
+        // real wagered bonus being activated alongside them.
+        const existingActive = await upRepo
+          .createQueryBuilder('up')
+          .where('up.userId = :userId', { userId: dto.userId })
+          .andWhere('up.status = :status', { status: UserPromotionStatus.ACTIVE })
+          .andWhere('up.wageringRequired > 0')
+          .getOne();
+        if (existingActive) {
+          return {
+            code: 1613,
+            data: null,
+            message: 'Another bonus is already active — finish or forfeit it first',
+          };
+        }
       }
 
       const grant = this.computeGrant(promo);
@@ -359,10 +456,18 @@ export class PromotionsService {
   // ─────────────────────────────────────────────
   async chooseGameAndActivate(dto: ChooseGameDto) {
     try {
-      const assignment = await this.userPromoRepo.findOne({
-        where: { id: dto.userPromotionId, userId: dto.userId },
-        relations: { promotion: true },
-      });
+      // Same double-activation race as activate() — lock the row so a
+      // duplicate/concurrent request can't fire GRANT_FREE_SPINS twice.
+      const assignment = await this.dataSource.transaction((mgr) =>
+        mgr
+          .getRepository(UserPromotionEntity)
+          .createQueryBuilder('up')
+          .setLock('pessimistic_write')
+          .leftJoinAndSelect('up.promotion', 'promotion')
+          .where('up.id = :id', { id: dto.userPromotionId })
+          .andWhere('up.userId = :userId', { userId: dto.userId })
+          .getOne(),
+      );
       if (!assignment) {
         return { code: 1604, data: null, message: 'Bonus not found' };
       }
@@ -386,8 +491,14 @@ export class PromotionsService {
       const betAmount = promo.freeSpinsBetAmount ?? 100;
       const expiresAt = new Date(Date.now() + (promo.validityHours ?? 72) * 3_600_000);
 
+      // Claim the row right before the network call so a second concurrent
+      // request (which would re-read this row and see non-ASSIGNED, since
+      // the lock above serializes them) can never also fire GRANT_FREE_SPINS.
+      assignment.status = UserPromotionStatus.ACTIVE;
+      await this.userPromoRepo.save(assignment);
+
       const result = await lastValueFrom(
-        this.gameClient.send('REVOLVER_GRANT_FREE_SPINS', {
+        this.gameClient.send('GRANT_FREE_SPINS', {
           playerId: dto.userId,
           game: dto.gameUUID,
           numberOfFreeSpins: spins,
@@ -399,7 +510,11 @@ export class PromotionsService {
       );
 
       if (!result.success) {
-        return { code: 1611, data: null, message: `Revolver API error: ${result.error}` };
+        // Revert the claim so the user can retry — the free spins never
+        // actually landed with the provider.
+        assignment.status = UserPromotionStatus.ASSIGNED;
+        await this.userPromoRepo.save(assignment);
+        return { code: 1611, data: null, message: `Provider API error: ${result.error}` };
       }
 
       assignment.status = UserPromotionStatus.ACTIVE;

@@ -10,6 +10,7 @@ import {
 } from 'libs/database/entities/game.entity';
 import { Repository } from 'typeorm';
 import { RevolverService } from './revolver/revolver.service';
+import { NuxgameService } from './nuxgame/nuxgame.service';
 import { getRequestDto } from 'libs/common/dto/getRequest.dto';
 import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
 import { UserEntity } from 'libs/database/entities/user.entity';
@@ -33,6 +34,7 @@ export class GameService {
     @InjectRepository(CategoryDefinition)
     private readonly categoryDefRepo: Repository<CategoryDefinition>,
     private readonly revolverProvider: RevolverService,
+    private readonly nuxgameProvider: NuxgameService,
   ) {}
 
   //GET ALL GAME
@@ -265,9 +267,53 @@ export class GameService {
       const res = await this.revolverProvider.lunchRevolverGame(data, user);
       return res;
     }
+    if (findGame?.gameProvider?.prefix === 'nuxg') {
+      const res = await this.nuxgameProvider.lunchNuxgameGame(data, user);
+      return res;
+    }
     return data;
   }
   //LUNCH GAME
+
+  // ── PROVIDER-AGNOSTIC FREE SPINS DISPATCH ──────────
+  async grantFreeSpins(params: {
+    playerId: string;
+    game: string;
+    numberOfFreeSpins: number;
+    betAmountPerFreeSpin: number;
+    currency: string;
+    expiresAt: string;
+    transactionId: string;
+  }) {
+    const findGame = await this.gameRepository.findOne({
+      where: { gameUUID: params.game },
+      relations: { gameProvider: true },
+    });
+
+    if (findGame?.gameProvider?.prefix === 'rvlvr') {
+      return this.revolverProvider.grantFreeSpins(params);
+    }
+    if (findGame?.gameProvider?.prefix === 'nuxg') {
+      return this.nuxgameProvider.grantFreeSpins(params);
+    }
+    return { success: false, error: 'Unsupported provider for free spins' };
+  }
+
+  // ── PROVIDER-AGNOSTIC DEMO URL DISPATCH ────────────
+  async getDemoUrl(gameId: string, lang?: string) {
+    const findGame = await this.gameRepository.findOne({
+      where: { gameUUID: gameId },
+      relations: { gameProvider: true },
+    });
+
+    if (findGame?.gameProvider?.prefix === 'rvlvr') {
+      return { url: this.revolverProvider.getDemoUrl(gameId, lang) };
+    }
+    if (findGame?.gameProvider?.prefix === 'nuxg') {
+      return { url: this.nuxgameProvider.getDemoUrl(gameId, lang) };
+    }
+    return { url: null };
+  }
 
   // ADMIN: get all games (including inactive)
   async adminGetAllGames(data: {

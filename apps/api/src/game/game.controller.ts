@@ -53,6 +53,11 @@ export class GameController {
     return this.gameService.refreshProvider();
   }
 
+  @Post('nuxgame-refresh')
+  refreshNuxgameProvider() {
+    return this.gameService.refreshNuxgameProvider();
+  }
+
   @Get('lunch-game')
   @UseGuards(AuthGuard, VerifyGuard)
   lunchGame(@Query() query: LaunchGameDto, @Req() req: Request) {

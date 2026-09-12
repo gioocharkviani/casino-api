@@ -469,7 +469,7 @@ export class AdminService {
   async getGameDemoUrl(gameId: string, lang?: string) {
     try {
       return await lastValueFrom(
-        this.gameClient.send('REVOLVER_GET_DEMO_URL', { gameId, lang }),
+        this.gameClient.send('GET_DEMO_URL', { gameId, lang }),
       );
     } catch {
       return { statusCode: 500, message: 'Game service unavailable' };
@@ -482,10 +482,28 @@ export class AdminService {
     type?: string;
     status?: string;
     userId?: string;
+    provider?: string;
+    gameId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    minAmount?: number;
+    maxAmount?: number;
+    sortBy?: 'createdAt' | 'amount';
+    sortDir?: 'ASC' | 'DESC';
   }) {
     try {
       return await lastValueFrom(
         this.walletClient.send('ADMIN_ALL_TRANSACTIONS', filters),
+      );
+    } catch {
+      return { statusCode: 500, message: 'Wallet service unavailable' };
+    }
+  }
+
+  async getUserTopSpend(userId: string, dateFrom?: string, dateTo?: string) {
+    try {
+      return await lastValueFrom(
+        this.walletClient.send('ADMIN_USER_TOP_SPEND', { userId, dateFrom, dateTo }),
       );
     } catch {
       return { statusCode: 500, message: 'Wallet service unavailable' };

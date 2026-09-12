@@ -18,6 +18,7 @@ import {
   WalletBallanceDto,
 } from 'libs/common/dto/wallet.dto';
 import { RevolverSignatureGuard } from 'libs/guards/revolver-signature.guard';
+import { NuxgameSignatureGuard } from 'libs/guards/nuxgame-signature.guard';
 import {
   depositDto,
   withdrawalDto,
@@ -79,6 +80,56 @@ export class WalletController {
   @HttpCode(200)
   @UseGuards(RevolverSignatureGuard)
   async debitAndCredit(@Body() body: DebitAndCreditDto) {
+    return await this.walletService.debitAndCredit(body);
+  }
+
+  // NUXGAME WALLET CALLBACKS
+  // Separate route namespace + guard from Revolver's since NuxGame's
+  // signature scheme is unconfirmed (TODO once real docs/keys are in).
+  // Business logic is shared via WalletService (provider-agnostic).
+  @Post('nuxgame/auth')
+  @HttpCode(200)
+  @UseGuards(NuxgameSignatureGuard)
+  nuxgameWalletAuth(@Body() body: WalletAuthDto) {
+    return this.walletService.walletAuth(body);
+  }
+
+  @Post('nuxgame/balance')
+  @HttpCode(200)
+  @UseGuards(NuxgameSignatureGuard)
+  async nuxgameBalance(@Body() body: WalletBallanceDto) {
+    return await this.walletService.balance(body);
+  }
+
+  @Post('nuxgame/debit')
+  @HttpCode(200)
+  @UseGuards(NuxgameSignatureGuard)
+  async nuxgameDebit(@Body() body: DebitRequestDto) {
+    const result = await this.walletService.debit(body);
+    if (result?.code === 200) {
+      this.promoService.emitBetSettled(body.playerId, body.amount, body.gameId);
+    }
+    return result;
+  }
+
+  @Post('nuxgame/credit')
+  @HttpCode(200)
+  @UseGuards(NuxgameSignatureGuard)
+  async nuxgameCredit(@Body() body: CreditRequestDto) {
+    return await this.walletService.credit(body);
+  }
+
+  @Post('nuxgame/rollback')
+  @HttpCode(200)
+  @UseGuards(NuxgameSignatureGuard)
+  async nuxgameRollback(@Body() body: RollbackRequestDto) {
+    return await this.walletService.rollback(body);
+  }
+
+  @Post('nuxgame/debitAndCredit')
+  @HttpCode(200)
+  @UseGuards(NuxgameSignatureGuard)
+  async nuxgameDebitAndCredit(@Body() body: DebitAndCreditDto) {
     return await this.walletService.debitAndCredit(body);
   }
 

@@ -84,6 +84,15 @@ export class GameService {
   }
   //------------------END REFRESH PROVIDER GAME LIST
 
+  //------------------REFRESH NUXGAME PROVIDER GAME LIST
+  async refreshNuxgameProvider() {
+    const res = await lastValueFrom(
+      this.client.send('REFRESH_NUXGAME_PROVIDER', {}),
+    );
+    return await res;
+  }
+  //------------------END REFRESH NUXGAME PROVIDER GAME LIST
+
   //-----------------Lunch game
   async lunchGame(data: LaunchGameDto, token: string) {
     const user = await this.UserService.getUserInfo(token);
