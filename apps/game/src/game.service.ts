@@ -67,10 +67,16 @@ export class GameService {
         'gameProvider.name',
         'gameProvider.prefix',
         'gameProvider.logo',
+        'gameProvider.isActive',
       ]);
 
     queryBuilder.andWhere('game.isActive = :isActive', {
       isActive: true,
+    });
+    // A hidden provider hides every one of its games from players, even if
+    // the individual game rows are still marked active.
+    queryBuilder.andWhere('gameProvider.isActive = :providerActive', {
+      providerActive: true,
     });
 
     if (data?.isActive !== undefined && data?.isActive !== null) {
@@ -189,13 +195,15 @@ export class GameService {
   //ADD OR REMOVE FAVORITE GAME
 
   //GET ALL PROVIDER
-  async getAllProvider() {
+  async getAllProvider(onlyActive = false) {
     const allProvider = await this.providerRepo.find({
+      where: onlyActive ? { isActive: true } : {},
       select: {
         id: true,
         logo: true,
         name: true,
         prefix: true,
+        isActive: true,
         games: false,
         createdAt: false,
         updatedAt: false,
@@ -405,6 +413,78 @@ export class GameService {
     game.isActive = false;
     await this.gameRepository.save(game);
     return { code: 200, data: { id: gameId, isActive: false }, message: 'Game is now hidden' };
+  }
+
+  // ADMIN: show a provider — makes it and its games visible to players again
+  async adminShowProvider(providerId: number) {
+    const provider = await this.providerRepo.findOne({ where: { id: providerId } });
+    if (!provider) return { code: 404, data: null, message: 'Provider not found' };
+    provider.isActive = true;
+    await this.providerRepo.save(provider);
+    return { code: 200, data: { id: providerId, isActive: true }, message: 'Provider is now visible' };
+  }
+
+  // ADMIN: hide a provider — its games disappear from customer-facing
+  // listings (see the gameProvider.isActive filter in getAllGames), without
+  // touching the individual games' own isActive flags.
+  async adminHideProvider(providerId: number) {
+    const provider = await this.providerRepo.findOne({ where: { id: providerId } });
+    if (!provider) return { code: 404, data: null, message: 'Provider not found' };
+    provider.isActive = false;
+    await this.providerRepo.save(provider);
+    return { code: 200, data: { id: providerId, isActive: false }, message: 'Provider is now hidden' };
+  }
+
+  // ADMIN: delete a provider and every game that belongs to it.
+  // Games with real transaction/betting history can't be safely hard-deleted
+  // (their gameId is referenced by financial records) — those get hidden
+  // instead of destroyed, and the provider itself is only hidden (not
+  // removed) if any of its games had to fall back to that path, so nothing
+  // silently disappears from the admin's view of what happened.
+  async adminDeleteProvider(providerId: number) {
+    const provider = await this.providerRepo.findOne({
+      where: { id: providerId },
+      relations: { games: true },
+    });
+    if (!provider) return { code: 404, data: null, message: 'Provider not found' };
+
+    const games = provider.games ?? [];
+    const deletedGameIds: number[] = [];
+    const hiddenGameIds: number[] = [];
+
+    for (const game of games) {
+      try {
+        await this.gameCategoriesRepo.delete({ gameId: game.id });
+        await this.favGameRepo.delete({ gameUUID: game.gameUUID });
+        await this.gameRepository.remove(game); // cascades MetaData (cascade: true on the relation)
+        deletedGameIds.push(game.id);
+      } catch (err: any) {
+        // Most likely a FK constraint from existing transaction history —
+        // hide the game instead of losing that history.
+        game.isActive = false;
+        await this.gameRepository.save(game);
+        hiddenGameIds.push(game.id);
+      }
+    }
+
+    let providerDeleted = false;
+    let message: string;
+
+    if (hiddenGameIds.length === 0) {
+      await this.providerRepo.remove(provider);
+      providerDeleted = true;
+      message = `Provider deleted along with ${deletedGameIds.length} game(s).`;
+    } else {
+      provider.isActive = false;
+      await this.providerRepo.save(provider);
+      message = `Provider hidden (not deleted): ${hiddenGameIds.length} game(s) have existing transaction/betting history and can't be safely removed, so they were hidden instead. ${deletedGameIds.length} game(s) with no history were deleted.`;
+    }
+
+    return {
+      code: 200,
+      data: { providerId, providerDeleted, deletedGameIds, hiddenGameIds },
+      message,
+    };
   }
 
   // ADMIN: add game to a category

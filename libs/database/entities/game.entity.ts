@@ -24,6 +24,9 @@ export class GameProvider {
   @Column({ nullable: true })
   logo?: string;
 
+  @Column({ default: true })
+  isActive!: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt?: Date;
 

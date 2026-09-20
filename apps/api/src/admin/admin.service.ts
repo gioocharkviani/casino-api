@@ -418,6 +418,36 @@ export class AdminService {
     }
   }
 
+  async showProvider(providerId: number) {
+    try {
+      return await lastValueFrom(
+        this.gameClient.send('ADMIN_SHOW_PROVIDER', providerId),
+      );
+    } catch {
+      return { statusCode: 500, message: 'Game service unavailable' };
+    }
+  }
+
+  async hideProvider(providerId: number) {
+    try {
+      return await lastValueFrom(
+        this.gameClient.send('ADMIN_HIDE_PROVIDER', providerId),
+      );
+    } catch {
+      return { statusCode: 500, message: 'Game service unavailable' };
+    }
+  }
+
+  async deleteProvider(providerId: number) {
+    try {
+      return await lastValueFrom(
+        this.gameClient.send('ADMIN_DELETE_PROVIDER', providerId),
+      );
+    } catch {
+      return { statusCode: 500, message: 'Game service unavailable' };
+    }
+  }
+
   async addGameToCategory(gameId: number, category: string) {
     try {
       return await lastValueFrom(

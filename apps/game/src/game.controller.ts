@@ -17,7 +17,7 @@ export class GameController {
 
   @MessagePattern('GET_ALL_PROVIDER')
   getAllProvider() {
-    return this.gameService.getAllProvider();
+    return this.gameService.getAllProvider(true);
   }
 
   @MessagePattern('GET_CATEGORIES_GAME')
@@ -92,6 +92,21 @@ export class GameController {
   @MessagePattern('ADMIN_HIDE_GAME')
   adminHideGame(@Payload() gameId: number) {
     return this.gameService.adminHideGame(gameId);
+  }
+
+  @MessagePattern('ADMIN_SHOW_PROVIDER')
+  adminShowProvider(@Payload() providerId: number) {
+    return this.gameService.adminShowProvider(providerId);
+  }
+
+  @MessagePattern('ADMIN_HIDE_PROVIDER')
+  adminHideProvider(@Payload() providerId: number) {
+    return this.gameService.adminHideProvider(providerId);
+  }
+
+  @MessagePattern('ADMIN_DELETE_PROVIDER')
+  adminDeleteProvider(@Payload() providerId: number) {
+    return this.gameService.adminDeleteProvider(providerId);
   }
 
   @MessagePattern('ADMIN_ADD_GAME_CATEGORY')

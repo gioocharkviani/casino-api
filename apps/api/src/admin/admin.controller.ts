@@ -344,6 +344,27 @@ export class AdminController {
     return this.adminService.hideGame(id);
   }
 
+  @Put('providers/:id/show')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
+  showProvider(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.showProvider(id);
+  }
+
+  @Put('providers/:id/hide')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
+  hideProvider(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.hideProvider(id);
+  }
+
+  @Delete('providers/:id')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole(AdminRole.SUPER_ADMIN)
+  deleteProvider(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.deleteProvider(id);
+  }
+
   @Post('games/:id/category')
   @UseGuards(AdminGuard)
   @RequireAdminRole(AdminRole.SUPER_ADMIN, AdminRole.ADMIN)
