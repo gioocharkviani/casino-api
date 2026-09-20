@@ -267,7 +267,11 @@ export class GameService {
       const res = await this.revolverProvider.lunchRevolverGame(data, user);
       return res;
     }
-    if (findGame?.gameProvider?.prefix === 'nuxg') {
+    // NuxGame aggregates many studios (Pragmatic, Evolution, etc.) — each
+    // gets its own GameProvider row/prefix (e.g. "nuxg-14") from
+    // /providersList so filtering shows real studio names, but every one of
+    // them still routes launch/spins/demo through the same NuxgameService.
+    if (findGame?.gameProvider?.prefix?.startsWith('nuxg-')) {
       const res = await this.nuxgameProvider.lunchNuxgameGame(data, user);
       return res;
     }
@@ -293,7 +297,7 @@ export class GameService {
     if (findGame?.gameProvider?.prefix === 'rvlvr') {
       return this.revolverProvider.grantFreeSpins(params);
     }
-    if (findGame?.gameProvider?.prefix === 'nuxg') {
+    if (findGame?.gameProvider?.prefix?.startsWith('nuxg-')) {
       return this.nuxgameProvider.grantFreeSpins(params);
     }
     return { success: false, error: 'Unsupported provider for free spins' };
@@ -309,8 +313,8 @@ export class GameService {
     if (findGame?.gameProvider?.prefix === 'rvlvr') {
       return { url: this.revolverProvider.getDemoUrl(gameId, lang) };
     }
-    if (findGame?.gameProvider?.prefix === 'nuxg') {
-      return { url: this.nuxgameProvider.getDemoUrl(gameId, lang) };
+    if (findGame?.gameProvider?.prefix?.startsWith('nuxg-')) {
+      return { url: await this.nuxgameProvider.getDemoUrl(gameId, lang) };
     }
     return { url: null };
   }

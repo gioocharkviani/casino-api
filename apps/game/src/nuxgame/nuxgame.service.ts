@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   Game,
@@ -6,27 +6,60 @@ import {
   GameSession,
   MetaData,
 } from 'libs/database/entities/game.entity';
+import { UserEntity } from 'libs/database/entities/user.entity';
 import { Repository } from 'typeorm';
-import { gameProvider } from '../interface/provider.interface';
 import { gameMetaData } from '../interface/metaData.interface';
 import { GameInterface } from '../interface/game.interface';
 import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import * as crypto from 'crypto';
-import { UserEntity } from 'libs/database/entities/user.entity';
 import { RpcException } from '@nestjs/microservices';
 
+// ── Real NuxGame API shapes (per apidoc.fungamess.games/nuxgame-aggregation) ──
+interface NuxgameProvider {
+  id: number;
+  name: string;
+  logo: string;
+  category: number; // 1 = casino, 2 = sport
+  slider_image: string | null;
+  colored_logo: string | null;
+}
+
+interface NuxgameGame {
+  id: number;
+  name: string;
+  basicRTP: string;
+  providerId: number;
+  type: string;
+  bonus_buy: boolean;
+  bonus_risk: boolean;
+  supports_fsb: boolean;
+  category_icon: string | null;
+  category: string;
+  typeId: number;
+  img: string;
+  img_vertical: string;
+  img_provider: string;
+  img_square?: string;
+  game_background?: string;
+  demo: boolean;
+  device: string;
+  release_date: string | null;
+  lowRTP?: string;
+}
+
 /**
- * NuxGame provider adapter. Mirrors RevolverService's structure/contract so
- * GameService.lunchGame / GameController message patterns can dispatch to it
- * the same way. Real request/response shapes below are PLACEHOLDERS —
- * TODO: replace once NuxGame API docs are read (via the nuxgame-aggregation
- * MCP server) or keys/spec are provided.
+ * NuxGame provider adapter — a game-aggregator, so it exposes many studios
+ * (Pragmatic, Evolution, ...) under one API. We store each studio as its own
+ * GameProvider row (for accurate provider filtering) but tag them all with a
+ * "nuxg-" prefix so game.service.ts can still route launch/free-spins/demo
+ * calls to this one adapter regardless of which studio a given game is from.
  */
 @Injectable()
 export class NuxgameService {
   private readonly logger = new Logger(NuxgameService.name);
+  private readonly GAME_UUID_PREFIX = 'nuxg-';
 
   constructor(
     @InjectRepository(Game)
@@ -37,73 +70,240 @@ export class NuxgameService {
     private readonly providerRepository: Repository<GameProvider>,
     @InjectRepository(MetaData)
     private readonly metaDataRepository: Repository<MetaData>,
+    @InjectRepository(UserEntity)
+    private readonly userRepository: Repository<UserEntity>,
 
     private readonly configService: ConfigService,
   ) {}
 
-  // ── REFRESH GAME LIST ──────────────────────────────
-  // TODO: confirm real NuxGame "games list" endpoint + response shape.
-  async refreshProvider(reqUrl: string) {
-    try {
-      const response = await fetch(`${reqUrl}`);
-      const data = await response.json();
-      // PLACEHOLDER: adjust path to wherever NuxGame nests the game array.
-      const gameData: GameInterface[] =
-        data?.data?.availableGames ?? data?.games ?? [];
-      const result = await this.processAndSaveGames(gameData);
-      return result;
-    } catch (error) {
-      throw new HttpException(
-        'ERROR DURING NUXGAME REFRESH PROVIDER',
-        HttpStatus.UNPROCESSABLE_ENTITY,
-      );
+  private baseUrl(): string {
+    const url = this.configService.get<string>('NUXGAME_URL', '');
+    if (!url) {
+      throw new RpcException({
+        status: 'error',
+        message: 'NUXGAME_URL is not configured in .env',
+      });
     }
+    return url.replace(/\/+$/, '');
   }
 
-  // ── LAUNCH GAME (real money / demo) ────────────────
-  // TODO: confirm real NuxGame launch endpoint, params, and signature scheme.
-  async lunchNuxgameGame(data: LaunchGameDto, user: UserEntity) {
-    const baseUrl = this.configService.get<string>('NUXGAME_URL', '');
-    const OPERATOR = this.configService.get<string>('NUXGAME_OPERATOR', '');
-    const GAME_ID = data.gameId;
-    const LANG = data.lang || 'en';
-    const VARIANT = data.variant || 'desktop';
-    const EXIT_URL = data.exitUrl || '';
+  // ── Hash-Authorization signing ─────────────────────
+  // Docs (Request Signature / Glossary): sha256(json_encode(ksorted,
+  // stringified request params) + KEY). FAQ #35 confirms this header is
+  // also required on outbound calls (launch/gameList), not just callbacks
+  // we receive, despite some endpoint specs omitting a `security` block.
+  private signParams(params: Record<string, any>): string {
+    const secret = this.configService.get<string>('NUXGAME_HASH', '');
+    const sorted: Record<string, string> = {};
+    for (const key of Object.keys(params).sort()) {
+      if (params[key] === undefined || params[key] === null) continue;
+      sorted[key] = String(params[key]);
+    }
+    const json = JSON.stringify(sorted);
+    return crypto.createHash('sha256').update(json + secret).digest('hex');
+  }
 
-    const isDemo = data.demo === '1' || data.demo === 'true';
-    const uuid = randomUUID().replace(/-/g, '');
-    const token = isDemo ? 'XYZ' : uuid;
+  private async signedFetch(
+    path: string,
+    query: Record<string, any> = {},
+    init: RequestInit = {},
+  ): Promise<any> {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(query)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
+    // Docs: a trailing "/" after the method name is required.
+    const url = `${this.baseUrl()}${path}/${qs.toString() ? `?${qs.toString()}` : ''}`;
 
-    // PLACEHOLDER launch URL shape — replace with NuxGame's real launch API.
-    const LAUNCH_GAME_URL = `${baseUrl}/launch?operator=${OPERATOR}&exit_url=${EXIT_URL}&game=${GAME_ID}&token=${token}&lang=${LANG}&variant=${VARIANT}&demo=${isDemo}`;
+    const response = await fetch(url, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Hash-Authorization': this.signParams(query),
+        ...(init.headers ?? {}),
+      },
+    });
 
-    const request = await fetch(`${LAUNCH_GAME_URL}`);
-    const res = await request.json();
+    const text = await response.text();
+    let body: any;
+    try {
+      body = text ? JSON.parse(text) : null;
+    } catch {
+      body = text;
+    }
 
-    if (!isDemo) {
-      await this.createGameSession({
-        token,
-        gameId: GAME_ID,
-        playerId: user.id,
-        isActive: true,
+    if (!response.ok) {
+      this.logger.error(
+        `NuxGame ${path} failed [${response.status}]: ${typeof body === 'string' ? body : JSON.stringify(body)}`,
+      );
+      throw new RpcException({
+        status: 'error',
+        message: `NuxGame ${path} failed (HTTP ${response.status})`,
+        upstream: body,
       });
     }
 
-    return {
-      code: 200,
-      lunch_game_url: res?.data?.URL ?? res?.url,
+    return body;
+  }
+
+  // ── REFRESH GAME LIST (providers + games) ──────────
+  async refreshProvider(): Promise<{ status: string; newGames: number; message: string }> {
+    let providers: NuxgameProvider[];
+    let games: NuxgameGame[];
+
+    try {
+      providers = (await this.signedFetch('/providersList')) ?? [];
+    } catch (err) {
+      this.rethrowReadable('fetching /providersList', err);
+    }
+
+    try {
+      const res = await this.signedFetch('/gameList');
+      games = res?.games ?? [];
+    } catch (err) {
+      this.rethrowReadable('fetching /gameList', err);
+    }
+
+    const providerById = new Map<number, NuxgameProvider>();
+    for (const p of providers!) providerById.set(p.id, p);
+
+    const mapped: GameInterface[] = games!.map((g) => {
+      const provider = providerById.get(g.providerId);
+      return {
+        gameUUID: `${this.GAME_UUID_PREFIX}${g.id}`,
+        gameHumanReadableId: String(g.id),
+        gameName: g.name,
+        description: null,
+        rules: null,
+        status: 1,
+        gameProviderName: provider?.name ?? `NuxGame Provider ${g.providerId}`,
+        gameProviderPrefix: `nuxg-${g.providerId}`,
+        thumbnail: g.img_square ?? g.img ?? g.img_provider,
+        marketingMaterialsZip: '',
+        metaData: {
+          supports_promo_freespins: g.supports_fsb,
+        } as gameMetaData,
+      };
+    });
+
+    try {
+      return await this.processAndSaveGames(mapped);
+    } catch (err) {
+      this.rethrowReadable('saving NuxGame games to DB', err);
+    }
+  }
+
+  private rethrowReadable(step: string, err: any): never {
+    if (err instanceof RpcException) throw err;
+    const message = err?.message ?? String(err);
+    this.logger.error(`NuxGame refresh failed while ${step}: ${message}`, err?.stack);
+    throw new RpcException({
+      status: 'error',
+      message: `NuxGame refresh failed while ${step}: ${message}`,
+    });
+  }
+
+  // ── LAUNCH GAME (real money / demo) ────────────────
+  async lunchNuxgameGame(data: LaunchGameDto, user: UserEntity) {
+    const country = await this.resolveCountryCode(user.id);
+    const gameId = this.stripPrefix(data.gameId);
+    const isDemo = data.demo === '1' || data.demo === 'true';
+    const uuid = randomUUID().replace(/-/g, '');
+    const token = isDemo ? undefined : uuid;
+
+    const query: Record<string, any> = {
+      demo: isDemo,
+      gameId,
+      country,
+      lang: data.lang || 'en',
+      mobile: data.variant === 'mobile',
     };
+    if (data.exitUrl) query.exiturl = data.exitUrl;
+    if (!isDemo) {
+      query.userId = user.id;
+      query.token = token;
+    }
+
+    if (!isDemo) {
+      await this.createGameSession({
+        token: token!,
+        gameId,
+        playerId: user.id,
+        isActive: true,
+      } as GameSession);
+    }
+
+    // /start responds 302 with the game URL in Location (200 HTML for a
+    // handful of providers) — follow manually so we can hand the URL back
+    // to the frontend instead of letting fetch silently follow it.
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(query)) qs.set(k, String(v));
+    const url = `${this.baseUrl()}/start/?${qs.toString()}`;
+
+    const res = await fetch(url, {
+      redirect: 'manual',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Hash-Authorization': this.signParams(query),
+      },
+    });
+
+    if (res.status === 302 || res.status === 301) {
+      const location = res.headers.get('location');
+      if (!location) {
+        throw new RpcException({
+          status: 'error',
+          message: 'NuxGame /start returned a redirect with no Location header',
+        });
+      }
+      return { code: 200, lunch_game_url: location };
+    }
+
+    const text = await res.text();
+    if (!res.ok) {
+      this.logger.error(`NuxGame /start failed [${res.status}]: ${text}`);
+      throw new RpcException({
+        status: 'error',
+        message: `NuxGame launch failed (HTTP ${res.status}): ${text}`,
+      });
+    }
+    // 200 HTML case (TVBet / Tom Horn / PGSoftZen) — hand the URL itself
+    // back since there's no redirect to extract.
+    return { code: 200, lunch_game_url: url };
   }
 
-  // ── DEMO LAUNCH URL (no session, no network) ───────
-  getDemoUrl(gameId: string, lang = 'en'): string {
-    const baseUrl = this.configService.get<string>('NUXGAME_URL', '');
-    const operator = this.configService.get<string>('NUXGAME_OPERATOR', '');
-    return `${baseUrl}/launch?operator=${operator}&exit_url=&game=${encodeURIComponent(gameId)}&token=XYZ&lang=${lang}&variant=desktop&demo=true`;
+  private stripPrefix(gameId: string): string {
+    return gameId.startsWith(this.GAME_UUID_PREFIX)
+      ? gameId.slice(this.GAME_UUID_PREFIX.length)
+      : gameId;
   }
 
-  // ── FREE SPINS API ──────────────────────────────────
-  // TODO: confirm real NuxGame free-spins/backoffice endpoint + signature formula.
+  private async resolveCountryCode(userId: string): Promise<string> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: { country: true },
+    });
+    return user?.country?.countryCode ?? 'US';
+  }
+
+  // ── DEMO LAUNCH URL ─────────────────────────────────
+  async getDemoUrl(gameId: string, lang = 'en'): Promise<string> {
+    const query = {
+      demo: true,
+      gameId: this.stripPrefix(gameId),
+      country: 'US',
+      lang,
+    };
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(query)) qs.set(k, String(v));
+    // Returned directly for the frontend to open — NuxGame resolves the
+    // redirect itself when the browser follows this link.
+    return `${this.baseUrl()}/start/?${qs.toString()}`;
+  }
+
+  // ── FREE SPINS API (POST /activateFsb) ─────────────
   async grantFreeSpins(params: {
     playerId: string;
     game: string;
@@ -113,45 +313,48 @@ export class NuxgameService {
     expiresAt: string;
     transactionId: string;
   }): Promise<{ success: boolean; error?: string }> {
-    const operator = this.configService
-      .get<string>('NUXGAME_OPERATOR', '')
-      .trim();
-    const baseUrl = this.configService
-      .get<string>('NUXGAME_BACKOFFICE_URL', '')
-      .trim();
-    const secretKey = this.configService.get<string>('NUXGAME_HASH', '').trim();
-    const hash = crypto
-      .createHash('md5')
-      .update(operator + secretKey)
-      .digest('hex');
-
-    const body = {
-      operator,
-      transactionId: params.transactionId,
-      playerId: params.playerId,
-      brand: operator,
-      game: params.game,
-      numberOfFreeSpins: params.numberOfFreeSpins,
-      betAmountPerFreeSpin: params.betAmountPerFreeSpin,
-      expires: params.expiresAt,
-      currency: params.currency,
-      additionalData: {},
-      hash,
-    };
-
     try {
-      const res = await fetch(`${baseUrl}/freespins/add`, {
+      const session = await this.gameSessionRepository.findOne({
+        where: { playerId: params.playerId, isActive: true },
+      });
+      if (!session?.token) {
+        return {
+          success: false,
+          error: 'No active NuxGame session — player must have an open session/token to activate free spins',
+        };
+      }
+
+      const country = await this.resolveCountryCode(params.playerId);
+      const now = new Date();
+
+      const body = {
+        userId: params.playerId,
+        country,
+        deviceType: 'desktop' as const,
+        token: session.token,
+        gameId: this.stripPrefix(params.game),
+        bonus: {
+          bonusName: `promo-${params.transactionId}`,
+          bonusRounds: String(params.numberOfFreeSpins),
+          bonusBet: String(params.betAmountPerFreeSpin / 100),
+          bonusExpired: params.expiresAt,
+          bonusStart: now.toISOString(),
+        },
+      };
+
+      const res = await fetch(`${this.baseUrl()}/activateFsb/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          'Hash-Authorization': this.signParams(body as any),
         },
         body: JSON.stringify(body),
       });
 
       const json = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
+      if (!res.ok || json?.status === false) {
         this.logger.warn(
           `NuxGame free spins grant failed [${res.status}] player=${params.playerId} game=${params.game}: ${JSON.stringify(json)}`,
         );
@@ -163,21 +366,19 @@ export class NuxgameService {
       );
       return { success: true };
     } catch (err: any) {
-      this.logger.error(`NuxGame free spins network error: ${err.message}`);
+      this.logger.error(`NuxGame free spins network error: ${err.message}`, err?.stack);
       return { success: false, error: err.message };
     }
   }
 
   ///////////////===================================/////////////////
   private async processAndSaveGames(gameData: GameInterface[]) {
-    let processed = 0;
     const countBefore = await this.gameRepository.count();
     for (const game of gameData) {
       try {
         await this.findOrCreateGame(game);
-        processed++;
-      } catch (error) {
-        console.error(`Error processing game ${game?.gameName}:`);
+      } catch (error: any) {
+        this.logger.warn(`Error processing game ${game?.gameName}: ${error?.message}`);
         continue;
       }
     }
@@ -244,7 +445,7 @@ export class NuxgameService {
     };
   }
 
-  private async findOrCreateProvider(provider: gameProvider) {
+  private async findOrCreateProvider(provider: { name: string; prefix: string }) {
     const _provider = await this.providerRepository.findOne({
       where: { prefix: provider.prefix },
     });
@@ -270,7 +471,7 @@ export class NuxgameService {
       const createMetaData = this.metaDataRepository.create(gameMetadata);
       return await this.metaDataRepository.save(createMetaData);
     } catch (error) {
-      console.error('Metadata creation error');
+      this.logger.warn('Metadata creation error');
       return null;
     }
   }

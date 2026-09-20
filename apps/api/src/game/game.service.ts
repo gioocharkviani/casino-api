@@ -86,10 +86,22 @@ export class GameService {
 
   //------------------REFRESH NUXGAME PROVIDER GAME LIST
   async refreshNuxgameProvider() {
-    const res = await lastValueFrom(
-      this.client.send('REFRESH_NUXGAME_PROVIDER', {}),
-    );
-    return await res;
+    try {
+      return await lastValueFrom(
+        this.client.send('REFRESH_NUXGAME_PROVIDER', {}),
+      );
+    } catch (err: any) {
+      // Errors thrown as RpcException in the microservice arrive here as a
+      // plain object, not an HttpException — if left uncaught, Nest's
+      // default filter flattens it to a generic 500 with no detail. Return
+      // the real message/upstream body instead so it's actually readable.
+      return {
+        code: 502,
+        status: 'error',
+        message: err?.message ?? 'NuxGame refresh failed',
+        upstream: err?.upstream ?? err,
+      };
+    }
   }
   //------------------END REFRESH NUXGAME PROVIDER GAME LIST
 
