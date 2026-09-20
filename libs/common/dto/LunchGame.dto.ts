@@ -11,9 +11,9 @@ export class LaunchGameDto {
   @IsNotEmpty()
   gameId!: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  lang!: string;
+  lang?: string;
 
   @IsOptional()
   @IsIn(['desktop', 'mobile'])
@@ -25,5 +25,5 @@ export class LaunchGameDto {
 
   @IsOptional()
   @IsString()
-  demo!: string;
+  demo?: string;
 }
