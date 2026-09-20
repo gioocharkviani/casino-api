@@ -5,6 +5,7 @@ import {
   Headers,
   HttpCode,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -83,54 +84,44 @@ export class WalletController {
     return await this.walletService.debitAndCredit(body);
   }
 
-  // NUXGAME WALLET CALLBACKS
-  // Separate route namespace + guard from Revolver's since NuxGame's
-  // signature scheme is unconfirmed (TODO once real docs/keys are in).
-  // Business logic is shared via WalletService (provider-agnostic).
-  @Post('nuxgame/auth')
-  @HttpCode(200)
+  // NUXGAME CALLBACKS (Nuxgame -> us)
+  // Real contract per apidoc.fungamess.games/nuxgame-aggregation/openapi/callback-api —
+  // completely different shape from Revolver's (GET with token+userId query
+  // params, not POST with a `sign` field in the body). Configure NuxGame's
+  // Back Office "Callback URL" to point at this controller's base path
+  // (e.g. https://<domain>/api/wallet/nuxgame) — it appends the endpoint
+  // name itself (/playerDetails, /sessionCheck, /getBalance, /moveFunds).
+  @Get('nuxgame/playerDetails')
   @UseGuards(NuxgameSignatureGuard)
-  nuxgameWalletAuth(@Body() body: WalletAuthDto) {
-    return this.walletService.walletAuth(body);
+  nuxgamePlayerDetails(@Query('token') token: string, @Query('userId') userId: string) {
+    return this.walletService.nuxgamePlayerDetails(userId, token);
   }
 
-  @Post('nuxgame/balance')
-  @HttpCode(200)
+  @Get('nuxgame/sessionCheck')
   @UseGuards(NuxgameSignatureGuard)
-  async nuxgameBalance(@Body() body: WalletBallanceDto) {
-    return await this.walletService.balance(body);
+  nuxgameSessionCheck(@Query('token') token: string, @Query('userId') userId: string) {
+    return this.walletService.nuxgameSessionCheck(userId, token);
   }
 
-  @Post('nuxgame/debit')
+  @Get('nuxgame/getBalance')
+  @UseGuards(NuxgameSignatureGuard)
+  nuxgameGetBalance(@Query('token') token: string, @Query('userId') userId: string) {
+    return this.walletService.nuxgameGetBalance(userId, token);
+  }
+
+  @Post('nuxgame/moveFunds')
   @HttpCode(200)
   @UseGuards(NuxgameSignatureGuard)
-  async nuxgameDebit(@Body() body: DebitRequestDto) {
-    const result = await this.walletService.debit(body);
-    if (result?.code === 200) {
-      this.promoService.emitBetSettled(body.playerId, body.amount, body.gameId);
+  async nuxgameMoveFunds(@Body() body: any) {
+    const result = await this.walletService.nuxgameMoveFunds(body);
+    if (result?.status && body?.direction === 'debit') {
+      this.promoService.emitBetSettled(
+        body.userId,
+        Math.round(Number(body.amount) * 100),
+        String(body.gameId),
+      );
     }
     return result;
-  }
-
-  @Post('nuxgame/credit')
-  @HttpCode(200)
-  @UseGuards(NuxgameSignatureGuard)
-  async nuxgameCredit(@Body() body: CreditRequestDto) {
-    return await this.walletService.credit(body);
-  }
-
-  @Post('nuxgame/rollback')
-  @HttpCode(200)
-  @UseGuards(NuxgameSignatureGuard)
-  async nuxgameRollback(@Body() body: RollbackRequestDto) {
-    return await this.walletService.rollback(body);
-  }
-
-  @Post('nuxgame/debitAndCredit')
-  @HttpCode(200)
-  @UseGuards(NuxgameSignatureGuard)
-  async nuxgameDebitAndCredit(@Body() body: DebitAndCreditDto) {
-    return await this.walletService.debitAndCredit(body);
   }
 
   // WALLET DEPOSIT WITH WITHDRAWAL

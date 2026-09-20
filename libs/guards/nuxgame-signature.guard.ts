@@ -3,12 +3,18 @@ import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 
 /**
- * PLACEHOLDER — mirrors RevolverSignatureGuard's shape but the actual
- * NuxGame signature algorithm/header is unknown until their API docs are
- * read (via the nuxgame-aggregation MCP server) or keys/spec are provided.
- * TODO: replace signString construction + hash algorithm with NuxGame's
- * real formula, and confirm whether the signature travels in the body
- * (like Revolver's `sign`) or in a request header.
+ * Verifies NuxGame's `Hash-Authorization` header on callback requests
+ * (Nuxgame -> us: /playerDetails, /sessionCheck, /getBalance, /moveFunds).
+ *
+ * Per apidoc.fungamess.games/nuxgame-aggregation/general-info/request-signature:
+ * the reference PHP implementation does, in order —
+ *   1. take GET or POST params (whichever the request used)
+ *   2. drop `extraData` if present
+ *   3. ksort() the remaining keys
+ *   4. array_map('strval', ...) — stringify every value
+ *   5. json_encode() the sorted, stringified map
+ *   6. sha256(json + secretKey)
+ * and compares that against the `Hash-Authorization` header.
  */
 @Injectable()
 export class NuxgameSignatureGuard implements CanActivate {
@@ -21,33 +27,29 @@ export class NuxgameSignatureGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
-    const body = request.body;
 
-    if (!body.sign) {
+    const receivedSign = request.headers['hash-authorization'];
+    if (!receivedSign) {
       response.status(200).json({
-        code: 1403,
-        data: null,
-        message: 'Missing signature',
+        status: false,
+        errors: { code: 1004, error: 'Missing Hash-Authorization header' },
       });
       return false;
     }
 
-    const receivedSign = body.sign;
-    const { sign, ...params } = body;
-
-    const flatParams: Record<string, any> = {};
-    for (const [key, value] of Object.entries(params)) {
-      if (typeof value !== 'object' || value === null) {
-        flatParams[key] = value;
-      }
+    const source = request.method === 'GET' ? request.query : request.body;
+    const sorted: Record<string, string> = {};
+    for (const key of Object.keys(source ?? {}).sort()) {
+      if (key === 'extraData') continue;
+      const value = source[key];
+      if (value === undefined || value === null) continue;
+      sorted[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
     }
 
-    const sortedKeys = Object.keys(flatParams).sort();
-    const signString =
-      sortedKeys.map((key) => flatParams[key]).join('') + this.secretKey;
+    const json = JSON.stringify(sorted);
     const calculatedSign = crypto
-      .createHash('sha1')
-      .update(signString)
+      .createHash('sha256')
+      .update(json + this.secretKey)
       .digest('hex');
 
     if (calculatedSign !== receivedSign) {
@@ -56,9 +58,8 @@ export class NuxgameSignatureGuard implements CanActivate {
         received: receivedSign,
       });
       response.status(200).json({
-        code: 1403,
-        data: null,
-        message: 'Wrong Signature',
+        status: false,
+        errors: { code: 1004, error: 'Invalid hash' },
       });
       return false;
     }

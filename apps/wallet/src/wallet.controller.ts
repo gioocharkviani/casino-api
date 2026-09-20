@@ -46,6 +46,27 @@ export class WalletController {
     return this.walletService.walletCredit(data);
   }
 
+  // NUXGAME CALLBACKS
+  @MessagePattern('NUXGAME_PLAYER_DETAILS')
+  nuxgamePlayerDetails(@Payload() data: { userId: string; token: string }) {
+    return this.walletService.nuxgamePlayerDetails(data.userId, data.token);
+  }
+
+  @MessagePattern('NUXGAME_SESSION_CHECK')
+  nuxgameSessionCheck(@Payload() data: { userId: string; token: string }) {
+    return this.walletService.nuxgameSessionCheck(data.userId, data.token);
+  }
+
+  @MessagePattern('NUXGAME_GET_BALANCE')
+  nuxgameGetBalance(@Payload() data: { userId: string; token: string }) {
+    return this.walletService.nuxgameGetBalance(data.userId, data.token);
+  }
+
+  @MessagePattern('NUXGAME_MOVE_FUNDS')
+  nuxgameMoveFunds(@Payload() data: any) {
+    return this.walletService.nuxgameMoveFunds(data);
+  }
+
   @MessagePattern('WALLET_ROLLBACK')
   walletRollback(data: RollbackRequestDto) {
     return this.walletService.walletRollback(data);

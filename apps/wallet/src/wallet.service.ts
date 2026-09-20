@@ -73,6 +73,148 @@ export class WalletService {
       .getOne();
   }
 
+  // Plain (unlocked) real+bonus balance read — for callbacks that only need
+  // to report numbers, not mutate them.
+  private async balanceBreakdown(userId: string): Promise<{ real: number; bonus: number; total: number }> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: { wallet: true },
+    });
+    const activeBonus = await this.dataSource.getRepository(UserPromotionEntity).findOne({
+      where: { userId, status: UserPromotionStatus.ACTIVE },
+      order: { activatedAt: 'ASC' },
+    });
+    const real = user?.wallet?.balance ?? 0;
+    const bonus = activeBonus ? Number(activeBonus.bonusBalance) : 0;
+    return { real, bonus, total: real + bonus };
+  }
+
+  // ── NUXGAME CALLBACKS (Nuxgame -> us) ──────────────
+  // Real contract per apidoc.fungamess.games/nuxgame-aggregation/openapi/callback-api.
+  // Balances here are decimals (major units) per NuxGame's spec — our
+  // internal storage is minor units (cents), hence the /100 conversions.
+
+  async nuxgamePlayerDetails(userId: string, token: string) {
+    const session = await this.gameSessionRepository.findOne({
+      where: { playerId: userId, token, isActive: true },
+    });
+    if (!session) {
+      return { status: false, errors: { code: 417, error: 'Token not found' } };
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: { country: true, wallet: true },
+    });
+    if (!user) {
+      return { status: false, errors: { code: 404, error: 'User not found' } };
+    }
+
+    const { real, bonus, total } = await this.balanceBreakdown(userId);
+
+    return {
+      status: true,
+      userId: user.id,
+      balance: total / 100,
+      realBalance: real / 100,
+      bonusBalance: bonus / 100,
+      nickname: user.userName,
+      currency: this.configService.get('DEFAULT_CURRENCY') || 'USD',
+      language: user.country?.language || 'en',
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+    };
+  }
+
+  async nuxgameSessionCheck(userId: string, token: string) {
+    const session = await this.gameSessionRepository.findOne({
+      where: { playerId: userId, token, isActive: true },
+    });
+    if (!session) {
+      return { status: false, errors: { code: 410, error: 'Token expired' } };
+    }
+    return { status: true };
+  }
+
+  async nuxgameGetBalance(userId: string, token: string) {
+    const session = await this.gameSessionRepository.findOne({
+      where: { playerId: userId, token, isActive: true },
+    });
+    if (!session) {
+      return { status: false, errors: { code: 417, error: 'Token not found' } };
+    }
+
+    const { real, bonus, total } = await this.balanceBreakdown(userId);
+    return {
+      status: true,
+      balance: total / 100,
+      realBalance: real / 100,
+      bonusBalance: bonus / 100,
+    };
+  }
+
+  async nuxgameMoveFunds(data: {
+    token: string;
+    userId: string;
+    gameId: number | string;
+    eventId: string;
+    direction: 'debit' | 'credit';
+    transactionId: string;
+    eventType: string;
+    amount: number | string;
+  }) {
+    const session = await this.gameSessionRepository.findOne({
+      where: { playerId: data.userId, token: data.token, isActive: true },
+    });
+    if (!session) {
+      return { status: false, errors: { code: 417, error: 'Token not found' } };
+    }
+
+    const amountMinor = Math.round(Number(data.amount) * 100);
+    const currency = this.configService.get('DEFAULT_CURRENCY') || 'USD';
+
+    if (data.direction === 'debit') {
+      const res = await this.walletDebit({
+        playerId: data.userId,
+        gameId: String(data.gameId),
+        currency,
+        roundId: data.eventId,
+        transactionId: data.transactionId,
+        amount: amountMinor,
+      } as DebitRequestDto);
+
+      if (res.code !== 200) {
+        return {
+          status: false,
+          errors: { code: res.code === 1503 ? 402 : 1000, error: res.message },
+        };
+      }
+    } else {
+      const res = await this.walletCredit({
+        playerId: data.userId,
+        gameId: String(data.gameId),
+        currency,
+        roundId: data.eventId,
+        transactionId: data.transactionId,
+        amount: amountMinor,
+        relatedExternalDebitTransactionId: data.transactionId,
+      } as CreditRequestDto);
+
+      if (res.code !== 200) {
+        return { status: false, errors: { code: 1000, error: res.message } };
+      }
+    }
+
+    const { real, bonus, total } = await this.balanceBreakdown(data.userId);
+    return {
+      status: true,
+      balance: total / 100,
+      realBalance: real / 100,
+      bonusBalance: bonus / 100,
+    };
+  }
+
   // WALLET AUTH
   async walletAuth(data: WalletAuthDto) {
     const tokenValidationReq = await lastValueFrom(

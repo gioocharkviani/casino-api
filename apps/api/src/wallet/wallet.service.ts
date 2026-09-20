@@ -62,6 +62,29 @@ export class WalletService {
   }
   //WALLET DEBIT AND CREDIT
 
+  // NUXGAME CALLBACKS
+  async nuxgamePlayerDetails(userId: string, token: string) {
+    return await lastValueFrom(
+      this.client.send('NUXGAME_PLAYER_DETAILS', { userId, token }),
+    );
+  }
+
+  async nuxgameSessionCheck(userId: string, token: string) {
+    return await lastValueFrom(
+      this.client.send('NUXGAME_SESSION_CHECK', { userId, token }),
+    );
+  }
+
+  async nuxgameGetBalance(userId: string, token: string) {
+    return await lastValueFrom(
+      this.client.send('NUXGAME_GET_BALANCE', { userId, token }),
+    );
+  }
+
+  async nuxgameMoveFunds(data: any) {
+    return await lastValueFrom(this.client.send('NUXGAME_MOVE_FUNDS', data));
+  }
+
   //DEPOSIT
   async deposit(data: depositDto) {
     console.log(data);
