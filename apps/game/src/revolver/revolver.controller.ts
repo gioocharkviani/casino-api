@@ -19,6 +19,11 @@ export class RevolverController {
     return this.revolverService.refreshProvider(requestUrl);
   }
 
+  @MessagePattern('REVOLVER_RAW_GAME_LIST')
+  fetchRawGameList() {
+    return this.revolverService.fetchRawGameList();
+  }
+
   @MessagePattern('REVOLVER_GET_DEMO_URL')
   getDemoUrl(@Payload() data: { gameId: string; lang?: string }) {
     return { url: this.revolverService.getDemoUrl(data.gameId, data.lang) };

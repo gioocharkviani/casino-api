@@ -17,7 +17,7 @@ import * as crypto from 'crypto';
 import { RpcException } from '@nestjs/microservices';
 
 // ── Real NuxGame API shapes (per apidoc.fungamess.games/nuxgame-aggregation) ──
-interface NuxgameProvider {
+export interface NuxgameProvider {
   id: number;
   name: string;
   logo: string;
@@ -26,7 +26,7 @@ interface NuxgameProvider {
   colored_logo: string | null;
 }
 
-interface NuxgameGame {
+export interface NuxgameGame {
   id: number;
   name: string;
   basicRTP: string;
@@ -169,6 +169,26 @@ export class NuxgameService {
     }
 
     return body;
+  }
+
+  // Raw preview — fetches NuxGame's providers + game list and returns them
+  // as-is, with no DB writes. Lets an admin see exactly what the provider
+  // sent back before/without running an actual sync.
+  async fetchRawGameList(): Promise<{
+    providerCount: number;
+    gameCount: number;
+    providers: NuxgameProvider[];
+    games: NuxgameGame[];
+  }> {
+    const providers: NuxgameProvider[] = (await this.signedFetch('/providersList')) ?? [];
+    const res = await this.signedFetch('/gameList');
+    const games: NuxgameGame[] = res?.games ?? [];
+    return {
+      providerCount: providers.length,
+      gameCount: games.length,
+      providers,
+      games,
+    };
   }
 
   // ── REFRESH GAME LIST (providers + games) ──────────

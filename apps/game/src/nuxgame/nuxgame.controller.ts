@@ -11,6 +11,11 @@ export class NuxgameController {
     return this.nuxgameService.refreshProvider();
   }
 
+  @MessagePattern('NUXGAME_RAW_GAME_LIST')
+  fetchRawGameList() {
+    return this.nuxgameService.fetchRawGameList();
+  }
+
   @MessagePattern('NUXGAME_GET_DEMO_URL')
   async getDemoUrl(@Payload() data: { gameId: string; lang?: string }) {
     return { url: await this.nuxgameService.getDemoUrl(data.gameId, data.lang) };

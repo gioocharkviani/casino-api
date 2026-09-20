@@ -36,6 +36,36 @@ export class RevolverService {
     private readonly configServce: ConfigService,
   ) {}
 
+  // Raw preview — fetches Revolver's game list and returns it as-is, with
+  // no DB writes. Lets an admin see exactly what the provider sent back
+  // before/without running an actual sync.
+  async fetchRawGameList(): Promise<any> {
+    const providerUrl = this.configServce.get('REVOLVER_URL');
+    const operator = this.configServce.get('REVOLVER_OPERATOR');
+    const apiKey = this.configServce.get('REVOLVER_HASH');
+    const requestUrl = `${providerUrl}/getGamesList?operator=${operator}&hash=${apiKey}`;
+
+    const response = await fetch(requestUrl);
+    const text = await response.text();
+    let body: any;
+    try {
+      body = text ? JSON.parse(text) : null;
+    } catch {
+      body = text;
+    }
+
+    if (!response.ok) {
+      throw new RpcException({
+        status: 'error',
+        message: `Revolver getGamesList failed (HTTP ${response.status})`,
+        upstream: body,
+      });
+    }
+
+    const games = body?.data?.availableGames ?? [];
+    return { status: response.status, gameCount: games.length, raw: body };
+  }
+
   //refetchGames
   async refreshProvider(reqUrl: String) {
     try {

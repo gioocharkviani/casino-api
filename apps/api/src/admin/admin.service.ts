@@ -476,6 +476,34 @@ export class AdminService {
     }
   }
 
+  // Raw provider previews — exactly what Revolver/NuxGame's API returned,
+  // with no DB writes. For inspecting the feed before/without syncing.
+  async getRevolverRawGameList() {
+    try {
+      return await lastValueFrom(this.gameClient.send('REVOLVER_RAW_GAME_LIST', {}));
+    } catch (err: any) {
+      return {
+        code: 502,
+        status: 'error',
+        message: err?.message ?? 'Revolver raw game list fetch failed',
+        upstream: err?.upstream ?? err,
+      };
+    }
+  }
+
+  async getNuxgameRawGameList() {
+    try {
+      return await lastValueFrom(this.gameClient.send('NUXGAME_RAW_GAME_LIST', {}));
+    } catch (err: any) {
+      return {
+        code: 502,
+        status: 'error',
+        message: err?.message ?? 'NuxGame raw game list fetch failed',
+        upstream: err?.upstream ?? err,
+      };
+    }
+  }
+
   async getAllTransactions(filters: {
     page?: number;
     limit?: number;

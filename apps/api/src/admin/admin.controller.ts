@@ -382,6 +382,18 @@ export class AdminController {
     return this.adminService.getGameProviders();
   }
 
+  @Get('games/revolver-raw')
+  @UseGuards(AdminGuard)
+  getRevolverRawGameList() {
+    return this.adminService.getRevolverRawGameList();
+  }
+
+  @Get('games/nuxgame-raw')
+  @UseGuards(AdminGuard)
+  getNuxgameRawGameList() {
+    return this.adminService.getNuxgameRawGameList();
+  }
+
   @Get('games/category-overview')
   @UseGuards(AdminGuard)
   getCategoryOverview() {

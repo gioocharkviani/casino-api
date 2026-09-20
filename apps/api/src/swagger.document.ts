@@ -881,6 +881,34 @@ export const swaggerDocument: Omit<OpenAPIObject, 'paths'> & {
         responses: { 200: { description: 'Array of category strings e.g. ["TOP"]' } },
       },
     },
+    '/api/admin/games/revolver-raw': {
+      get: {
+        tags: ['Admin / Games'],
+        summary: 'Preview raw game list from Revolver (no DB writes)  [any admin]',
+        description:
+          'Calls Revolver\'s getGamesList API directly and returns the raw response so you can inspect exactly what the provider sent back, without running an actual sync.',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: '{ status, gameCount, raw: <full Revolver response> }' },
+          401: { description: 'Missing/invalid admin session' },
+          502: { description: 'Revolver API request failed' },
+        },
+      },
+    },
+    '/api/admin/games/nuxgame-raw': {
+      get: {
+        tags: ['Admin / Games'],
+        summary: 'Preview raw game list from NuxGame (no DB writes)  [any admin]',
+        description:
+          'Calls NuxGame\'s /providersList and /gameList APIs directly and returns the raw arrays so you can inspect exactly what the provider sent back (e.g. check whether image fields are actually populated), without running an actual sync.',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: '{ providerCount, gameCount, providers: [...], games: [...] }' },
+          401: { description: 'Missing/invalid admin session' },
+          502: { description: 'NuxGame API request failed (see upstream field for the real error)' },
+        },
+      },
+    },
     '/api/game/revolver-refresh': {
       post: {
         tags: ['Admin / Games'],
