@@ -108,11 +108,19 @@ export class GameService {
   //-----------------Lunch game
   async lunchGame(data: LaunchGameDto, token: string) {
     const user = await this.UserService.getUserInfo(token);
-    const res = await lastValueFrom(
-      this.client.send('LUNCH_GAME', { data, user }),
-    );
-
-    return res;
+    try {
+      return await lastValueFrom(this.client.send('LUNCH_GAME', { data, user }));
+    } catch (err: any) {
+      // Same deal as refreshNuxgameProvider: RpcException payloads arrive
+      // here as plain objects, not HttpExceptions — surface the real
+      // message instead of letting it flatten to a generic 500.
+      return {
+        code: 502,
+        status: 'error',
+        message: err?.message ?? 'Game launch failed',
+        upstream: err?.upstream ?? err,
+      };
+    }
   }
   //-----------------Lunch game
 }

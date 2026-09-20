@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   CategoryDefinition,
@@ -18,6 +19,8 @@ import { favGameDto } from 'libs/common/dto/favGame.dto';
 
 @Injectable()
 export class GameService {
+  private readonly logger = new Logger(GameService.name);
+
   constructor(
     @InjectRepository(Game)
     private readonly gameRepository: Repository<Game>,
@@ -263,7 +266,15 @@ export class GameService {
       },
     });
 
-    if (findGame?.gameProvider?.prefix === 'rvlvr') {
+    if (!findGame) {
+      this.logger.warn(`lunchGame: no game found with gameUUID="${data.gameId}"`);
+      throw new RpcException({
+        status: 'error',
+        message: `Game not found (gameId="${data.gameId}"). Has it been synced from its provider yet?`,
+      });
+    }
+
+    if (findGame.gameProvider?.prefix === 'rvlvr') {
       const res = await this.revolverProvider.lunchRevolverGame(data, user);
       return res;
     }
@@ -271,11 +282,18 @@ export class GameService {
     // gets its own GameProvider row/prefix (e.g. "nuxg-14") from
     // /providersList so filtering shows real studio names, but every one of
     // them still routes launch/spins/demo through the same NuxgameService.
-    if (findGame?.gameProvider?.prefix?.startsWith('nuxg-')) {
+    if (findGame.gameProvider?.prefix?.startsWith('nuxg-')) {
       const res = await this.nuxgameProvider.lunchNuxgameGame(data, user);
       return res;
     }
-    return data;
+
+    this.logger.warn(
+      `lunchGame: game "${data.gameId}" has an unrecognized provider prefix "${findGame.gameProvider?.prefix}"`,
+    );
+    throw new RpcException({
+      status: 'error',
+      message: `No launch handler for provider prefix "${findGame.gameProvider?.prefix}"`,
+    });
   }
   //LUNCH GAME
 

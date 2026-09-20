@@ -49,13 +49,6 @@ interface NuxgameGame {
   lowRTP?: string;
 }
 
-/**
- * NuxGame provider adapter — a game-aggregator, so it exposes many studios
- * (Pragmatic, Evolution, ...) under one API. We store each studio as its own
- * GameProvider row (for accurate provider filtering) but tag them all with a
- * "nuxg-" prefix so game.service.ts can still route launch/free-spins/demo
- * calls to this one adapter regardless of which studio a given game is from.
- */
 @Injectable()
 export class NuxgameService {
   private readonly logger = new Logger(NuxgameService.name);
@@ -88,10 +81,7 @@ export class NuxgameService {
   }
 
   // ── Hash-Authorization signing ─────────────────────
-  // Docs (Request Signature / Glossary): sha256(json_encode(ksorted,
-  // stringified request params) + KEY). FAQ #35 confirms this header is
-  // also required on outbound calls (launch/gameList), not just callbacks
-  // we receive, despite some endpoint specs omitting a `security` block.
+
   private signParams(params: Record<string, any>): string {
     const secret = this.configService.get<string>('NUXGAME_HASH', '');
     const sorted: Record<string, string> = {};
@@ -100,15 +90,18 @@ export class NuxgameService {
       sorted[key] = String(params[key]);
     }
     const json = JSON.stringify(sorted);
-    return crypto.createHash('sha256').update(json + secret).digest('hex');
+    return crypto
+      .createHash('sha256')
+      .update(json + secret)
+      .digest('hex');
   }
 
-  // Trims huge bodies (a full /gameList response can be thousands of games)
-  // so logs stay readable instead of dumping megabytes to the console.
   private preview(body: any, max = 2000): string {
     const str = typeof body === 'string' ? body : JSON.stringify(body);
     if (!str) return String(str);
-    return str.length > max ? `${str.slice(0, max)}… [truncated, ${str.length} chars total]` : str;
+    return str.length > max
+      ? `${str.slice(0, max)}… [truncated, ${str.length} chars total]`
+      : str;
   }
 
   private async signedFetch(
@@ -141,7 +134,10 @@ export class NuxgameService {
         },
       });
     } catch (err: any) {
-      this.logger.error(`✗ NuxGame request to ${url} threw before a response arrived: ${err.message}`, err?.stack);
+      this.logger.error(
+        `✗ NuxGame request to ${url} threw before a response arrived: ${err.message}`,
+        err?.stack,
+      );
       throw new RpcException({
         status: 'error',
         message: `NuxGame request failed (network error): ${err.message}`,
@@ -176,14 +172,20 @@ export class NuxgameService {
   }
 
   // ── REFRESH GAME LIST (providers + games) ──────────
-  async refreshProvider(): Promise<{ status: string; newGames: number; message: string }> {
+  async refreshProvider(): Promise<{
+    status: string;
+    newGames: number;
+    message: string;
+  }> {
     this.logger.log('=== NuxGame refreshProvider() started ===');
     let providers: NuxgameProvider[];
     let games: NuxgameGame[];
 
     try {
       providers = (await this.signedFetch('/providersList')) ?? [];
-      this.logger.log(`Fetched ${providers.length} providers from /providersList`);
+      this.logger.log(
+        `Fetched ${providers.length} providers from /providersList`,
+      );
     } catch (err) {
       this.rethrowReadable('fetching /providersList', err);
     }
@@ -233,7 +235,9 @@ export class NuxgameService {
 
     try {
       const result = await this.processAndSaveGames(mapped);
-      this.logger.log(`=== NuxGame refreshProvider() finished: ${this.preview(result)} ===`);
+      this.logger.log(
+        `=== NuxGame refreshProvider() finished: ${this.preview(result)} ===`,
+      );
       return result;
     } catch (err) {
       this.rethrowReadable('saving NuxGame games to DB', err);
@@ -243,7 +247,10 @@ export class NuxgameService {
   private rethrowReadable(step: string, err: any): never {
     if (err instanceof RpcException) throw err;
     const message = err?.message ?? String(err);
-    this.logger.error(`NuxGame refresh failed while ${step}: ${message}`, err?.stack);
+    this.logger.error(
+      `NuxGame refresh failed while ${step}: ${message}`,
+      err?.stack,
+    );
     throw new RpcException({
       status: 'error',
       message: `NuxGame refresh failed while ${step}: ${message}`,
@@ -310,7 +317,9 @@ export class NuxgameService {
     if (res.status === 302 || res.status === 301) {
       const location = res.headers.get('location');
       if (!location) {
-        this.logger.error('✗ NuxGame /start returned a redirect with no Location header');
+        this.logger.error(
+          '✗ NuxGame /start returned a redirect with no Location header',
+        );
         throw new RpcException({
           status: 'error',
           message: 'NuxGame /start returned a redirect with no Location header',
@@ -381,7 +390,8 @@ export class NuxgameService {
       if (!session?.token) {
         return {
           success: false,
-          error: 'No active NuxGame session — player must have an open session/token to activate free spins',
+          error:
+            'No active NuxGame session — player must have an open session/token to activate free spins',
         };
       }
 
@@ -403,7 +413,9 @@ export class NuxgameService {
         },
       };
 
-      this.logger.log(`→ NuxGame free spins request: POST /activateFsb | body=${this.preview(body)}`);
+      this.logger.log(
+        `→ NuxGame free spins request: POST /activateFsb | body=${this.preview(body)}`,
+      );
 
       const res = await fetch(`${this.baseUrl()}/activateFsb/`, {
         method: 'POST',
@@ -416,7 +428,9 @@ export class NuxgameService {
       });
 
       const json = await res.json().catch(() => ({}));
-      this.logger.log(`← NuxGame free spins response: ${res.status} | body=${this.preview(json)}`);
+      this.logger.log(
+        `← NuxGame free spins response: ${res.status} | body=${this.preview(json)}`,
+      );
 
       if (!res.ok || json?.status === false) {
         this.logger.warn(
@@ -430,7 +444,10 @@ export class NuxgameService {
       );
       return { success: true };
     } catch (err: any) {
-      this.logger.error(`NuxGame free spins network error: ${err.message}`, err?.stack);
+      this.logger.error(
+        `NuxGame free spins network error: ${err.message}`,
+        err?.stack,
+      );
       return { success: false, error: err.message };
     }
   }
@@ -442,7 +459,9 @@ export class NuxgameService {
       try {
         await this.findOrCreateGame(game);
       } catch (error: any) {
-        this.logger.warn(`Error processing game ${game?.gameName}: ${error?.message}`);
+        this.logger.warn(
+          `Error processing game ${game?.gameName}: ${error?.message}`,
+        );
         continue;
       }
     }
@@ -509,7 +528,10 @@ export class NuxgameService {
     };
   }
 
-  private async findOrCreateProvider(provider: { name: string; prefix: string }) {
+  private async findOrCreateProvider(provider: {
+    name: string;
+    prefix: string;
+  }) {
     const _provider = await this.providerRepository.findOne({
       where: { prefix: provider.prefix },
     });
