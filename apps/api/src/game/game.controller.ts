@@ -12,6 +12,7 @@ import { getRequestDto } from 'libs/common/dto/getRequest.dto';
 import { LaunchGameDto } from 'libs/common/dto/LunchGame.dto';
 import { AuthGuard } from 'libs/guards/auth.guard';
 import { VerifyGuard } from 'libs/guards/verify.guard';
+import { AdminGuard } from 'libs/guards/admin.guard';
 import type { Request } from 'express';
 
 @Controller('game')
@@ -49,11 +50,13 @@ export class GameController {
   }
 
   @Post('revolver-refresh')
+  @UseGuards(AdminGuard)
   refreshProvider() {
     return this.gameService.refreshProvider();
   }
 
   @Post('nuxgame-refresh')
+  @UseGuards(AdminGuard)
   refreshNuxgameProvider() {
     return this.gameService.refreshNuxgameProvider();
   }
