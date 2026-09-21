@@ -195,6 +195,7 @@ export class NuxgameService {
   async refreshProvider(): Promise<{
     status: string;
     newGames: number;
+    updatedGames: number;
     message: string;
   }> {
     this.logger.log('=== NuxGame refreshProvider() started ===');
@@ -227,7 +228,11 @@ export class NuxgameService {
     const mapped: GameInterface[] = games!.map((g) => {
       const provider = providerById.get(g.providerId);
       if (!provider) unmatchedProviderIds++;
-      const thumbnail = g.img_square || g.img || g.img_provider || undefined;
+      // img_square/game_background often come back as a literal placeholder
+      // ("https://stage.nuxgame.com/images/nothing.jpeg") rather than empty
+      // — so they're not safe to prefer in a `||` fallback chain (they're
+      // truthy, non-empty text). `img` is the reliable field.
+      const thumbnail = g.img || g.img_provider || undefined;
       if (!thumbnail) missingThumbnail++;
       return {
         gameUUID: `${this.GAME_UUID_PREFIX}${g.id}`,
@@ -475,9 +480,11 @@ export class NuxgameService {
   ///////////////===================================/////////////////
   private async processAndSaveGames(gameData: GameInterface[]) {
     const countBefore = await this.gameRepository.count();
+    let updatedGames = 0;
     for (const game of gameData) {
       try {
-        await this.findOrCreateGame(game);
+        const result = await this.findOrCreateGame(game);
+        if ((result as any)?.updated) updatedGames++;
       } catch (error: any) {
         this.logger.warn(
           `Error processing game ${game?.gameName}: ${error?.message}`,
@@ -489,6 +496,7 @@ export class NuxgameService {
     return {
       status: 'OK',
       newGames: countAfter - countBefore,
+      updatedGames,
       message: 'PROVIDER REFRESH SUCCESSFULLY',
     };
   }
@@ -514,13 +522,11 @@ export class NuxgameService {
   private async findOrCreateGame(DATA: GameInterface) {
     const FIND_GAME = await this.gameRepository.findOne({
       where: { gameUUID: DATA.gameUUID },
+      relations: { metaData: true, gameProvider: true },
     });
+
     if (FIND_GAME) {
-      return {
-        skipped: true,
-        message: 'Game already exists',
-        gameId: FIND_GAME.id,
-      };
+      return this.updateExistingGame(FIND_GAME, DATA);
     }
 
     const PROVIDER = await this.findOrCreateProvider({
@@ -545,6 +551,74 @@ export class NuxgameService {
       status: 'OK',
       message: 'NUXGAME provider gamelist updated succesfully',
       newGames: savedGames,
+    };
+  }
+
+  // Duplicate hit on sync — refresh the row from the provider's current
+  // data instead of leaving it stale. gameName/thumbnail/description/rules/
+  // status/marketingMaterialsZip and the provider link all get overwritten
+  // with whatever NuxGame sent this time; only gameUUID (the identity we
+  // matched on) and the row's own id are left untouched.
+  private async updateExistingGame(existing: Game, DATA: GameInterface) {
+    let changed = false;
+
+    if (DATA.thumbnail && DATA.thumbnail !== existing.thumbnail) {
+      existing.thumbnail = DATA.thumbnail;
+      changed = true;
+    }
+    if (DATA.gameName && DATA.gameName !== existing.gameName) {
+      existing.gameName = DATA.gameName;
+      changed = true;
+    }
+    if (DATA.description !== existing.description) {
+      existing.description = DATA.description;
+      changed = true;
+    }
+    if (DATA.rules !== existing.rules) {
+      existing.rules = DATA.rules;
+      changed = true;
+    }
+    if (DATA.status !== undefined && DATA.status !== existing.status) {
+      existing.status = DATA.status;
+      changed = true;
+    }
+    if (DATA.marketingMaterialsZip && DATA.marketingMaterialsZip !== existing.marketingMaterialsZip) {
+      existing.marketingMaterialsZip = DATA.marketingMaterialsZip;
+      changed = true;
+    }
+    if (DATA.gameProviderPrefix && existing.gameProvider?.prefix !== DATA.gameProviderPrefix) {
+      const provider = await this.findOrCreateProvider({
+        name: DATA.gameProviderName,
+        prefix: DATA.gameProviderPrefix,
+      });
+      existing.providerId = provider.id;
+      changed = true;
+    }
+
+    if (DATA.metaData) {
+      const hasValues = Object.values(DATA.metaData).some(
+        (v) => v !== null && v !== undefined && v !== '',
+      );
+      if (hasValues) {
+        if (existing.metaData) {
+          Object.assign(existing.metaData, DATA.metaData);
+          await this.metaDataRepository.save(existing.metaData);
+        } else {
+          existing.metaData = await this.findOrCreateMetaData(DATA.metaData);
+        }
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      await this.gameRepository.save(existing);
+    }
+
+    return {
+      status: 'OK',
+      updated: changed,
+      message: changed ? 'Existing game updated from provider data' : 'Game already up to date',
+      gameId: existing.id,
     };
   }
 
