@@ -180,7 +180,8 @@ export class NuxgameService {
     providers: NuxgameProvider[];
     games: NuxgameGame[];
   }> {
-    const providers: NuxgameProvider[] = (await this.signedFetch('/providersList')) ?? [];
+    const providers: NuxgameProvider[] =
+      (await this.signedFetch('/providersList')) ?? [];
     const res = await this.signedFetch('/gameList');
     const games: NuxgameGame[] = res?.games ?? [];
     return {
@@ -228,11 +229,7 @@ export class NuxgameService {
     const mapped: GameInterface[] = games!.map((g) => {
       const provider = providerById.get(g.providerId);
       if (!provider) unmatchedProviderIds++;
-      // img_square/game_background often come back as a literal placeholder
-      // ("https://stage.nuxgame.com/images/nothing.jpeg") rather than empty
-      // — so they're not safe to prefer in a `||` fallback chain (they're
-      // truthy, non-empty text). `img` is the reliable field.
-      const thumbnail = g.img || g.img_provider || undefined;
+      const thumbnail = g.img;
       if (!thumbnail) missingThumbnail++;
       return {
         gameUUID: `${this.GAME_UUID_PREFIX}${g.id}`,
@@ -582,11 +579,17 @@ export class NuxgameService {
       existing.status = DATA.status;
       changed = true;
     }
-    if (DATA.marketingMaterialsZip && DATA.marketingMaterialsZip !== existing.marketingMaterialsZip) {
+    if (
+      DATA.marketingMaterialsZip &&
+      DATA.marketingMaterialsZip !== existing.marketingMaterialsZip
+    ) {
       existing.marketingMaterialsZip = DATA.marketingMaterialsZip;
       changed = true;
     }
-    if (DATA.gameProviderPrefix && existing.gameProvider?.prefix !== DATA.gameProviderPrefix) {
+    if (
+      DATA.gameProviderPrefix &&
+      existing.gameProvider?.prefix !== DATA.gameProviderPrefix
+    ) {
       const provider = await this.findOrCreateProvider({
         name: DATA.gameProviderName,
         prefix: DATA.gameProviderPrefix,
@@ -617,7 +620,9 @@ export class NuxgameService {
     return {
       status: 'OK',
       updated: changed,
-      message: changed ? 'Existing game updated from provider data' : 'Game already up to date',
+      message: changed
+        ? 'Existing game updated from provider data'
+        : 'Game already up to date',
       gameId: existing.id,
     };
   }

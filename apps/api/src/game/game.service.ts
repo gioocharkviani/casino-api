@@ -91,10 +91,6 @@ export class GameService {
         this.client.send('REFRESH_NUXGAME_PROVIDER', {}),
       );
     } catch (err: any) {
-      // Errors thrown as RpcException in the microservice arrive here as a
-      // plain object, not an HttpException — if left uncaught, Nest's
-      // default filter flattens it to a generic 500 with no detail. Return
-      // the real message/upstream body instead so it's actually readable.
       return {
         code: 502,
         status: 'error',
@@ -109,7 +105,9 @@ export class GameService {
   async lunchGame(data: LaunchGameDto, token: string) {
     const user = await this.UserService.getUserInfo(token);
     try {
-      return await lastValueFrom(this.client.send('LUNCH_GAME', { data, user }));
+      return await lastValueFrom(
+        this.client.send('LUNCH_GAME', { data, user }),
+      );
     } catch (err: any) {
       // Same deal as refreshNuxgameProvider: RpcException payloads arrive
       // here as plain objects, not HttpExceptions — surface the real
