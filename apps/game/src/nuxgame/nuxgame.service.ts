@@ -229,9 +229,7 @@ export class NuxgameService {
     const mapped: GameInterface[] = games!.map((g) => {
       const provider = providerById.get(g.providerId);
       if (!provider) unmatchedProviderIds++;
-      const thumbnail = g.img
-        ? g.img
-        : 'https://stage.nuxgame.com/images/nothing.jpeg';
+      const thumbnail = g.img ? g.img : g.img_square;
       if (!thumbnail) missingThumbnail++;
       return {
         gameUUID: `${this.GAME_UUID_PREFIX}${g.id}`,
