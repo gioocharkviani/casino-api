@@ -56,7 +56,6 @@ export class WalletController {
   @UseGuards(RevolverSignatureGuard)
   async debit(@Body() body: DebitRequestDto) {
     const result = await this.walletService.debit(body);
-    // fire-and-forget: update wagering progress for active bonuses
     if (result?.code === 200) {
       this.promoService.emitBetSettled(body.playerId, body.amount, body.gameId);
     }
@@ -84,28 +83,30 @@ export class WalletController {
     return await this.walletService.debitAndCredit(body);
   }
 
-  // NUXGAME CALLBACKS (Nuxgame -> us)
-  // Real contract per apidoc.fungamess.games/nuxgame-aggregation/openapi/callback-api —
-  // completely different shape from Revolver's (GET with token+userId query
-  // params, not POST with a `sign` field in the body). Configure NuxGame's
-  // Back Office "Callback URL" to point at this controller's base path
-  // (e.g. https://<domain>/api/wallet/nuxgame) — it appends the endpoint
-  // name itself (/playerDetails, /sessionCheck, /getBalance, /moveFunds).
   @Get('nuxgame/playerDetails')
   @UseGuards(NuxgameSignatureGuard)
-  nuxgamePlayerDetails(@Query('token') token: string, @Query('userId') userId: string) {
+  nuxgamePlayerDetails(
+    @Query('token') token: string,
+    @Query('userId') userId: string,
+  ) {
     return this.walletService.nuxgamePlayerDetails(userId, token);
   }
 
   @Get('nuxgame/sessionCheck')
   @UseGuards(NuxgameSignatureGuard)
-  nuxgameSessionCheck(@Query('token') token: string, @Query('userId') userId: string) {
+  nuxgameSessionCheck(
+    @Query('token') token: string,
+    @Query('userId') userId: string,
+  ) {
     return this.walletService.nuxgameSessionCheck(userId, token);
   }
 
   @Get('nuxgame/getBalance')
   @UseGuards(NuxgameSignatureGuard)
-  nuxgameGetBalance(@Query('token') token: string, @Query('userId') userId: string) {
+  nuxgameGetBalance(
+    @Query('token') token: string,
+    @Query('userId') userId: string,
+  ) {
     return this.walletService.nuxgameGetBalance(userId, token);
   }
 
